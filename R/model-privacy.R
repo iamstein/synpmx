@@ -231,14 +231,24 @@ print.pmx_model_release <- function(x, ...) {
 # by about the patient's distance from the mean on the log scale over n - 1,
 # and the between-subject spread is the SD of the log baselines, recomputed
 # without the patient.
+#
+# The subjects behind the two largest moves ride along as an attribute, for the
+# estimation to read and remove; the stored reading is numbers only.
 .pd_influence <- function(baselines) {
-  b <- log(baselines[is.finite(baselines) & baselines > 0])
+  keep <- is.finite(baselines) & baselines > 0
+  b <- log(baselines[keep])
+  ids <- names(baselines)[keep] %||% rep(NA_character_, length(b))
   n <- length(b)
   if (n < 3L) return(NULL)
   spread <- stats::sd(b)
   without <- vapply(seq_len(n), function(i) stats::sd(b[-i]), numeric(1))
-  c(typical = 100 * (exp(max(abs(b - mean(b))) / (n - 1)) - 1),
-    spread = 100 * max(abs(spread - without)), patients = n)
+  pull <- abs(b - mean(b))
+  moves <- abs(spread - without)
+  out <- c(typical = 100 * (exp(max(pull) / (n - 1)) - 1),
+           spread = 100 * max(moves), patients = n)
+  attr(out, "who") <- c(typical = ids[[which.max(pull)]],
+                        spread = ids[[which.max(moves)]])
+  out
 }
 
 # Every continuous covariate, recomputed without each patient in turn. The
@@ -251,30 +261,35 @@ print.pmx_model_release <- function(x, ...) {
     spec <- covariates[[column]]
     if (!spec$kind %in% c("lognormal", "normal")) next
     x <- suppressWarnings(as.numeric(baseline[[column]]))
-    x <- x[is.finite(x)]
+    finite <- is.finite(x)
+    ids <- names(baseline[[column]])[finite] %||% rep(NA_character_, sum(finite))
+    x <- x[finite]
     n <- length(x)
     if (n < 3L) next
     scale <- if (identical(spec$kind, "lognormal")) log(x) else x
     whole <- .trimmed_moments(scale)
     loo <- vapply(seq_len(n), function(i) .trimmed_moments(scale[-i]),
                   numeric(2))
+    location <- abs(loo["mean", ] - whole[["mean"]])
+    spread <- abs(loo["sd", ] - whole[["sd"]])
     if (identical(spec$kind, "lognormal")) {
       rows[[length(rows) + 1L]] <- .influence_row(
         "covariate", column, "geometric mean", exp(spec$meanlog),
-        100 * (exp(max(abs(loo["mean", ] - whole[["mean"]]))) - 1), "%", n)
+        100 * (exp(max(location)) - 1), "%", n,
+        who = ids[[which.max(location)]])
       rows[[length(rows) + 1L]] <- .influence_row(
         "covariate", column, "SD on the log scale", spec$sdlog,
-        100 * max(abs(loo["sd", ] - whole[["sd"]])), "points", n)
+        100 * max(spread), "points", n, who = ids[[which.max(spread)]])
     } else {
       sd <- whole[["sd"]]
       rows[[length(rows) + 1L]] <- .influence_row(
         "covariate", column, "mean", spec$mean,
-        if (sd > 0) 100 * max(abs(loo["mean", ] - whole[["mean"]])) / sd else 0,
-        "% of the SD", n)
+        if (sd > 0) 100 * max(location) / sd else 0, "% of the SD", n,
+        who = ids[[which.max(location)]])
       rows[[length(rows) + 1L]] <- .influence_row(
         "covariate", column, "SD", spec$sd,
-        if (sd > 0) 100 * max(abs(loo["sd", ] - sd)) / sd else 0,
-        "% of the SD", n)
+        if (sd > 0) 100 * max(spread) / sd else 0, "% of the SD", n,
+        who = ids[[which.max(spread)]])
     }
   }
   if (!length(rows)) NULL else .bind_influence(rows)
@@ -299,13 +314,16 @@ print.pmx_model_release <- function(x, ...) {
       shape <- shapes[[label]]
       reading <- shape$influence
       if (is.null(reading)) next
+      who <- attr(reading, "who") %||% c(typical = NA, spread = NA)
       rows[[length(rows) + 1L]] <- .bind_influence(list(
         .influence_row("PD", label, "typical baseline",
                        unname(shape$typical[["baseline"]]),
-                       reading[["typical"]], "%", reading[["patients"]]),
+                       reading[["typical"]], "%", reading[["patients"]],
+                       who = unname(who[["typical"]])),
         .influence_row("PD", label, "between-subject SD",
                        shape$baseline_cv %||% 0, reading[["spread"]],
-                       "points", reading[["patients"]])))
+                       "points", reading[["patients"]],
+                       who = unname(who[["spread"]]))))
     }
   }
   rows[[length(rows) + 1L]] <- .covariate_influence(source, roles, covariates)
@@ -321,7 +339,7 @@ print.pmx_model_release <- function(x, ...) {
 
 # The worst row, in a sentence.
 .influence_summary <- function(influence) {
-  if (is.null(influence) || !nrow(influence)) {
+  if (!is.data.frame(influence) || !nrow(influence)) {
     return(list(verdict = "not applicable",
                 result = "no released estimate to read"))
   }
@@ -344,12 +362,19 @@ print.pmx_model_release <- function(x, ...) {
 .release_privacy <- function(privacy) {
   if (is.null(privacy)) return(NULL)
   summary <- .influence_summary(privacy$influence)
+  frequencies <- .frequency_summary(privacy$frequencies)
   list(influence = list(
     verdict = summary$verdict,
     result = if (identical(summary$verdict, "pass")) {
       sprintf("every released estimate moves less than %g",
               .influence_thresholds[["review"]])
     } else summary$result),
+    # The frequency verdict travels the same way: the counts stay on the fit.
+    frequencies = list(
+      verdict = frequencies$verdict,
+      result = if (identical(frequencies$verdict, "pass")) {
+        "every released frequency rests on at least the floor of patients"
+      } else frequencies$result),
     thresholds = .influence_thresholds)
 }
 
@@ -358,12 +383,17 @@ print.pmx_model_release <- function(x, ...) {
 #' Privacy checks on a fitted model
 #'
 #' Five checks on what a fitted model releases, each with its pass criterion.
-#' The first four ask whether the release holds anything about one patient
-#' that it should not: a per-patient table, an identifier, a single patient's
-#' value, or a frequency resting on too few patients. The fifth asks how far
-#' any one patient moves a released estimate, from the individual random
-#' effects for the population model, from each subject's baseline for the PD
-#' shapes, and by leaving each patient out for the covariate summaries.
+#' The first three ask whether the release holds anything about one patient
+#' that it should not: a per-patient table, an identifier, or a single
+#' patient's value. The fourth recounts the smallest group of patients behind
+#' each kind of released frequency -- arm sizes, attendance, dose-change rates,
+#' categorical levels and carried values -- on both sides of it, since "one
+#' patient missed this visit" discloses as much as "one patient came". The
+#' fifth asks how far any one patient moves a released estimate, from the
+#' individual random effects for the population model, from each subject's
+#' baseline for the PD shapes, and by leaving each patient out for the
+#' covariate summaries; by default estimation has already left out any patient
+#' who moved one by 15 or more.
 #'
 #' None of this is a formal privacy guarantee. The fifth check describes this
 #' study only, and an adversary who knows every other patient in it can detect
@@ -375,10 +405,12 @@ print.pmx_model_release <- function(x, ...) {
 #'   a release from [model_release()]. A release carries only the verdict of
 #'   the fifth check; the full fit carries the table behind it.
 #' @return A `pmx_privacy_checks` data frame with columns `check`, `question`,
-#'   `result`, `criterion` and `verdict`. On a full fit, the per-estimate
-#'   reading behind check P5 is the `influence` attribute: one row per released
-#'   estimate, with the released value, the largest move one patient causes,
-#'   its unit and its verdict. No row is about a patient.
+#'   `result`, `criterion` and `verdict`. On a full fit, the reading behind P5
+#'   is the `influence` attribute, one row per released estimate with the
+#'   released value, the largest move one patient causes, its unit and its
+#'   verdict; and the recount behind P4 is the `frequencies` attribute, one row
+#'   per kind of released frequency with the smallest group behind it, its floor
+#'   and how many values were changed to meet it. No row is about a patient.
 #' @seealso [model_release()], [synpmx_model_estimate()], [synpmx_scorecard()].
 #' @export
 model_privacy_checks <- function(fitted_model) {
@@ -434,10 +466,20 @@ model_privacy_checks <- function(fitted_model) {
   } else paste(values, collapse = "; "), ok = !length(values))
 
   sizes <- as.integer(release$arms$sizes)
-  p4 <- list(
-    result = sprintf("smallest arm %d; visit slots, dose levels and %s rest on at least %d",
-                     min(sizes), "categorical levels", min(k_arm, k_level)),
-    ok = min(sizes) >= k_arm)
+  frequencies <- if (inherits(fitted_model, "pmx_model_release")) {
+    release$privacy$frequencies
+  } else if (!is.null(fitted_model$privacy$frequencies)) {
+    .frequency_summary(fitted_model$privacy$frequencies)
+  } else NULL
+  p4 <- if (!is.null(frequencies)) {
+    list(result = frequencies$result,
+         ok = if (identical(frequencies$verdict, "pass")) TRUE else
+           if (identical(frequencies$verdict, "FAIL")) FALSE else NA)
+  } else {
+    list(result = sprintf(
+      "smallest arm %d; no frequency record: re-estimate with this version",
+      min(sizes)), ok = min(sizes) >= k_arm)
+  }
 
   influence <- fitted_model$privacy$influence
   if (is.data.frame(influence)) {
@@ -450,22 +492,31 @@ model_privacy_checks <- function(fitted_model) {
     list(verdict = "not applicable",
          result = "no influence record: re-estimate with this version")
   } else .influence_summary(influence)
+  left_out <- fitted_model$privacy$left_out$patients %||% 0L
+  if (left_out > 0L) {
+    summary$result <- paste0(summary$result, "; after leaving ", left_out,
+                             " patient(s) out of the estimates")
+  }
 
-  verdict <- function(ok) if (isTRUE(ok)) "pass" else "FAIL"
+  verdict <- function(ok) {
+    if (isTRUE(ok)) "pass" else if (isFALSE(ok)) "FAIL" else "not applicable"
+  }
   out <- data.frame(
     check = c("P1", "P2", "P3", "P4", "P5"),
     question = c(
       "No per-patient table is released",
       "No source identifier is released",
       "No single patient's value is released",
-      "Every released frequency rests on several patients",
+      "Every released frequency rests on several patients, on both sides",
       "No single patient moves a released estimate far"),
     result = c(p1$result, p2$result, p3$result, p4$result, summary$result),
     criterion = c(
       "the release holds only the fields generation reads, none of them per patient",
       "no source ID label, and no source ID value as the synthetic ID offset",
       "no order statistic: floors coarsened, no median, minimum or maximum",
-      sprintf("every arm at least %d patients", k_arm),
+      sprintf(paste("each side of every released frequency none or at",
+                    "least %d patients (%d for categorical levels)"),
+              k_arm, k_level),
       sprintf("pass under %g, review under %g, FAIL from %g (%% or points)",
               .influence_thresholds[["review"]],
               .influence_thresholds[["fail"]],
@@ -474,6 +525,8 @@ model_privacy_checks <- function(fitted_model) {
                 verdict(p4$ok), summary$verdict),
     stringsAsFactors = FALSE)
   attr(out, "influence") <- if (is.data.frame(influence)) influence else NULL
+  attr(out, "frequencies") <- if (is.data.frame(fitted_model$privacy$frequencies))
+    fitted_model$privacy$frequencies else NULL
   class(out) <- c("pmx_privacy_checks", "data.frame")
   out
 }
@@ -484,6 +537,7 @@ print.pmx_privacy_checks <- function(x, ...) {
   plain <- plain[, intersect(c("check", "question", "result", "verdict"),
                              names(plain)), drop = FALSE]
   attr(plain, "influence") <- NULL
+  attr(plain, "frequencies") <- NULL
   print(plain, row.names = FALSE, right = FALSE)
   influence <- attr(x, "influence")
   if (!is.null(influence) && nrow(influence)) {
@@ -500,6 +554,13 @@ print.pmx_privacy_checks <- function(x, ...) {
     shown$released <- figures(shown$released)
     shown$change <- figures(shown$change)
     print(shown, row.names = FALSE, right = FALSE)
+  }
+  frequencies <- attr(x, "frequencies")
+  if (!is.null(frequencies) && nrow(frequencies)) {
+    cat("\nThe smallest group of patients behind each kind of released",
+        "frequency (P4):\n")
+    print(frequencies[, c("quantity", "smallest", "threshold", "adjusted")],
+          row.names = FALSE, right = FALSE)
   }
   invisible(x)
 }
@@ -586,4 +647,173 @@ print.pmx_privacy_checks <- function(x, ...) {
             "); see `model_privacy_checks()`.")
   }
   invisible(summary)
+}
+
+# The subjects behind a PD shape's influence reading leave with the reading's
+# attribute; the shape the fit stores keeps the numbers only (SIM-092).
+.strip_influence_who <- function(shape) {
+  if (is.null(shape)) return(shape)
+  if (!is.null(shape$influence)) attr(shape$influence, "who") <- NULL
+  if (length(shape$arms)) shape$arms <- lapply(shape$arms, .strip_influence_who)
+  shape
+}
+
+# Released frequencies ---------------------------------------------------------
+#
+# pmxmodel-algorithm.Rmd, Step 5 (REV-065, REV-066). Every frequency the release
+# carries is a share of some group of patients, and the threshold rule of
+# statistical disclosure control asks that the patients on each side of it be
+# none or at least `k`: "one patient missed this visit" says as much about a
+# patient as "one patient came". This recounts, from the source, the smallest
+# group behind each kind of released frequency after the rules that enforce it
+# have run, and how many values those rules changed. One row per kind; nothing
+# in it is about a patient.
+.frequency_audit <- function(source, roles, subject_group, arm_models, cells,
+                             covariates, estimate_source, discrete, schema,
+                             k_arm, k_level) {
+  smallest_of <- function(x) if (length(x)) min(x) else NA_real_
+  row <- function(quantity, smallest, adjusted, threshold, rule) {
+    data.frame(quantity = quantity, smallest = smallest,
+               adjusted = as.integer(adjusted), threshold = threshold,
+               rule = rule, stringsAsFactors = FALSE)
+  }
+  rows <- list(row("patients in an arm", smallest_of(arm_models$sizes), 0L,
+                   k_arm, "a smaller arm is dropped before estimation"))
+
+  attendance <- arm_models$audit$attendance
+  if (!is.null(attendance)) {
+    open <- attendance[!attendance$rounded & attendance$attenders > 0 &
+                         attendance$misses > 0, , drop = FALSE]
+    rows[[length(rows) + 1L]] <- row(
+      "patients on either side of an attendance fraction",
+      smallest_of(pmin(open$attenders, open$misses)), sum(attendance$rounded),
+      k_arm, "a fraction resting on fewer is rounded to 0 or 1")
+  }
+  rates <- arm_models$audit$rates
+  if (!is.null(rates)) {
+    moving <- rates[rates$patients_after > 0, , drop = FALSE]
+    rows[[length(rows) + 1L]] <- row(
+      "patients with the dose change behind a rate",
+      smallest_of(moving$patients_after), sum(rates$action != "kept"), k_arm,
+      "a rate resting on fewer is pooled over arms, or set to zero")
+  }
+
+  baseline <- .baseline_covariates(estimate_source, roles)
+  level_holders <- numeric()
+  excluded <- 0L
+  for (column in names(covariates)) {
+    values <- as.character(baseline[[column]])
+    values <- values[!is.na(values)]
+    if (!identical(covariates[[column]]$kind, "categorical")) {
+      if (identical(covariates[[column]]$kind, "missing") && length(values) &&
+          !is.numeric(baseline[[column]])) {
+        excluded <- excluded + length(unique(values))
+      }
+      next
+    }
+    kept <- covariates[[column]]$levels
+    level_holders <- c(level_holders, vapply(kept, function(level) {
+      sum(values == level)
+    }, numeric(1)))
+    excluded <- excluded + length(setdiff(unique(values), kept))
+  }
+  rows[[length(rows) + 1L]] <- row(
+    "patients holding a categorical covariate level",
+    smallest_of(level_holders), excluded, k_level,
+    "a rarer level is excluded")
+
+  ids <- as.character(source[[roles$id]])
+  subjects <- .unique_in_order(source[[roles$id]])
+  if (length(discrete) && any(!vapply(unlist(discrete, recursive = FALSE),
+                                      is.null, logical(1)))) {
+    nominal <- suppressWarnings(as.numeric(source[[roles$nominal_time]]))
+    planned <- source
+    planned[[roles$time]] <- nominal
+    aligned <- .aligned_time(planned, roles)
+    observed <- .observation_rows(source, roles, require_present = TRUE)
+    endpoint <- .endpoint(source, roles)
+    arm_of <- stats::setNames(subject_group, as.character(subjects))
+    row_arm <- arm_of[ids]
+    discrete_holders <- numeric()
+    folded <- 0L
+    for (arm in names(discrete)) {
+      for (i in seq_along(discrete[[arm]])) {
+        marginal <- discrete[[arm]][[i]]
+        if (is.null(marginal)) next
+        at <- observed & row_arm == arm & endpoint == cells$endpoint[i] &
+          abs(aligned - cells$time[i]) < sqrt(.Machine$double.eps)
+        values <- suppressWarnings(as.numeric(source[[roles$dv]][at]))
+        holders <- ids[at]
+        present <- !is.na(values)
+        discrete_holders <- c(discrete_holders, vapply(marginal$levels,
+          function(level) {
+            length(unique(holders[present & values == level]))
+          }, numeric(1)))
+        folded <- folded + length(setdiff(unique(values[present]),
+                                          marginal$levels))
+      }
+    }
+    rows[[length(rows) + 1L]] <- row(
+      "patients holding a discrete endpoint's level at a visit",
+      smallest_of(discrete_holders), folded, k_level,
+      "a rarer level is folded into the visit's most common one")
+  }
+
+  carried <- intersect(setdiff(roles$keep, roles$strata), names(source))
+  if (length(carried)) {
+    first_row <- vapply(subjects, function(subject) {
+      which(!is.na(source[[roles$id]]) & source[[roles$id]] == subject)[1L]
+    }, integer(1))
+    carried_holders <- numeric()
+    removed <- 0L
+    for (arm in names(schema$arm_values)) {
+      members <- first_row[subject_group == arm]
+      for (column in carried) {
+        stored <- schema$arm_values[[arm]][[column]]
+        own <- source[[column]][members]
+        if (is.numeric(own) && !is.factor(own)) next
+        own <- as.character(own)
+        if (is.null(stored) || is.na(stored)) {
+          if (!is.na(own[[1L]])) removed <- removed + 1L
+          next
+        }
+        carried_holders <- c(carried_holders,
+                             sum(own == as.character(stored), na.rm = TRUE))
+      }
+    }
+    rows[[length(rows) + 1L]] <- row(
+      "patients holding an arm's categorical keep value",
+      smallest_of(carried_holders), removed, k_level,
+      "a value fewer hold is written as missing")
+  }
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
+# The audit in a sentence, and its verdict.
+.frequency_summary <- function(frequencies) {
+  if (is.null(frequencies) || !nrow(frequencies)) {
+    return(list(verdict = "not applicable", result = "no frequency record"))
+  }
+  known <- frequencies[is.finite(frequencies$smallest), , drop = FALSE]
+  short <- known[known$smallest < known$threshold, , drop = FALSE]
+  adjusted <- frequencies[!is.na(frequencies$adjusted) &
+                            frequencies$adjusted > 0, , drop = FALSE]
+  smallest <- if (nrow(known)) known[which.min(known$smallest), ] else NULL
+  result <- paste0(
+    if (nrow(short)) {
+      paste0("below the floor: ", paste(sprintf("%s (%g)", short$quantity,
+                                                short$smallest),
+                                        collapse = "; "))
+    } else if (!is.null(smallest)) {
+      sprintf("smallest group: %g, %s", smallest$smallest, smallest$quantity)
+    } else "nothing to count",
+    if (nrow(adjusted)) {
+      paste0("; adjusted to meet it: ",
+             paste(sprintf("%d (%s)", adjusted$adjusted,
+                           sub("^patients (holding |with the |on either side of |in )",
+                               "", adjusted$quantity)), collapse = ", "))
+    } else "")
+  list(verdict = if (nrow(short)) "FAIL" else "pass", result = result)
 }

@@ -325,30 +325,47 @@ test_that("E3 is not applicable to data no population model produced", {
             mdv = "MDV", covariates = "WT")
 }
 
-test_that("a fresh fit stores no per-patient quantity and names no patient", {
+test_that("a patient misdosed a thousandfold is left out of the estimates and named only on the console (SIM-092)", {
   skip_if_not(.fitter_works(), "no population fitter that can build a model")
-  data <- .privacy_study()
-  fit <- synpmx_model_estimate(data, .privacy_roles(), pk = "1cmt_oral",
-                               quiet = TRUE, seed = 1)
-  expect_identical(.eta_paths(unclass(fit)), character())
-  # No patient identifier anywhere in the fit, as a value or a name.
-  everything <- c(unlist(fit, use.names = FALSE),
-                  names(unlist(fit)))
-  expect_false(any(unique(data$ID) %in% everything))
+  data <- .privacy_study(misdose = 9L)
+  said <- character()
+  fit <- withCallingHandlers(
+    synpmx_model_estimate(data, .privacy_roles(), pk = "1cmt_oral",
+                          quiet = TRUE, seed = 1),
+    message = function(m) {
+      said <<- c(said, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    },
+    warning = function(w) invokeRestart("muffleWarning"))
+  expect_true(any(grepl("Leaving out 1 patient", said)))
+  expect_true(any(grepl("P09", said, fixed = TRUE)))
+  expect_equal(fit$privacy$left_out$patients, 1L)
   checks <- model_privacy_checks(fit)
-  expect_true(all(checks$verdict[1:4] == "pass"))
   expect_false(identical(checks$verdict[checks$check == "P5"], "FAIL"))
+  expect_match(checks$result[checks$check == "P5"], "after leaving 1")
+  # Left out of the estimates and kept in the apparatus: the cohort the
+  # dosing and visit models describe is the whole study.
+  expect_equal(fit$n_source, length(unique(data$ID)))
+  expect_equal(fit$fit_subjects$fitted, length(unique(data$ID)) - 1L)
+  # Named on the console and nowhere in the fit, and no patient's ID or random
+  # effect anywhere in it, as a value or a name. One fit answers both, which is
+  # why the plain study has no end-to-end test of its own.
+  expect_false(any(grepl("P09", unlist(fit), fixed = TRUE)))
+  expect_identical(.eta_paths(unclass(fit)), character())
+  everything <- c(unlist(fit, use.names = FALSE), names(unlist(fit)))
+  expect_false(any(unique(data$ID) %in% everything))
+  expect_true(all(checks$verdict[1:4] == "pass"))
   expect_true(is.data.frame(attr(checks, "influence")))
   expect_null(attr(fit$privacy$influence, "who"))
 })
 
-test_that("a patient misdosed a thousandfold fails P5 and is named at estimation", {
+test_that("drop_influential = FALSE keeps the patient, fails P5 and warns", {
   skip_if_not(.fitter_works(), "no population fitter that can build a model")
   data <- .privacy_study(misdose = 9L)
   warnings <- character()
   fit <- withCallingHandlers(
     synpmx_model_estimate(data, .privacy_roles(), pk = "1cmt_oral",
-                          quiet = TRUE, seed = 1),
+                          quiet = TRUE, seed = 1, drop_influential = FALSE),
     warning = function(w) {
       warnings <<- c(warnings, conditionMessage(w))
       invokeRestart("muffleWarning")
@@ -357,8 +374,11 @@ test_that("a patient misdosed a thousandfold fails P5 and is named at estimation
   expect_true(any(grepl("P09", warnings, fixed = TRUE)))
   checks <- model_privacy_checks(fit)
   expect_equal(checks$verdict[checks$check == "P5"], "FAIL")
-  # The patient is named on the console and nowhere in the fit.
+  expect_equal(fit$privacy$left_out$patients, 0L)
   expect_false(any(grepl("P09", unlist(fit), fixed = TRUE)))
+  expect_error(
+    synpmx_model_estimate(data, .privacy_roles(), drop_influential = NA),
+    "TRUE or FALSE")
 })
 
 test_that("the PCA summary's log offset is not one patient's value (REV-064)", {
@@ -372,4 +392,106 @@ test_that("the PCA summary's log offset is not one patient's value (REV-064)", {
   for (value in offsets) expect_equal(value, .round_down_125(value))
   observed <- data$evid == 0 & data$dvid == "cp" & data$dv > 0
   expect_false(isTRUE(all.equal(offsets[["cp"]], min(data$dv[observed]) / 2)))
+})
+
+test_that("an attendance fraction resting on one or two patients is rounded (REV-065)", {
+  rounded <- .round_thin_attendance(c(0, 1, 2, 3, 29, 30, 31, 32), 32, 3L)
+  expect_equal(rounded$probability,
+               c(0, 0, 0, 3 / 32, 29 / 32, 1, 1, 1))
+  expect_equal(rounded$rounded,
+               c(FALSE, TRUE, TRUE, FALSE, FALSE, TRUE, TRUE, FALSE))
+  # In an arm too small for both sides to reach three, the nearer end wins and
+  # a tie keeps the visit.
+  small <- .round_thin_attendance(c(1, 2, 3), 4, 3L)
+  expect_equal(small$probability, c(0, 1, 1))
+})
+
+test_that("a dose-change rate one or two patients decide is pooled or zeroed (REV-065)", {
+  model <- function(patients, events, at_risk) {
+    support <- data.frame(rate = c("discontinuation", "interruption",
+                                   "reduction"),
+                          patients = patients, events = events,
+                          at_risk = at_risk, stringsAsFactors = FALSE)
+    list(planned = data.frame(cycle = 1L, time = 0, amt = 1),
+         levels = 1, discontinuation = events[[1]] / at_risk[[1]],
+         interruption = events[[2]] / at_risk[[2]],
+         reduction = events[[3]] / at_risk[[3]], patients = 10L,
+         support = support)
+  }
+  dosing <- list(
+    A = model(c(1, 4, 1), c(1, 6, 1), c(60, 60, 60)),
+    B = model(c(1, 0, 0), c(1, 0, 0), c(60, 60, 60)),
+    C = model(c(2, 0, 0), c(2, 0, 0), c(60, 60, 60)))
+  pooled <- .pool_thin_rates(dosing, 3L)
+  # Four patients across the arms stopped early, so each thin arm takes the
+  # pooled rate; a reduction is zeroed, since it needs the arm's own ladder.
+  expect_equal(pooled$dosing$A$discontinuation, 4 / 180)
+  expect_equal(pooled$dosing$B$discontinuation, 4 / 180)
+  expect_equal(pooled$dosing$A$interruption, 6 / 60)
+  expect_equal(pooled$dosing$A$reduction, 0)
+  expect_null(pooled$dosing$A$support)
+  audit <- pooled$audit
+  expect_equal(audit$action[audit$arm == "A" & audit$rate == "reduction"],
+               "set to zero")
+  expect_true(all(audit$patients_after == 0 | audit$patients_after >= 3))
+  # One arm alone, with one patient interrupted: nothing to pool with.
+  alone <- .pool_thin_rates(list(A = model(c(0, 1, 0), c(0, 2, 0),
+                                           c(60, 60, 60))), 3L)
+  expect_equal(alone$dosing$A$interruption, 0)
+})
+
+test_that("a categorical kept value one or two patients hold is removed, and the rest is kept as is (REV-066)", {
+  data <- onc_sim
+  data$NOTE <- paste0("note ", data$ID)
+  roles <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",
+                     dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT",
+                     dvid = "NAME", strata = "ARM",
+                     keep = c("CROSSOVER", "NOTE"))
+  group <- .model_subject_arms(data, roles)
+  expect_warning(schema <- .source_schema(data, roles, "Everolimus trough",
+                                          group),
+                 "carried value held by fewer than 3")
+  for (arm in names(schema$arm_values)) {
+    expect_true(is.na(schema$arm_values[[arm]]$NOTE))
+    expect_false(is.na(schema$arm_values[[arm]]$CROSSOVER))
+    expect_identical(schema$arm_values[[arm]]$ARM, arm)
+  }
+  # A stratum defines its arm and is never removed, however small the arm a
+  # caller has allowed.
+  two <- data
+  two$ARM[two$ID %in% unique(two$ID)[1:2]] <- "pair"
+  pair_schema <- suppressWarnings(.source_schema(
+    two, roles, "Everolimus trough", .model_subject_arms(two, roles)))
+  expect_identical(pair_schema$arm_values$pair$ARM, "pair")
+  # `keep` still copies the arm's first patient, as declared.
+  first <- data$CROSSOVER[data$ID == data$ID[group[as.character(data$ID)] ==
+                                                 "Placebo"][1L]][1L]
+  expect_identical(schema$arm_values$Placebo$CROSSOVER, first)
+})
+
+test_that("P4 recounts the smallest group behind every kind of released frequency", {
+  stored <- system.file("extdata", "warfarin-model-fit.rds", package = "synpmx")
+  skip_if(!nzchar(stored), "stored fit unavailable")
+  fit <- readRDS(stored)
+  skip_if(is.null(fit$privacy$frequencies), "stored fit predates the audit")
+  audit <- fit$privacy$frequencies
+  expect_true(all(c("quantity", "smallest", "threshold", "adjusted") %in%
+                    names(audit)))
+  known <- audit[is.finite(audit$smallest), ]
+  expect_true(all(known$smallest >= known$threshold))
+  checks <- model_privacy_checks(fit)
+  expect_equal(checks$verdict[checks$check == "P4"], "pass")
+  expect_s3_class(attr(checks, "frequencies"), "data.frame")
+  short <- audit
+  short$smallest[[1L]] <- 1
+  expect_equal(.frequency_summary(short)$verdict, "FAIL")
+})
+
+test_that("the subjects behind a PD reading are not stored with it", {
+  reading <- .pd_influence(c(a = 1, b = 1.1, c = 0.9, d = 1.05, e = 5))
+  expect_equal(unname(attr(reading, "who")), c("e", "e"))
+  shape <- list(influence = reading, arms = list(x = list(influence = reading)))
+  stripped <- .strip_influence_who(shape)
+  expect_null(attr(stripped$influence, "who"))
+  expect_null(attr(stripped$arms$x$influence, "who"))
 })

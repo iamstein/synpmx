@@ -844,6 +844,15 @@ print.pmx_model_report <- function(x, ...) {
     cat("\nPrivacy\n")
     field("one patient's pull", summary$verdict, ": ", summary$result,
           "; `model_privacy_checks()` has every check")
+    left_out <- x$privacy$left_out
+    if (!is.null(left_out) && left_out$patients > 0L) {
+      field("left out", left_out$patients, " patient(s), from the PK, PD and ",
+            "covariate estimates, for moving ",
+            paste(sprintf("%s %s by %.3g %s", left_out$because$name,
+                          left_out$because$quantity, left_out$because$change,
+                          left_out$because$unit), collapse = "; "),
+            "; the dosing and visit models still read them")
+    }
   }
   invisible(x)
 }

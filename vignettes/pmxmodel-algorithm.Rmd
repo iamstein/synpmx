@@ -84,6 +84,7 @@ Beyond the roles and the seed:
 | `min_time_bins` | `6L` | Warn and fit anyway below this many distinct nominal times after a dose; no post-dose observation at all still refuses. |
 | `max_fit_subjects` | `60L` | Fit the population model to this many subjects, drawn in proportion to the arms. The dosing, visit and covariate models read every subject. |
 | `estimation` | `"focei"` | Passed to `nlmixr2`. |
+| `drop_influential` | `TRUE` | Leave out of the PK, PD and covariate estimates any patient who moves a released estimate by 15 or more, and estimate again (Step 5). `FALSE` keeps every patient and only reports the reading. |
 
 **The default tries two compartments first**, with a one-compartment fallback
 only if the first fit fails acceptance checks. An ambiguous administration
@@ -674,6 +675,26 @@ A grid cell is kept only where at least `min_arm_patients` distinct patients hol
 an observation there. A nominal time one patient attended is that patient, and
 generating from it would put them back.
 
+**Every rate and fraction rests on at least `min_arm_patients` patients on each
+side.** This is the threshold rule of statistical disclosure control, applied
+to both sides because "one patient missed this visit" discloses as much as "one
+patient came":
+
+- A dose-change rate whose events one or two patients had takes the rate pooled
+  over every arm, where that pools at least `min_arm_patients` patients, and is
+  zero otherwise. Pooling keeps a rare dose change in the generated study
+  without tying it to an arm. A reduction is zeroed rather than pooled, because
+  stepping down needs the arm's own ladder of levels and such an arm has none.
+- An arm's attendance fraction at a slot with fewer than `min_arm_patients`
+  patients on either side, attending or missing, is rounded to 0 or 1,
+  whichever is nearer, and a tie keeps the visit.
+
+Each arm also carries the values of its `strata` and `keep` columns, copied from
+the arm's first patient as declared. A categorical `keep` value fewer than
+`min_category_patients` patients in the arm hold is written as missing, with a
+warning; a numeric value is carried unchanged. A `strata` column is exempt,
+because it defines the arm and the arm has its own floor.
+
 Baseline covariates are drawn independently from study-wide distributions.
 Each patient's first row contributes one value, after small arms are excluded.
 
@@ -691,8 +712,8 @@ For factor, character and logical covariates, levels held by fewer than
 are renormalized to probabilities, and every synthetic subject draws from that
 distribution. Set `min_category_patients = 1` to retain all observed levels.
 Numeric category codes must be supplied as factors; numeric covariates keep
-their continuous distribution models. Discrete observation endpoints are
-unaffected.
+their continuous distribution models. Binary and ordinal endpoints are folded
+by the same threshold at each visit (Step 3).
 
 If no categorical level remains, generation keeps the column with missing
 values and estimation warns. Excluded factor labels are also removed from the
@@ -744,11 +765,22 @@ $\frac{(S-\eta_i^2)/(n-1)}{S/n}$, with $S=\sum_j \eta_j^2$. The PD baselines
 and the covariate summaries are recomputed with each patient left out, which
 needs no approximation. The largest move over all patients is kept per
 estimate, in percent for a typical value and in points of the between-subject
-SD on the log scale for a spread. A move of 15 asks for a review, and a move of
-30 fails and warns at estimation, naming the patient on the console. Shrinkage
-pulls every random effect toward zero and makes the reading understate the
-move, so it is reported beside it. `model_privacy_checks()` returns the reading
-and four structural checks on the release.
+SD on the log scale for a spread. Shrinkage pulls every random effect toward
+zero and makes the reading understate the move, so it is reported beside it.
+
+**A patient who moves an estimate by 15 or more is left out of the estimates,
+and estimation runs again.** The patient is left out of the PK fit, the PD fits
+and the covariate summaries, and stays in the dosing, visit and arm models, so
+the cohort and arm sizes do not change. Rounds repeat until the reading flags
+nobody, and stop before a tenth of the cohort has been left out. Each patient
+left out is named on the console, in the environment that holds the study; the
+fit records how many and which estimates they moved, and no identifier. A
+reading that still reaches 15 asks for a review, and 30 fails and warns.
+`drop_influential = FALSE` keeps every patient and only reports the reading.
+
+`model_privacy_checks()` returns the reading, a recount of the smallest group
+of patients behind each kind of released frequency (Step 4), and three
+structural checks on the release.
 
 **No individual estimates.** Empirical Bayes estimates (EBEs) are per-subject
 quantities, and a fitted model that carried them would be writing out a
@@ -823,7 +855,10 @@ badly is fitted, and told about.
 | `nominal_time` undeclared | — | Errors. The grid is a statement about the protocol only the caller can make. |
 | Rare categorical level | `min_category_patients` = 3 | Exclude levels held by fewer distinct patients; renormalize remaining counts. If none remain, warn and generate missing values. Set to 1 to retain all observed levels. |
 | Rare discrete-endpoint level | `min_category_patients` = 3 per visit | Fold the level into the visit's most common level. A visit at which no level is held by that many patients is not drawn. |
-| Single-patient influence | a move of 15 (review) or 30 (fail), in % or points | Recorded with the fit and read by `model_privacy_checks()` and scorecard row E3. From 30, warns at estimation and names the patient on the console; nothing per patient is stored. |
+| Single-patient influence | a move of 15 or more, in % or points | Leaves the patient out of the PK, PD and covariate estimates and estimates again, at most a tenth of the cohort, naming them on the console. A move still at 15 is a review and at 30 a failure that warns; `drop_influential = FALSE` skips the leaving out. Read by `model_privacy_checks()` and scorecard row E3; nothing per patient is stored. |
+| Thin dose-change rate | fewer than `min_arm_patients` patients with the event | Takes the rate pooled over arms where that rests on enough patients, and is zero otherwise. A reduction is zeroed. |
+| Thin attendance fraction | fewer than `min_arm_patients` patients attending or missing | Rounded to 0 or 1, whichever is nearer; a tie keeps the visit. |
+| Rare kept value | a categorical `keep` value fewer than `min_category_patients` patients in the arm hold | Written as missing, with a warning. Numeric values, and `strata` columns, are carried unchanged. |
 | No grid cell shared | `min_arm_patients` | The cell is dropped. A nominal time one patient attended is that patient. |
 | Administration column | `adm` and `routes` together | Errors on either alone. What an administration id means is a convention of the dataset, and reading it wrong routes every dose to the wrong compartment silently. |
 | PD shape candidacy | 1 residual degree of freedom | The shape is dropped from the comparison, not the endpoint from the study. Below every candidate the endpoint is generated as a constant at its mean. A shape fitted exactly through its own points has `AIC` `-Inf` and would win any comparison it entered. |

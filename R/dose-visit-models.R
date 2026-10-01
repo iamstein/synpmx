@@ -219,6 +219,7 @@
   at_risk_stop <- 0L; stops <- 0L
   at_risk_skip <- 0L; skips <- 0L
   at_risk_drop <- 0L; drops <- 0L
+  dropped <- integer(n)
   for (i in seq_len(n)) {
     if (!span[i]) next
     at_risk_stop <- at_risk_stop + span[i]
@@ -232,8 +233,9 @@
         idx <- level_of(values)
         at_risk_drop <- at_risk_drop +
           sum(utils::head(idx, -1L) < length(levels))
-        drops <- drops +
-          sum(diff(values) < -drop_tolerance * utils::head(values, -1L))
+        dropped[i] <- sum(diff(values) <
+                            -drop_tolerance * utils::head(values, -1L))
+        drops <- drops + dropped[i]
       }
     }
   }
@@ -248,6 +250,16 @@
     discontinuation = rate(stops, at_risk_stop),
     interruption = rate(skips, at_risk_skip),
     reduction = rate(drops, at_risk_drop),
+    # How many patients, events and patient-cycles stand behind each rate.
+    # Read by `.pool_thin_rates()` and removed by it, so that the dose model
+    # that is stored and released carries the rates alone.
+    support = data.frame(
+      rate = c("discontinuation", "interruption", "reduction"),
+      patients = c(sum(span > 0 & span < n_cycles), sum(skipped > 0),
+                   sum(dropped > 0)),
+      events = c(stops, skips, drops),
+      at_risk = c(at_risk_stop, at_risk_skip, at_risk_drop),
+      stringsAsFactors = FALSE),
     patients = n,
     distinct = length(unique(vapply(per_patient, function(p) {
       paste(sprintf("%.6g", p$time), sprintf("%.6g", p$amt), collapse = "|")
@@ -337,6 +349,7 @@
   index <- .named(cells$index, cells$name)
   dosing <- list()
   visits <- list()
+  attendance <- list()
   sizes <- integer()
 
   for (arm in arms) {
@@ -363,19 +376,108 @@
       }), .unique_in_order(dose_groups[!is.na(dose_groups)]))
     }
 
-    probability <- vapply(seq_len(nrow(cells)), function(row) {
-      reached <- vapply(member_rows, function(rows) {
+    attenders <- vapply(seq_len(nrow(cells)), function(row) {
+      sum(vapply(member_rows, function(rows) {
         selected <- rows & observed & endpoint == cells$endpoint[row]
         any(is.finite(aligned[selected]) &
               abs(aligned[selected] - cells$time[row]) <
                 sqrt(.Machine$double.eps))
-      }, logical(1))
-      mean(reached)
+      }, logical(1)))
     }, numeric(1))
-    visits[[arm]] <- list(cells = index, probability = .named(probability, cells$name))
+    rounded <- .round_thin_attendance(attenders, length(members), floor)
+    attendance[[arm]] <- data.frame(arm = arm, cell = seq_len(nrow(cells)),
+                                    attenders = attenders,
+                                    misses = length(members) - attenders,
+                                    rounded = rounded$rounded,
+                                    stringsAsFactors = FALSE)
+    visits[[arm]] <- list(cells = index,
+                          probability = .named(rounded$probability, cells$name))
   }
-  list(dosing = dosing, visits = visits, sizes = sizes, arms = arms,
-       cells = index)
+  pooled <- .pool_thin_rates(dosing, floor)
+  list(dosing = pooled$dosing, visits = visits, sizes = sizes, arms = arms,
+       cells = index,
+       audit = list(rates = pooled$audit,
+                    attendance = do.call(rbind, attendance)))
+}
+
+# pmxmodel-algorithm.Rmd, Step 4, and pca-algorithm.Rmd, Step 6 (REV-065). An
+# arm's attendance at a slot is a share of its patients, and a share one or two
+# patients decide -- the one who came, or the one who missed it -- is that
+# patient. Statistical disclosure control's threshold rule, applied to both
+# sides: a fraction with fewer than `floor` patients on either side is rounded
+# to 0 or to 1, whichever it is nearer, and a tie goes to 1 so a small arm keeps
+# the visit.
+.round_thin_attendance <- function(attenders, n, floor) {
+  misses <- n - attenders
+  thin <- pmin(attenders, misses) > 0 & pmin(attenders, misses) < floor
+  probability <- if (n > 0) attenders / n else rep(0, length(attenders))
+  probability[thin] <- as.numeric(probability[thin] >= 0.5)
+  list(probability = probability, rounded = thin)
+}
+
+# pmxmodel-algorithm.Rmd, Step 4, and pca-algorithm.Rmd, Step 6 (REV-065). A
+# dose-change rate whose events one or two patients had is that patient's dosing
+# history. It takes the rate pooled over every arm instead, where that pools at
+# least `floor` patients, which keeps a rare dose change in the generated study
+# without tying it to an arm; and is zero where even the pooled rate rests on
+# fewer. A reduction is zeroed rather than pooled, because it needs the arm's
+# own ladder of levels, and an arm with too few reductions has none to step
+# down. The counts behind each rate are removed from the dose model afterwards.
+.pool_thin_rates <- function(dosing, floor) {
+  entries <- list()
+  for (arm in names(dosing)) {
+    models <- .dose_group_models(dosing[[arm]])
+    groups <- names(models) %||% rep("", length(models))
+    for (k in seq_along(models)) {
+      entries[[length(entries) + 1L]] <- list(arm = arm, group = groups[[k]],
+                                              k = k, model = models[[k]])
+    }
+  }
+  audit <- list()
+  for (e in seq_along(entries)) {
+    entry <- entries[[e]]
+    support <- entry$model$support
+    if (is.null(support)) next
+    for (r in seq_len(nrow(support))) {
+      rate <- support$rate[[r]]
+      patients <- support$patients[[r]]
+      action <- "kept"
+      after <- patients
+      if (patients > 0 && patients < floor) {
+        same <- Filter(function(x) identical(x$group, entry$group), entries)
+        pooled <- do.call(rbind, lapply(same, function(x) {
+          x$model$support[x$model$support$rate == rate, ]
+        }))
+        if (!identical(rate, "reduction") && sum(pooled$patients) >= floor &&
+            sum(pooled$at_risk) > 0) {
+          entries[[e]]$model[[rate]] <- min(1, sum(pooled$events) /
+                                              sum(pooled$at_risk))
+          action <- "pooled over arms"
+          after <- sum(pooled$patients)
+        } else {
+          entries[[e]]$model[[rate]] <- 0
+          action <- "set to zero"
+          after <- 0L
+        }
+      }
+      audit[[length(audit) + 1L]] <- data.frame(
+        arm = entry$arm, group = entry$group, rate = rate,
+        patients = patients, action = action, patients_after = after,
+        stringsAsFactors = FALSE)
+    }
+  }
+  # Written back only after every rate has been read, so a rate pooled for one
+  # arm is pooled from the arms' own counts and not from a rate already pooled.
+  for (entry in entries) {
+    entry$model$support <- NULL
+    if (!is.null(dosing[[entry$arm]]$planned)) {
+      dosing[[entry$arm]] <- entry$model
+    } else {
+      dosing[[entry$arm]][[entry$k]] <- entry$model
+    }
+  }
+  list(dosing = dosing,
+       audit = if (length(audit)) do.call(rbind, audit) else NULL)
 }
 
 # `cells` may carry a `name` column, and a caller that has names for its grid
@@ -417,7 +519,8 @@
 # and their types, the compartment numbers, the assay limit per endpoint, the
 # values carried verbatim per arm, and how subject identifiers were written.
 # Read from the source once, by whichever generator is summarizing it.
-.source_schema <- function(source, roles, endpoints, subject_group) {
+.source_schema <- function(source, roles, endpoints, subject_group,
+                           min_patients = 3L) {
   observed <- .observation_rows(source, roles, require_present = TRUE)
   endpoint <- .endpoint(source, roles)
   dose_rows <- .event_rows(source, roles)
@@ -458,17 +561,50 @@
                                               roles$cmt)
   }), endpoints)
 
+  # Each arm's value of every carried column, copied from the arm's first
+  # patient as `keep` declares. A categorical `keep` value fewer than
+  # `min_patients` patients in the arm hold is one or two patients' value, and
+  # is written as missing instead (REV-066); a numeric value is carried as it
+  # is. A `strata` column is exempt: it defines the arm, whose own floor is
+  # `min_arm_patients`, and a caller who lowers that floor below this one has
+  # said an arm that small is still an arm.
   carried <- intersect(c(roles$strata, roles$keep), names(source))
   subjects <- .unique_in_order(source[[roles$id]])
   arm_values <- list()
+  removed <- character()
   for (arm in unique(subject_group)) {
-    subject <- subjects[subject_group == arm][1L]
-    rows <- which(!is.na(source[[roles$id]]) & source[[roles$id]] == subject)
+    members <- subjects[subject_group == arm]
+    member_rows <- lapply(members, function(subject) {
+      which(!is.na(source[[roles$id]]) & source[[roles$id]] == subject)
+    })
     arm_values[[arm]] <- lapply(stats::setNames(carried, carried),
                                 function(column) {
-      value <- .first_present(source[[column]][rows])
-      if (is.factor(value)) as.character(value) else value
+      value <- .first_present(source[[column]][member_rows[[1L]]])
+      if (is.factor(value)) value <- as.character(value)
+      if (!column %in% roles$strata &&
+          (is.character(value) || is.logical(value)) && !is.na(value)) {
+        holders <- sum(vapply(member_rows, function(rows) {
+          own <- .first_present(source[[column]][rows])
+          !is.na(own) && identical(as.character(own), as.character(value))
+        }, logical(1)))
+        if (holders < min_patients) {
+          removed <<- c(removed, sprintf("`%s` in arm %s", column,
+                                         .arm_label(arm)))
+          value <- if (is.logical(value)) NA else NA_character_
+        }
+      }
+      value
     })
+  }
+  if (length(removed)) {
+    warning(.condition_text(
+      "A carried value held by fewer than ", min_patients,
+      " patients in its arm is written as missing:",
+      items = removed,
+      why = paste("`keep` copies each arm's value from its first patient, and",
+                  "a categorical value one or two patients hold is theirs."),
+      fix = "Declare in `keep` only values that are constant within an arm."),
+      call. = FALSE)
   }
 
   # The assay limit, per endpoint: one or two numbers read from the source, and

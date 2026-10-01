@@ -116,8 +116,9 @@
   first_row <- vapply(subjects, function(subject) {
     which(!is.na(source[[roles$id]]) & source[[roles$id]] == subject)[1L]
   }, integer(1))
-  lapply(stats::setNames(roles$covariates, roles$covariates),
-         function(column) source[[column]][first_row])
+  lapply(stats::setNames(roles$covariates, roles$covariates), function(column) {
+    stats::setNames(source[[column]][first_row], as.character(subjects))
+  })
 }
 
 # The share of a continuous covariate left out at each end before its mean and

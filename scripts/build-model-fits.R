@@ -41,8 +41,10 @@ print(model_report(warfarin_fit))
 #
 # Misdosed: one patient received a thousand times the recorded dose, which a
 # linear model sees as concentrations a thousand times higher than the record
-# implies. Estimation warns, naming the patient on the console only, and the
-# influence check fails.
+# implies. Fitted twice: as estimation runs by default, which leaves the patient
+# out of the estimates and estimates again, naming them on the console only;
+# and with `drop_influential = FALSE`, where the influence check fails and
+# estimation warns.
 misdosed <- warfarin
 misdosed_patient <- sort(unique(misdosed$id))[[5L]]
 on_cp <- misdosed$id == misdosed_patient & misdosed$evid == 0 &
@@ -53,6 +55,12 @@ saveRDS(misdosed_fit, "inst/extdata/warfarin-misdosed-model-fit.rds",
         version = 2)
 message("wrote inst/extdata/warfarin-misdosed-model-fit.rds")
 print(model_privacy_checks(misdosed_fit))
+misdosed_kept_fit <- synpmx_model_estimate(misdosed, warfarin_roles, seed = 1,
+                                           drop_influential = FALSE)
+saveRDS(misdosed_kept_fit, "inst/extdata/warfarin-misdosed-kept-model-fit.rds",
+        version = 2)
+message("wrote inst/extdata/warfarin-misdosed-kept-model-fit.rds")
+print(model_privacy_checks(misdosed_kept_fit))
 
 # Extreme and rare covariates: one patient weighing 250 kg, one aged 95, and
 # one whose sex is recorded as a level nobody else holds.

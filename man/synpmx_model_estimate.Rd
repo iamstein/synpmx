@@ -20,7 +20,8 @@ synpmx_model_estimate(
   estimation = "focei",
   seed = NULL,
   quiet = FALSE,
-  min_category_patients = 3L
+  min_category_patients = 3L,
+  drop_influential = TRUE
 )
 }
 \arguments{
@@ -161,6 +162,17 @@ Levels below the threshold are excluded and all synthetic subjects draw
 from the remaining levels in proportion to their counts. If none remain,
 the column is generated as missing with a warning. Set to 1 to retain all
 observed levels. This does not filter discrete observation endpoints.}
+
+\item{drop_influential}{Leave out of the estimates any patient who moves a
+released estimate by 15 or more -- in percent for a typical value, in
+points of the between-subject SD on the log scale for a spread -- and
+estimate again without them. The patient is left out of the PK fit, the PD
+fits and the covariate summaries, and stays in the dosing, visit and arm
+models, so the cohort and arm sizes do not change. At most a tenth of the
+cohort is left out. Each patient left out is named on the console and
+nowhere in the fit, which records only how many and why. A patient given
+far more drug than the dosing record says is the usual case. \code{FALSE} keeps
+every patient and only reports the reading.}
 }
 \value{
 A \code{pmx_fitted_model}.
@@ -196,5 +208,5 @@ floor is the whole defence and it is a threshold rather than an accounting.
 }
 \seealso{
 \code{\link[=synpmx_model_generate]{synpmx_model_generate()}}, \code{\link[=synpmx_model]{synpmx_model()}}, \code{\link[=model_report]{model_report()}},
-\code{\link[=model_candidates]{model_candidates()}}, \code{\link[=model_parameters]{model_parameters()}}.
+\code{\link[=model_candidates]{model_candidates()}}, \code{\link[=model_parameters]{model_parameters()}}, \code{\link[=model_privacy_checks]{model_privacy_checks()}}.
 }

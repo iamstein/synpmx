@@ -1136,7 +1136,8 @@
   # How far one subject moves the baseline and its spread, read here because
   # the subject baselines exist only here (SIM-056). A summary over subjects,
   # not a subject's value; the release does not carry it.
-  chosen$influence <- .pd_influence(levels$baseline)
+  chosen$influence <- .pd_influence(
+    stats::setNames(levels$baseline, as.character(unique(rows$subject))))
   # `sd()` of one number is `NA`, and an `NA` residual reaches generation as an
   # `NA` observation. One observation shows no scatter, which is a measurement
   # this study cannot make rather than a claim that the endpoint is noiseless.
@@ -1509,10 +1510,20 @@
 #' @param seed Seed for imputing censored values and selecting the fitting
 #'   subset. The population-generation screen uses its own fixed local seed.
 #' @param quiet Suppress the per-candidate progress messages.
+#' @param drop_influential Leave out of the estimates any patient who moves a
+#'   released estimate by 15 or more -- in percent for a typical value, in
+#'   points of the between-subject SD on the log scale for a spread -- and
+#'   estimate again without them. The patient is left out of the PK fit, the PD
+#'   fits and the covariate summaries, and stays in the dosing, visit and arm
+#'   models, so the cohort and arm sizes do not change. At most a tenth of the
+#'   cohort is left out. Each patient left out is named on the console and
+#'   nowhere in the fit, which records only how many and why. A patient given
+#'   far more drug than the dosing record says is the usual case. `FALSE` keeps
+#'   every patient and only reports the reading.
 #'
 #' @return A `pmx_fitted_model`.
 #' @seealso [synpmx_model_generate()], [synpmx_model()], [model_report()],
-#'   [model_candidates()], [model_parameters()].
+#'   [model_candidates()], [model_parameters()], [model_privacy_checks()].
 #' @export
 synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
                                   pd_by_arm = FALSE,
@@ -1522,7 +1533,90 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
                                   min_time_bins = 6L, max_fit_subjects = 60L,
                                   estimation = "focei",
                                   seed = NULL, quiet = FALSE,
-                                  min_category_patients = 3L) {
+                                  min_category_patients = 3L,
+                                  drop_influential = TRUE) {
+  if (!is.logical(drop_influential) || length(drop_influential) != 1L ||
+      is.na(drop_influential)) {
+    stop("`drop_influential` must be TRUE or FALSE.", call. = FALSE)
+  }
+  arguments <- list(data = data, roles = roles, pk = pk, pd = pd,
+                    pd_by_arm = pd_by_arm, endpoint_roles = endpoint_roles,
+                    start_param = start_param,
+                    covariate_effects = covariate_effects,
+                    min_subjects = min_subjects,
+                    min_arm_patients = min_arm_patients,
+                    min_time_bins = min_time_bins,
+                    max_fit_subjects = max_fit_subjects,
+                    estimation = estimation, seed = seed, quiet = quiet,
+                    min_category_patients = min_category_patients)
+  .model_estimate_leaving_out(arguments, drop_influential)
+}
+
+# pmxmodel-algorithm.Rmd, Step 5 (SIM-092). Estimation once, and again without
+# every patient the influence reading flags, until it flags nobody or a tenth
+# of the cohort has been left out. Only the last round's warnings are raised:
+# the earlier rounds described a fit that is not the one returned.
+.model_estimate_leaving_out <- function(arguments, drop_influential) {
+  ids <- .unique_in_order(arguments$data[[arguments$roles$id]])
+  cap <- max(1L, floor(0.1 * length(ids)))
+  left_out <- character()
+  because <- NULL
+  repeat {
+    raised <- list()
+    fitted <- withCallingHandlers(
+      do.call(.model_estimate_once, c(arguments, list(left_out = left_out))),
+      warning = function(w) {
+        raised[[length(raised) + 1L]] <<- w
+        invokeRestart("muffleWarning")
+      })
+    influence <- fitted$privacy$influence
+    who <- attr(fitted, ".influence_who")
+    flagged <- if (is.null(influence) || is.null(who)) logical() else
+      is.finite(influence$change) &
+      influence$change >= .influence_thresholds[["review"]] & !is.na(who)
+    culprits <- setdiff(unique(who[flagged]), left_out)
+    if (!drop_influential || !length(culprits) ||
+        length(left_out) + length(culprits) > cap) break
+    rows <- influence[flagged & who %in% culprits, , drop = FALSE]
+    message(.wrap_plain(paste0(
+      "Leaving out ", length(culprits), " patient(s) (",
+      paste0("`", culprits, "`", collapse = ", "), ") who moved ",
+      paste(sprintf("%s %s by %.3g %s", rows$name, rows$quantity, rows$change,
+                    rows$unit), collapse = "; "),
+      ", and estimating again. They stay in the dosing and visit models.")))
+    because <- rbind(because, rows[, c("group", "name", "quantity", "change",
+                                       "unit")])
+    left_out <- c(left_out, culprits)
+  }
+  for (w in raised) warning(w)
+  # A fit with no continuous estimate -- a study of binary and ordinal
+  # endpoints alone -- has no reading to announce.
+  influence <- fitted$privacy$influence
+  if (is.data.frame(influence)) {
+    attr(influence, "who") <- attr(fitted, ".influence_who")
+    .model_announce_influence(influence, arguments$quiet)
+  }
+  attr(fitted, ".influence_who") <- NULL
+  if (!is.null(fitted$privacy)) {
+    if (!is.null(because)) rownames(because) <- NULL
+    fitted$privacy$left_out <- list(patients = length(left_out),
+                                    because = because, cap = cap)
+  }
+  fitted
+}
+
+# One estimation, with the patients in `left_out` kept out of the PK fit, the
+# PD fits and the covariate summaries.
+.model_estimate_once <- function(data, roles, pk = NULL, pd = NULL,
+                                 pd_by_arm = FALSE,
+                                 endpoint_roles = NULL, start_param = NULL,
+                                 covariate_effects = "none",
+                                 min_subjects = 20L, min_arm_patients = 3L,
+                                 min_time_bins = 6L, max_fit_subjects = 60L,
+                                 estimation = "focei",
+                                 seed = NULL, quiet = FALSE,
+                                 min_category_patients = 3L,
+                                 left_out = character()) {
   if (!inherits(roles, "pmx_roles")) {
     stop("`roles` must come from `pmx_roles()`.", call. = FALSE)
   }
@@ -1576,6 +1670,11 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   censoring_source <- source
   source <- if (is.null(seed)) .impute_censored(source, roles) else
     .with_local_seed(seed, .impute_censored(source, roles))
+  # The rows every estimate reads: the whole study less any patient the
+  # influence reading has asked to leave out (SIM-092). The dosing, visit, arm
+  # and schema models keep reading every patient.
+  in_estimates <- !as.character(source[[roles$id]]) %in% left_out
+  fit_source <- censoring_source[in_estimates, , drop = FALSE]
 
   observations <- .model_observations(source, roles)
   classified <- .model_classify_endpoints(source, roles, observations,
@@ -1649,7 +1748,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     # -- and handing the whole vector to a function that tests `endpoint ==
     # pk_endpoint` recycles the comparison row by row (`SIM-082`).
     primary_endpoint <- classified$pk[[1L]]
-    recorded_data <- .model_estimation_data(censoring_source, roles,
+    recorded_data <- .model_estimation_data(fit_source, roles,
                                             primary_endpoint)
     # Who that left out. Said plainly, because the fit is then a statement about
     # fewer people than the study has, and a warning where it takes the fitted
@@ -1679,8 +1778,10 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
         "), drawn in proportion to the arms; the dosing, visit and covariate ",
         "models read all ", n_source, ".")))
     }
-    if (fitted_subjects < n_source) {
-      note <- paste0(n_source - fitted_subjects, " of ", n_source,
+    eligible <- n_source - length(intersect(left_out,
+                                            as.character(subjects[keep])))
+    if (fitted_subjects < eligible) {
+      note <- paste0(eligible - fitted_subjects, " of ", eligible,
                      " subjects have no `", primary_endpoint,
                      "` observation and are not fitted; their dosing and visits ",
                      "still reach the arm models.")
@@ -1747,11 +1848,11 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     # estimated, which is a limitation worth knowing rather than a claim.
     pk_models <- stats::setNames(lapply(classified$pk, function(endpoint) {
       own_design <- designs[[endpoint]]
-      own_check_data <- .model_estimation_data(censoring_source, roles, endpoint)
+      own_check_data <- .model_estimation_data(fit_source, roles, endpoint)
       attached_check <- .model_attach_weight(own_check_data, source, roles, weight)
       if (!is.null(attached_check)) own_check_data <- attached_check
       own_data <- if (identical(endpoint, classified$pk[[1L]])) estimation_data else {
-        one <- .model_estimation_data(censoring_source, roles, endpoint)
+        one <- .model_estimation_data(fit_source, roles, endpoint)
         one <- if (is.null(roles$addl)) .compress_dose_schedule(one) else
           .compress_dose_runs(one)
         attached <- .model_attach_weight(one, source, roles, weight)
@@ -1827,10 +1928,12 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   # observations return in milliseconds, so the number was always 0.0 s beside a
   # fitter that takes seconds to minutes, and a reader weighing a rerun has
   # nothing to weigh.
+  pd_observations <- observations[
+    !as.character(observations$subject) %in% left_out, , drop = FALSE]
   pd_fits <- stats::setNames(lapply(classified$pd, function(endpoint) {
-    pooled <- .model_fit_pd(observations, endpoint, pd)
+    pooled <- .model_fit_pd(pd_observations, endpoint, pd)
     if (!is.null(pooled) && pd_by_arm) {
-      pooled$arms <- .model_fit_pd_arms(observations, endpoint, pd,
+      pooled$arms <- .model_fit_pd_arms(pd_observations, endpoint, pd,
                                         subject_group, pooled)
     }
     pooled
@@ -1874,7 +1977,8 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
       etas_by_endpoint[[1L]])
   }
 
-  covariates <- .covariate_model(source, roles, min_category_patients)
+  covariates <- .covariate_model(source[in_estimates, , drop = FALSE], roles,
+                                 min_category_patients)
 
   # Two significant figures on every released estimate (REV-063), applied once
   # the acceptance checks have run on the full-precision fit.
@@ -1888,13 +1992,26 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
 
   # How far any one patient moves each of those estimates (SIM-056), read while
   # the random effects still exist and recorded as a summary per estimate.
-  influence <- .model_influence(pk_models, etas_by_endpoint, pd_fits, source,
-                                roles, covariates)
+  influence <- .model_influence(pk_models, etas_by_endpoint, pd_fits,
+                                source[in_estimates, , drop = FALSE], roles,
+                                covariates)
   rm(etas_by_endpoint)
-  .model_announce_influence(influence, quiet)
+  # Who moved each estimate is read by the caller to leave them out, and is not
+  # stored: the reading on the fit is one row per estimate.
+  who <- attr(influence, "who")
   attr(influence, "who") <- NULL
+  pd_fits <- lapply(pd_fits, .strip_influence_who)
   schema <- .model_covariate_schema(
-    .source_schema(censoring_source, roles, fittable, subject_group), covariates)
+    .source_schema(censoring_source, roles, fittable, subject_group,
+                   min_category_patients), covariates)
+
+  # Exactly the endpoints `.model_generate()` reaches its `else` branch for:
+  # not a concentration, and not a shape that fitted. A PD endpoint that
+  # failed to fit falls through to a per-visit marginal, so it belongs here.
+  discrete <- .discrete_model(source, roles, cells, subject_group,
+                              setdiff(unique(cells$endpoint),
+                                      c(classified$pk, names(pd_fits))),
+                              min_category_patients)
 
   fitted <- .pmx_fitted_model(
     structural = selected, candidates = primary$candidates,
@@ -1919,15 +2036,14 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     cells = cells, pd = pd_fits, covariate_effects = effects,
     dose_records = dose_records,
     covariates = covariates,
-    # Exactly the endpoints `.model_generate()` reaches its `else` branch for:
-    # not a concentration, and not a shape that fitted. A PD endpoint that
-    # failed to fit falls through to a per-visit marginal, so it belongs here.
-    discrete = .discrete_model(source, roles, cells, subject_group,
-                               setdiff(unique(cells$endpoint),
-                                       c(classified$pk, names(pd_fits))),
-                               min_category_patients),
+    discrete = discrete,
     design = design, correlations = correlations,
-    privacy = list(influence = influence),
+    privacy = list(influence = influence,
+                   frequencies = .frequency_audit(
+                     source, roles, subject_group, arm_models, cells,
+                     covariates, source[in_estimates, , drop = FALSE],
+                     discrete, schema, min_arm_patients,
+                     min_category_patients)),
     censoring = .model_censoring_summary(censoring_source, roles, fittable),
     quantification_floor = .model_quantification_floor(censoring_source, roles,
                                                        fittable,
@@ -1953,6 +2069,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     message("Fitted in ", .model_duration(fitted$timing$fit), "; ",
             .model_duration(fitted$timing$total), " in total.")
   }
+  attr(fitted, ".influence_who") <- who
   fitted
 }
 

@@ -929,8 +929,13 @@ verdict.
 
 - **E3** passes when no estimate moves by 15 or more, in percent for a typical
   value and in points of the SD on the log scale for a spread. From 15 it is
-  `review`; from 30 it is `FAIL`, and estimation has already warned and named
-  the patient on the console.
+  `review`; from 30 it is `FAIL`.
+
+By default estimation has already left out of the estimates any patient who
+moved one by 15 or more, and estimated again, so E3 reads the fit that remains.
+A `review` or a `FAIL` there means the leaving out stopped at a tenth of the
+cohort, or that it was switched off with `drop_influential = FALSE`, in which
+case estimation warned and named the patient on the console.
 
 A `FAIL` is the one E row that is always a defect: a model that one patient
 moves that far describes that patient, and the usual cause, a patient given far
