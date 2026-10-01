@@ -217,6 +217,13 @@ The three rates are discrete-time hazards, pooled over the arm:
 | `interruption` | P(this cycle is skipped, given still on treatment) |
 | `reduction` | P(drop one level, given still on and a lower level exists) |
 
+**A rate rests on at least `min_arm_patients` patients.** A rate whose
+events one or two patients had is that patient’s dosing history, so it
+takes the rate pooled over every arm, where that pools at least
+`min_arm_patients` patients, and is zero otherwise. A reduction is
+zeroed rather than pooled, because it needs the arm’s own ladder and
+such an arm has none.
+
 **The dose ladder is built from within-patient decreases.** A study
 dosed by body weight gives every patient a different amount, so the
 pooled spread of amounts scatters continuously and any threshold on it
@@ -261,22 +268,28 @@ a study with few distinct schedules is one where it is not a disclosure
 at all.
 
 **That coincidence has been measured on the visit side, and it is not
-hypothetical.** Over seven public studies, B4a — which asks the same
-question of the finished tables — finds a generated subject’s list of
-observation times matching a singleton real one on two of them,
-reproducibly across seeds. The matches are between short lists on
-sparsely sampled studies rather than between distinctive schedules, and
-B4b, the value side, is zero everywhere. The numbers and the reasoning
-are in [Evaluating the PCA generator on public
-data](https://iamstein.github.io/synpmx/articles/pca-public-data-examples.html),
-along with what a floor on the visit draw would cost.
+hypothetical.** On public studies, a generated subject’s list of
+observation times matches one a single real patient held at about the
+rate chance predicts: those studies’ visit lists are nearly all unique,
+and attendance drawn per visit lands on one of them by coincidence.
+Because a match there is a coincidence rather than a copy, scorecard row
+B4a reads `not applicable` for this generator, and the scorecard
+vignette gives the measurements. B4b, the value side, carries the copy
+claim, and it is zero on every public study in [Evaluating the PCA
+generator on public
+data](https://iamstein.github.io/synpmx/articles/pca-public-data-examples.html).
 
 ### The visit model
 
 [`pca_visits()`](https://iamstein.github.io/synpmx/reference/pca_visits.md)
 reports it: one row per arm, endpoint and modelled nominal time, giving
 the probability that a generated subject in that arm has an observation
-there. It is the fraction of the arm’s patients who did.
+there. It is the fraction of the arm’s patients who did. A fraction with
+fewer than `min_arm_patients` patients on either side, attending or
+missing, is rounded to 0 or 1, whichever is nearer: “one patient missed
+this visit” discloses as much as “one patient came”, and the threshold
+rule of statistical disclosure control asks for enough patients on both
+sides.
 
 Attendance is drawn independently per visit from that probability, so no
 real patient’s set of attended visits is reused.
@@ -293,8 +306,10 @@ and the distribution of time after dose.
 What does not come through is the variety of schedules, as above.
 
 B1a, B1b and C2 cannot be scored on this output, for the reason set out
-under “Reading the Scorecard on This Output” below. B4a and B4b compare
-the finished tables directly and are the rows that carry the copy claim.
+under “Reading the Scorecard on This Output” below. B4b compares the
+finished tables directly and is the row that carries the copy claim; B4a
+reads `not applicable`, because attendance drawn per visit can match a
+real patient’s list only by coincidence.
 
 ## The Model Is the Only Thing Generation Reads
 
@@ -313,7 +328,7 @@ The object holds, and this is all of it:
 | Scores | One mean score vector per arm, and one residual covariance per arm |
 | Dosing model | Per arm, the planned cycles, the dose ladder, and three rates |
 | Visit model | Per arm, endpoint and time, the probability of an observation |
-| Schema | Column order, column types as empty prototypes, the discrete endpoints’ level sets, the log-or-identity choice and assay limit per endpoint, and one value per arm for the strata and kept columns |
+| Schema | Column order, column types as empty prototypes, the discrete endpoints’ level sets, the log-or-identity choice and assay limit per endpoint, and one value per arm for the strata and kept columns, a categorical kept one that fewer than three of the arm’s patients hold written as missing |
 | Arms | The number of patients in each |
 
 [`pca_report()`](https://iamstein.github.io/synpmx/reference/pca_report.md)
@@ -404,21 +419,25 @@ over the result.
 
 [`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md)
 was built to judge a synthetic dataset rather than a generator, and most
-of it holds here. Fifteen of its eighteen rows read the source and
+of it holds here. Thirteen of its twenty-one rows read the source and
 synthetic tables, compute the same way for any generator, and mean the
 same thing.
 
-Three do not: **B1a**, **B1b** and **C2**. They read a run record that
+Eight read `not applicable`. **B1a**, **B1b** and **C2** read a run
+record that
 [`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md)
 expects to find on the generated table as a `pmx_settings` attribute,
 rather than reading the two tables, and this table carries no such
-record. All three report `not applicable`.
+record. **B2** and **B4a** ask whether a real patient’s profile or visit
+set was reused, and this generator draws both from a model of the
+cohort. **E1**, **E2** and **E3** score a fitted population model, and
+this generator fits none.
 
 For B1a and B1b the guarantee is structural rather than unrecorded. No
 individual’s visit set and no individual’s dose schedule exists in the
 model to be copied, because the model holds a per-visit probability and
-one shared schedule per arm. **B4a** and **B4b** ask the copy question
-directly, on the finished tables, and are the rows that carry the claim.
+one shared schedule per arm. **B4b** asks the copy question directly, on
+the finished tables, and is the row that carries the claim.
 
 C2 is the one to be careful about, because a blank row is at its most
 misleading exactly where the loss is largest. C2 asks how many of the

@@ -608,7 +608,10 @@ is a source value.</p>
 <span><span class="co">#&gt; 1  PD - Continuous continuous        continuous values, inferred from the data</span></span>
 <span><span class="co">#&gt; 2 PK Concentration continuous        continuous values, inferred from the data</span></span></code></pre></div>
 <p><strong>Arm constants</strong>: the strata and kept columns, one
-value per arm, carried verbatim onto every generated patient in it.</p>
+value per arm, carried verbatim onto every generated patient in it. The
+value is the arm’s first patient’s, as <code>keep</code> declares; a
+categorical kept value fewer than three patients in the arm hold is
+written as missing.</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">digits3</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">schema</span><span class="op">$</span><span class="va">arm_values</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">arm</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">values</span> <span class="op">&lt;-</span> <span class="va">schema</span><span class="op">$</span><span class="va">arm_values</span><span class="op">[[</span><span class="va">arm</span><span class="op">]</span><span class="op">]</span></span>

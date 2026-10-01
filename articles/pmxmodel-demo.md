@@ -124,11 +124,11 @@ model_report(fit)
 #> 
 #> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   PD - Continuous    exponential
-#>                        plateau          31
-#>                        baseline         1.6
+#>                        plateau          32
+#>                        baseline         1.7
 #>                        rate             0.013
-#>                        between-subject  1.3 (SD on the log baseline)
-#>                        residual         additive 8.1
+#>                        between-subject  1.1 (SD on the log baseline)
+#>                        residual         additive 8.2
 #>                        chosen on AIC from constant, linear, exponential
 #>   PD - Count         exponential
 #>                        plateau          2.9
@@ -155,16 +155,20 @@ model_report(fit)
 #> Estimated by nlmixr2
 #>   structural model   2cmt_oral 
 #>   selected by        two-compartment model passed acceptance checks
-#>   fitted on          all 50 patients with a concentration
-#>   fixed effects      cl 6.3, v 49, q 4.9, v2 150, ka 1.2 
-#>   between-subject    cl 0.424, v 0.447, ka 0.374, q 0.539, v2 0.424 (as SD on the log scale)
+#>   fitted on          all 49 patients with a concentration
+#>   fixed effects      cl 6.3, v 49, q 5, v2 150, ka 1.2 
+#>   between-subject    cl 0.424, v 0.447, ka 0.387, q 0.529, v2 0.424 (as SD on the log scale)
 #>   residual error     proportional 0.37 
-#>   time to fit        3 min 22 s
-#>   whole call         3 min 22 s, against 3 min 22 s in the fitter
+#>   time to fit        3 min 15 s
+#>   whole call         3 min 16 s, against 3 min 15 s in the fitter
 #> 
 #> Privacy
-#>   one patient's pull review: largest: PD - Continuous between-subject SD,
-#>                      23.7 points; `model_privacy_checks()` has every check
+#>   one patient's pull pass: largest: PD - Continuous between-subject SD,
+#>                      10.3 points; `model_privacy_checks()` has every check
+#>   left out           1 patient(s), from the PK, PD and covariate estimates,
+#>                      for moving PD - Continuous typical baseline by 16 %;
+#>                      PD - Continuous between-subject SD by 23.7 points; the
+#>                      dosing and visit models still read them
 ```
 
 The concentration has a proportional residual error. The continuous and

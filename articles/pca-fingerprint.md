@@ -555,7 +555,9 @@ data.frame(
 ```
 
 **Arm constants**: the strata and kept columns, one value per arm,
-carried verbatim onto every generated patient in it.
+carried verbatim onto every generated patient in it. The value is the
+arm’s first patient’s, as `keep` declares; a categorical kept value
+fewer than three patients in the arm hold is written as missing.
 
 ``` r
 

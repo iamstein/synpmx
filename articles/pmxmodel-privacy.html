@@ -321,16 +321,29 @@ top-coding and coarsening them [9].</p>
 </h3>
 <p>A frequency resting on one patient is that patient. The threshold
 rule of SDC publishes a count only where at least <em>k</em> units stand
-behind it [9], and <code>synadam</code> masks values held once [13].
-Here <em>k</em> is 3 by default:</p>
+behind it [9], and <code>synadam</code> masks values held once [13]. The
+rule applies to both sides of a frequency: an arm’s attendance at a
+visit that all but one patient kept says as much about the one who
+missed it as attendance by one patient says about the one who came. Here
+<em>k</em> is 3 by default:</p>
 <ul>
 <li>arms below <code>min_arm_patients</code> are dropped before anything
 is fitted;</li>
 <li>a nominal visit slot, a dose level and a planned cycle are kept only
 where at least <code>min_arm_patients</code> patients reached them;</li>
+<li>an arm’s attendance fraction at a slot with fewer than
+<code>min_arm_patients</code> patients attending or missing is rounded
+to 0 or 1;</li>
+<li>a dose-change rate whose events fewer than
+<code>min_arm_patients</code> patients had takes the rate pooled over
+every arm, where that pools enough patients, and is zero otherwise;</li>
 <li>a categorical covariate level, and a binary or ordinal endpoint’s
 level at a visit, below <code>min_category_patients</code> patients is
-excluded, or folded into the most common level.</li>
+excluded, or folded into the most common level;</li>
+<li>a categorical <code>keep</code> value, copied from the arm’s first
+patient as <code>keep</code> declares, is written as missing where fewer
+than <code>min_category_patients</code> patients in the arm hold it. A
+numeric value is carried unchanged.</li>
 </ul>
 </div>
 <div class="section level3">
@@ -401,6 +414,15 @@ parameter whose between-subject SD is 0.27, a patient 3 SD from the mean
 in a cohort of 32 moves the typical value by about 3% and the spread by
 about 4 points. Shrinkage pulls every random effect toward zero and
 makes the reading understate the move, so it is reported beside it.</p>
+<p>A patient who moves an estimate by 15 or more is then left out of the
+estimates, and estimation runs again. The patient is left out of the PK
+fit, the PD fits and the covariate summaries, and stays in the dosing,
+visit and arm models, so the cohort and arm sizes the release describes
+do not change. Rounds repeat until the reading flags nobody, and stop
+before a tenth of the cohort has been left out. Each patient left out is
+named on the console; the fit records how many, and which estimates they
+moved. <code>drop_influential = FALSE</code> keeps every patient and
+leaves the reading as a review or a failure.</p>
 </div>
 </div>
 <div class="section level2">
@@ -442,20 +464,28 @@ covariate median</td>
 </tr>
 <tr class="even">
 <td>P4</td>
-<td>Every released frequency rests on several patients</td>
-<td>every arm holds at least <code>min_arm_patients</code> patients</td>
+<td>Every released frequency rests on several patients, on both
+sides</td>
+<td>each side of every frequency is none or at least
+<code>min_arm_patients</code> patients
+(<code>min_category_patients</code> for categorical levels and
+values)</td>
 </tr>
 <tr class="odd">
 <td>P5</td>
 <td>No single patient moves a released estimate far</td>
-<td>every estimate moves less than 15</td>
+<td>every estimate moves less than 15, after any patient who moved one
+further has been left out</td>
 </tr>
 </tbody>
 </table>
-<p>P1 to P4 are structural and read the release. They pass by
+<p>P1 to P3 are structural and read the release. They pass by
 construction on a fit from this version, and exist to catch a release
 assembled some other way or a fit stored before the protections existed.
-P5 is read from the fit, and a release carries its verdict.</p>
+P4 recounts, at estimation, the smallest group of patients behind each
+kind of released frequency after the rules of protection 5 have run, and
+P5 is the reading of protection 8. A release carries the verdicts of
+both, and the fit the counts behind them.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">checks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_privacy_checks.html">model_privacy_checks</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">checks</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"check"</span>, <span class="st">"verdict"</span>, <span class="st">"result"</span><span class="op">)</span><span class="op">]</span></span>
@@ -465,12 +495,12 @@ P5 is read from the fit, and a release carries its verdict.</p>
 <span><span class="co">#&gt; 3    P3    pass</span></span>
 <span><span class="co">#&gt; 4    P4    pass</span></span>
 <span><span class="co">#&gt; 5    P5    pass</span></span>
-<span><span class="co">#&gt;                                                                                                                 result</span></span>
-<span><span class="co">#&gt; 1                                                                                                                 none</span></span>
-<span><span class="co">#&gt; 2                                                                                                                 none</span></span>
-<span><span class="co">#&gt; 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored</span></span>
-<span><span class="co">#&gt; 4                                  smallest arm 32; visit slots, dose levels and categorical levels rest on at least 3</span></span>
-<span><span class="co">#&gt; 5                                                                        largest: cp: ka between-subject SD, 10 points</span></span></code></pre></div>
+<span><span class="co">#&gt;                                                                                                                  result</span></span>
+<span><span class="co">#&gt; 1                                                                                                                  none</span></span>
+<span><span class="co">#&gt; 2                                                                                                                  none</span></span>
+<span><span class="co">#&gt; 3  none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored</span></span>
+<span><span class="co">#&gt; 4 smallest group: 3, patients on either side of an attendance fraction; adjusted to meet it: 5 (an attendance fraction)</span></span>
+<span><span class="co">#&gt; 5                                                                         largest: cp: ka between-subject SD, 10 points</span></span></code></pre></div>
 <p>The reading behind P5 is the <code>influence</code> attribute of the
 full fit’s checks, one row per released estimate: the released value,
 the largest move any one patient causes, its unit, the number of
@@ -512,11 +542,23 @@ from, and the verdict. No row is about a patient.</p>
 <span><span class="co">#&gt; 14        NA    pass</span></span>
 <span><span class="co">#&gt; 15        NA    pass</span></span>
 <span><span class="co">#&gt; 16        NA    pass</span></span></code></pre></div>
+<p>The recount behind P4 is the <code>frequencies</code> attribute: for
+each kind of released frequency, the smallest group of patients behind
+any one of them, the floor it is held to, and how many values the rules
+changed to meet it.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">checks</span>, <span class="st">"frequencies"</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"quantity"</span>, <span class="st">"smallest"</span>, <span class="st">"threshold"</span>,</span>
+<span>                                <span class="st">"adjusted"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;                                            quantity smallest threshold adjusted</span></span>
+<span><span class="co">#&gt; 1                                patients in an arm       32         3        0</span></span>
+<span><span class="co">#&gt; 2 patients on either side of an attendance fraction        3         3        5</span></span>
+<span><span class="co">#&gt; 3       patients with the dose change behind a rate       NA         3        0</span></span>
+<span><span class="co">#&gt; 4    patients holding a categorical covariate level        5         3        0</span></span></code></pre></div>
 <p>The same checks on the release report P5 as a verdict only. A passing
 release states that every estimate moved less than 15, and nothing more,
 so the one data-dependent thing it carries about the reading is the
 verdict.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="../reference/model_privacy_checks.html">model_privacy_checks</a></span><span class="op">(</span><span class="va">release</span><span class="op">)</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"check"</span>, <span class="st">"verdict"</span>, <span class="st">"result"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   check verdict</span></span>
 <span><span class="co">#&gt; 1    P1    pass</span></span>
@@ -528,7 +570,7 @@ verdict.</p>
 <span><span class="co">#&gt; 1                                                                                                                 none</span></span>
 <span><span class="co">#&gt; 2                                                                                                                 none</span></span>
 <span><span class="co">#&gt; 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored</span></span>
-<span><span class="co">#&gt; 4                                  smallest arm 32; visit slots, dose levels and categorical levels rest on at least 3</span></span>
+<span><span class="co">#&gt; 4                                                     every released frequency rests on at least the floor of patients</span></span>
 <span><span class="co">#&gt; 5                                                                           every released estimate moves less than 15</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -537,7 +579,7 @@ verdict.</p>
 <p>Each is <code>warfarin</code> with one or more patients changed,
 built once by <code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code> and stored with the
 package. None is a real study.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">warfarin</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu">nlmixr2data</span><span class="fu">::</span><span class="va"><a href="https://nlmixr2.github.io/nlmixr2data/reference/warfarin.html" class="external-link">warfarin</a></span><span class="op">)</span></span>
 <span><span class="va">warfarin</span><span class="op">$</span><span class="va">ntime</span> <span class="op">&lt;-</span> <span class="va">warfarin</span><span class="op">$</span><span class="va">time</span></span>
 <span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
@@ -557,7 +599,7 @@ package. None is a real study.</p>
 <span><span class="va">extreme</span><span class="op">$</span><span class="va">sex</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">extreme</span><span class="op">$</span><span class="va">sex</span><span class="op">)</span></span>
 <span><span class="va">extreme</span><span class="op">$</span><span class="va">sex</span><span class="op">[</span><span class="va">extreme</span><span class="op">$</span><span class="va">id</span> <span class="op">==</span> <span class="va">patients</span><span class="op">[[</span><span class="fl">12L</span><span class="op">]</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"not recorded"</span></span>
 <span><span class="va">extreme</span><span class="op">$</span><span class="va">sex</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">extreme</span><span class="op">$</span><span class="va">sex</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">misdosed_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate</a></span><span class="op">(</span><span class="va">misdosed</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">extreme_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate</a></span><span class="op">(</span><span class="va">extreme</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
 <div class="section level3">
@@ -565,26 +607,33 @@ package. None is a real study.</p>
 </h3>
 <p>One patient received a thousand times the dose the record shows. A
 linear model sees concentrations a thousand times higher than the
-recorded dose implies. Estimation fits the patient anyway, and the
-variance terms absorb the excess. The estimation call warned that one
-patient moved a released estimate by 30 or more, and named the patient.
-The stored fit names nobody.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">misdosed_checks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_privacy_checks.html">model_privacy_checks</a></span><span class="op">(</span><span class="va">misdosed_fit</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">misdosed_checks</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"check"</span>, <span class="st">"verdict"</span>, <span class="st">"result"</span><span class="op">)</span><span class="op">]</span></span>
+recorded dose implies. The case is fitted twice: as estimation runs by
+default, and with <code>drop_influential = FALSE</code>, which keeps the
+patient so that the reading can be seen to catch them.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">misdosed_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate</a></span><span class="op">(</span><span class="va">misdosed</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">misdosed_kept_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate</a></span><span class="op">(</span><span class="va">misdosed</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>                                           drop_influential <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<p>Kept, the patient fails P5. The variance terms absorb the excess
+exposure, and estimation warned that one patient moved a released
+estimate by 30 or more, naming the patient on the console. The stored
+fit names nobody.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">kept_checks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_privacy_checks.html">model_privacy_checks</a></span><span class="op">(</span><span class="va">misdosed_kept_fit</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">kept_checks</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"check"</span>, <span class="st">"verdict"</span>, <span class="st">"result"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   check verdict</span></span>
 <span><span class="co">#&gt; 1    P1    pass</span></span>
 <span><span class="co">#&gt; 2    P2    pass</span></span>
 <span><span class="co">#&gt; 3    P3    pass</span></span>
 <span><span class="co">#&gt; 4    P4    pass</span></span>
 <span><span class="co">#&gt; 5    P5    FAIL</span></span>
-<span><span class="co">#&gt;                                                                                                                 result</span></span>
-<span><span class="co">#&gt; 1                                                                                                                 none</span></span>
-<span><span class="co">#&gt; 2                                                                                                                 none</span></span>
-<span><span class="co">#&gt; 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored</span></span>
-<span><span class="co">#&gt; 4                                  smallest arm 32; visit slots, dose levels and categorical levels rest on at least 3</span></span>
-<span><span class="co">#&gt; 5                                                                      largest: cp: v2 between-subject SD, 70.7 points</span></span>
-<span><span class="fu">digits3</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">misdosed_checks</span>, <span class="st">"influence"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;                                                                                                                  result</span></span>
+<span><span class="co">#&gt; 1                                                                                                                  none</span></span>
+<span><span class="co">#&gt; 2                                                                                                                  none</span></span>
+<span><span class="co">#&gt; 3  none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored</span></span>
+<span><span class="co">#&gt; 4 smallest group: 3, patients on either side of an attendance fraction; adjusted to meet it: 5 (an attendance fraction)</span></span>
+<span><span class="co">#&gt; 5                                                                       largest: cp: v2 between-subject SD, 70.7 points</span></span>
+<span><span class="fu">digits3</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">kept_checks</span>, <span class="st">"influence"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;        group   name            quantity released   change   unit patients</span></span>
 <span><span class="co">#&gt; 1         PK cp: cl       typical value     0.11     26.2      %       32</span></span>
 <span><span class="co">#&gt; 2         PK cp: cl  between-subject SD    0.707     51.8 points       32</span></span>
@@ -619,42 +668,76 @@ The stored fit names nobody.</p>
 <span><span class="co">#&gt; 14        NA    pass</span></span>
 <span><span class="co">#&gt; 15        NA    pass</span></span>
 <span><span class="co">#&gt; 16        NA    pass</span></span></code></pre></div>
-<p>The synthetic data shows what the fit absorbed. The misdosed
-patient’s exposure has become between-subject variability, so the
-synthetic patients spread wider than the rest of the source cohort
-does:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="../reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">misdosed_fit</span>, seed <span class="op">=</span> <span class="fl">11</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">concentration</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
+<p>By default, estimation left the patient out of the estimates and ran
+again. The fit records how many patients were left out and which
+estimates they moved, and the checks pass:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">misdosed_fit</span><span class="op">$</span><span class="va">privacy</span><span class="op">$</span><span class="va">left_out</span><span class="op">$</span><span class="va">patients</span></span>
+<span><span class="co">#&gt; [1] 1</span></span>
+<span><span class="fu">digits3</span><span class="op">(</span><span class="va">misdosed_fit</span><span class="op">$</span><span class="va">privacy</span><span class="op">$</span><span class="va">left_out</span><span class="op">$</span><span class="va">because</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   group   name           quantity change   unit</span></span>
+<span><span class="co">#&gt; 1    PK cp: cl      typical value   26.2      %</span></span>
+<span><span class="co">#&gt; 2    PK cp: cl between-subject SD   51.8 points</span></span>
+<span><span class="co">#&gt; 3    PK  cp: v      typical value   25.5      %</span></span>
+<span><span class="co">#&gt; 4    PK  cp: v between-subject SD   53.6 points</span></span>
+<span><span class="co">#&gt; 5    PK cp: v2 between-subject SD   70.7 points</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="../reference/model_privacy_checks.html">model_privacy_checks</a></span><span class="op">(</span><span class="va">misdosed_fit</span><span class="op">)</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"check"</span>, <span class="st">"verdict"</span>,</span>
+<span>                                                      <span class="st">"result"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;   check verdict</span></span>
+<span><span class="co">#&gt; 1    P1    pass</span></span>
+<span><span class="co">#&gt; 2    P2    pass</span></span>
+<span><span class="co">#&gt; 3    P3    pass</span></span>
+<span><span class="co">#&gt; 4    P4    pass</span></span>
+<span><span class="co">#&gt; 5    P5    pass</span></span>
+<span><span class="co">#&gt;                                                                                                                  result</span></span>
+<span><span class="co">#&gt; 1                                                                                                                  none</span></span>
+<span><span class="co">#&gt; 2                                                                                                                  none</span></span>
+<span><span class="co">#&gt; 3  none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored</span></span>
+<span><span class="co">#&gt; 4 smallest group: 3, patients on either side of an attendance fraction; adjusted to meet it: 5 (an attendance fraction)</span></span>
+<span><span class="co">#&gt; 5                      largest: cp: ka between-subject SD, 9.32 points; after leaving 1 patient(s) out of the estimates</span></span></code></pre></div>
+<p>The synthetic data shows the difference. Kept, the patient’s exposure
+becomes between-subject variability and the synthetic patients spread
+wider than the rest of the source cohort; left out, they do not:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">concentration</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">rows</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">$</span><span class="va">evid</span> <span class="op">==</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="va">data</span><span class="op">$</span><span class="va">dvid</span> <span class="op">==</span> <span class="st">"cp"</span> <span class="op">&amp;</span> <span class="va">data</span><span class="op">$</span><span class="va">dv</span> <span class="op">&gt;</span> <span class="fl">0</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>dataset <span class="op">=</span> <span class="va">label</span>, id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">id</span><span class="op">[</span><span class="va">rows</span><span class="op">]</span><span class="op">)</span>,</span>
 <span>             time <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">time</span><span class="op">[</span><span class="va">rows</span><span class="op">]</span>, dv <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">dv</span><span class="op">[</span><span class="va">rows</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
+<span><span class="va">kept_synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="../reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">misdosed_kept_fit</span>, seed <span class="op">=</span> <span class="fl">11</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="../reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">misdosed_fit</span>, seed <span class="op">=</span> <span class="fl">11</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">plotted</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu">concentration</span><span class="op">(</span><span class="va">misdosed</span>, <span class="st">"Source"</span><span class="op">)</span>,</span>
-<span>                 <span class="fu">concentration</span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"Synthetic"</span><span class="op">)</span><span class="op">)</span></span>
+<span>                 <span class="fu">concentration</span><span class="op">(</span><span class="va">kept_synthetic</span>, <span class="st">"Synthetic, patient kept"</span><span class="op">)</span>,</span>
+<span>                 <span class="fu">concentration</span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"Synthetic, patient left out"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">plotted</span><span class="op">$</span><span class="va">dataset</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">plotted</span><span class="op">$</span><span class="va">dataset</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">plotted</span><span class="op">$</span><span class="va">dataset</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">plotted</span>, <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">dv</span>, group <span class="op">=</span> <span class="va">id</span>,</span>
 <span>                                      colour <span class="op">=</span> <span class="va">dataset</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span><span class="va">dataset</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_log10</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_colour_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">comparison_colours</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_colour_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="va">comparison_colours</span><span class="op">)</span>,</span>
+<span>                                          <span class="st">"#7570B3"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Time (hours)"</span>, y <span class="op">=</span> <span class="st">"Warfarin concentration"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"none"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pmxmodel-privacy_files/figure-html/misdosed-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<p>The scorecard reads the release’s verdict as row E3, so the same
-finding reaches anyone who scores the synthetic data:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">misdosed</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">card</span><span class="op">)</span><span class="op">[</span><span class="va">card</span><span class="op">$</span><span class="va">check</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"E1"</span>, <span class="st">"E2"</span>, <span class="st">"E3"</span><span class="op">)</span>,</span>
-<span>                    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"check"</span>, <span class="st">"result"</span>, <span class="st">"verdict"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;    check                                          result verdict</span></span>
-<span><span class="co">#&gt; 19    E1                              moved (1 model(s))    pass</span></span>
-<span><span class="co">#&gt; 20    E2                                       estimated    pass</span></span>
-<span><span class="co">#&gt; 21    E3 largest: cp: v2 between-subject SD, 70.7 points    FAIL</span></span></code></pre></div>
-<p>The remedy is to correct the data: fix the patient’s dosing record,
-or leave the patient out, and fit again.</p>
+<p>The scorecard reads each release’s verdict as row E3, so the finding
+reaches anyone who scores the synthetic data:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">kept_card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">misdosed</span>, <span class="va">kept_synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
+<span><span class="va">card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">misdosed</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>fit <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"patient kept"</span>, <span class="st">"patient left out"</span><span class="op">)</span>,</span>
+<span>           E3 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">kept_card</span><span class="op">$</span><span class="va">verdict</span><span class="op">[</span><span class="va">kept_card</span><span class="op">$</span><span class="va">check</span> <span class="op">==</span> <span class="st">"E3"</span><span class="op">]</span>,</span>
+<span>                  <span class="va">card</span><span class="op">$</span><span class="va">verdict</span><span class="op">[</span><span class="va">card</span><span class="op">$</span><span class="va">check</span> <span class="op">==</span> <span class="st">"E3"</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>           result <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">kept_card</span><span class="op">$</span><span class="va">result</span><span class="op">[</span><span class="va">kept_card</span><span class="op">$</span><span class="va">check</span> <span class="op">==</span> <span class="st">"E3"</span><span class="op">]</span>,</span>
+<span>                      <span class="va">card</span><span class="op">$</span><span class="va">result</span><span class="op">[</span><span class="va">card</span><span class="op">$</span><span class="va">check</span> <span class="op">==</span> <span class="st">"E3"</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;                fit   E3                                          result</span></span>
+<span><span class="co">#&gt; 1     patient kept FAIL largest: cp: v2 between-subject SD, 70.7 points</span></span>
+<span><span class="co">#&gt; 2 patient left out pass      every released estimate moves less than 15</span></span></code></pre></div>
+<p>Leaving the patient out protects the release and keeps the synthetic
+data plausible. The record is still wrong, and correcting the patient’s
+dosing is the remedy for any analysis of the real study.</p>
 </div>
 <div class="section level3">
 <h3 id="extreme-covariates">Extreme Covariates<a class="anchor" aria-label="anchor" href="#extreme-covariates"></a>
@@ -662,7 +745,7 @@ or leave the patient out, and fit again.</p>
 <p>One patient weighs 250 kg and another is 95 years old. Neither enters
 the covariate summaries, because each is the most extreme patient on
 their side and trimming sets them aside:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">summary_of</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">model</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>covariate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"wt"</span>, <span class="st">"age"</span><span class="op">)</span>,</span>
 <span>             geometric_mean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">model</span><span class="op">$</span><span class="va">wt</span><span class="op">$</span><span class="va">meanlog</span>, <span class="va">model</span><span class="op">$</span><span class="va">age</span><span class="op">$</span><span class="va">meanlog</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -678,7 +761,7 @@ their side and trimming sets them aside:</p>
 <span><span class="co">#&gt; 4 with the two extreme patients       age             29   0.36</span></span></code></pre></div>
 <p>The same two summaries taken over every patient, as they were before
 the trimming, move with the extreme patients:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">first</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="va">data</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/duplicated.html" class="external-link">duplicated</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">id</span><span class="op">)</span>, <span class="op">]</span></span>
 <span><span class="va">untrimmed</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>covariate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"wt"</span>, <span class="st">"age"</span><span class="op">)</span>,</span>
@@ -697,7 +780,7 @@ the trimming, move with the extreme patients:</p>
 <span><span class="co">#&gt; 4 with the two extreme patients       age           30.3  0.363</span></span></code></pre></div>
 <p>P5 reads the covariate rows of the influence table: leaving out any
 one patient barely moves them, extreme patients included.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">extreme_influence</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="fu"><a href="../reference/model_privacy_checks.html">model_privacy_checks</a></span><span class="op">(</span><span class="va">extreme_fit</span><span class="op">)</span>, <span class="st">"influence"</span><span class="op">)</span></span>
 <span><span class="fu">digits3</span><span class="op">(</span><span class="va">extreme_influence</span><span class="op">[</span><span class="va">extreme_influence</span><span class="op">$</span><span class="va">group</span> <span class="op">==</span> <span class="st">"covariate"</span>, <span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;        group name            quantity released change   unit patients shrinkage</span></span>
@@ -718,7 +801,7 @@ one patient barely moves them, extreme patients included.</p>
 patient holds. The level is excluded from the covariate distribution and
 from the schema the generated table is written in, so no synthetic
 patient can carry it:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">extreme_fit</span><span class="op">$</span><span class="va">covariates</span><span class="op">$</span><span class="va">sex</span><span class="op">$</span><span class="va">levels</span></span>
 <span><span class="co">#&gt; [1] "female" "male"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">extreme_fit</span><span class="op">$</span><span class="va">schema</span><span class="op">$</span><span class="va">prototypes</span><span class="op">$</span><span class="va">sex</span><span class="op">)</span></span>
@@ -731,7 +814,7 @@ patient can carry it:</p>
 <p>The checks on every stored fit of the <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-public-data-examples.html">public-data
 evaluation</a>, and the estimate each study’s most influential patient
 moves furthest.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>warfarin <span class="op">=</span> <span class="st">"warfarin-model-fit.rds"</span>,</span>
 <span>           theo_md <span class="op">=</span> <span class="st">"theo-md-model-fit.rds"</span>,</span>
 <span>           mad <span class="op">=</span> <span class="st">"mad-model-fit.rds"</span>,</span>
@@ -747,26 +830,29 @@ moves furthest.</p>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">inherits</a></span><span class="op">(</span><span class="va">one</span>, <span class="st">"pmx_fitted_model"</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span>
 <span>  <span class="va">checks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_privacy_checks.html">model_privacy_checks</a></span><span class="op">(</span><span class="va">one</span><span class="op">)</span></span>
 <span>  <span class="va">verdicts</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="va">checks</span><span class="op">$</span><span class="va">verdict</span>, <span class="va">checks</span><span class="op">$</span><span class="va">check</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>study <span class="op">=</span> <span class="va">study</span>, patients <span class="op">=</span> <span class="va">one</span><span class="op">$</span><span class="va">n_source</span>, <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">verdicts</span><span class="op">)</span>,</span>
-<span>             largest <span class="op">=</span> <span class="va">checks</span><span class="op">$</span><span class="va">result</span><span class="op">[</span><span class="va">checks</span><span class="op">$</span><span class="va">check</span> <span class="op">==</span> <span class="st">"P5"</span><span class="op">]</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>study <span class="op">=</span> <span class="va">study</span>, patients <span class="op">=</span> <span class="va">one</span><span class="op">$</span><span class="va">n_source</span>,</span>
+<span>             left_out <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">one</span><span class="op">$</span><span class="va">privacy</span><span class="op">$</span><span class="va">left_out</span><span class="op">)</span><span class="op">)</span> <span class="fl">0L</span> <span class="kw">else</span></span>
+<span>               <span class="va">one</span><span class="op">$</span><span class="va">privacy</span><span class="op">$</span><span class="va">left_out</span><span class="op">$</span><span class="va">patients</span>, <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">verdicts</span><span class="op">)</span>,</span>
+<span>             largest <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"; after leaving.*$"</span>, <span class="st">""</span>,</span>
+<span>                           <span class="va">checks</span><span class="op">$</span><span class="va">result</span><span class="op">[</span><span class="va">checks</span><span class="op">$</span><span class="va">check</span> <span class="op">==</span> <span class="st">"P5"</span><span class="op">]</span><span class="op">)</span>,</span>
 <span>             check.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="va">rows</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">rows</span>, <span class="va">is.null</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">logical</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt;           study patients   P1   P2   P3   P4     P5</span></span>
-<span><span class="co">#&gt; 1      warfarin       32 pass pass pass pass   pass</span></span>
-<span><span class="co">#&gt; 2       theo_md       12 pass pass pass pass   pass</span></span>
-<span><span class="co">#&gt; 3           mad       60 pass pass pass pass review</span></span>
-<span><span class="co">#&gt; 4    case1_pkpd      180 pass pass pass pass   pass</span></span>
-<span><span class="co">#&gt; 5        wbcSim       45 pass pass pass pass   pass</span></span>
-<span><span class="co">#&gt; 6   mavoglurant      120 pass pass pass pass   pass</span></span>
-<span><span class="co">#&gt; 7      nimoData       12 pass pass pass pass   pass</span></span>
-<span><span class="co">#&gt; 8      pheno_sd       59 pass pass pass pass   pass</span></span>
-<span><span class="co">#&gt; 9  mixroute_sim       90 pass pass pass pass   pass</span></span>
-<span><span class="co">#&gt; 10      onc_sim      200 pass pass pass pass   pass</span></span>
+<span><span class="co">#&gt;           study patients left_out   P1   P2   P3   P4   P5</span></span>
+<span><span class="co">#&gt; 1      warfarin       32        0 pass pass pass pass pass</span></span>
+<span><span class="co">#&gt; 2       theo_md       12        0 pass pass pass pass pass</span></span>
+<span><span class="co">#&gt; 3           mad       60        1 pass pass pass pass pass</span></span>
+<span><span class="co">#&gt; 4    case1_pkpd      180        0 pass pass pass pass pass</span></span>
+<span><span class="co">#&gt; 5        wbcSim       45        0 pass pass pass pass pass</span></span>
+<span><span class="co">#&gt; 6   mavoglurant      120        0 pass pass pass pass pass</span></span>
+<span><span class="co">#&gt; 7      nimoData       12        0 pass pass pass pass pass</span></span>
+<span><span class="co">#&gt; 8      pheno_sd       59        0 pass pass pass pass pass</span></span>
+<span><span class="co">#&gt; 9  mixroute_sim       90        0 pass pass pass pass pass</span></span>
+<span><span class="co">#&gt; 10      onc_sim      200        0 pass pass pass pass pass</span></span>
 <span><span class="co">#&gt;                                                           largest</span></span>
 <span><span class="co">#&gt; 1                   largest: cp: ka between-subject SD, 10 points</span></span>
 <span><span class="co">#&gt; 2                           largest: DV: ka typical value, 9.92 %</span></span>
-<span><span class="co">#&gt; 3        largest: PD - Continuous between-subject SD, 23.7 points</span></span>
+<span><span class="co">#&gt; 3        largest: PD - Continuous between-subject SD, 10.3 points</span></span>
 <span><span class="co">#&gt; 4        largest: PD - Continuous between-subject SD, 6.44 points</span></span>
 <span><span class="co">#&gt; 5                     largest: DV between-subject SD, 2.25 points</span></span>
 <span><span class="co">#&gt; 6                 largest: DV: v2 between-subject SD, 1.92 points</span></span>
@@ -774,11 +860,12 @@ moves furthest.</p>
 <span><span class="co">#&gt; 8                 largest: DV: cl between-subject SD, 4.55 points</span></span>
 <span><span class="co">#&gt; 9                 largest: DV: ka between-subject SD, 4.46 points</span></span>
 <span><span class="co">#&gt; 10 largest: Everolimus trough: ka between-subject SD, 3.21 points</span></span></code></pre></div>
-<p>A <code>review</code> there is a study in which one patient moves an
-estimate by 15 or more, and the influence table of its fit says which
-estimate. A move is a fraction of the cohort’s spread divided by the
-cohort size, so the same patient moves a twelve-patient fit about five
-times as far as a sixty-patient one.</p>
+<p><code>left_out</code> counts the patients each study’s estimation
+left out for moving an estimate by 15 or more, and <code>largest</code>
+is the largest move among the patients that remain. A move is a fraction
+of the cohort’s spread divided by the cohort size, so the same patient
+moves a twelve-patient fit about five times as far as a sixty-patient
+one.</p>
 </div>
 <div class="section level2">
 <h2 id="checks-on-the-synthetic-table">Checks on the Synthetic Table<a class="anchor" aria-label="anchor" href="#checks-on-the-synthetic-table"></a>
@@ -788,7 +875,7 @@ the synthetic table against its source, and its section B asks whether
 any synthetic patient reproduces a real one. Four of its rows do not
 apply to this generator, because no synthetic patient is assembled from
 a real patient’s record; B3, B4b and B5 do.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">fit</span>, seed <span class="op">=</span> <span class="fl">11</span><span class="op">)</span></span>
 <span><span class="va">card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">warfarin</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">card</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substr</a></span><span class="op">(</span><span class="va">card</span><span class="op">$</span><span class="va">check</span>, <span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"B"</span>, <span class="st">"E"</span><span class="op">)</span>,</span>
@@ -808,7 +895,7 @@ a real patient’s record; B3, B4b and B5 do.</p>
 <span><span class="co">#&gt; 8                                                 no run record not applicable</span></span>
 <span><span class="co">#&gt; 9                                                 no run record not applicable</span></span>
 <span><span class="co">#&gt; 10 not applicable: profiles simulated, not built from a patient not applicable</span></span>
-<span><span class="co">#&gt; 11                                      0.531 in [0.312, 0.781]           pass</span></span>
+<span><span class="co">#&gt; 11                                      0.688 in [0.288, 0.743]           pass</span></span>
 <span><span class="co">#&gt; 12                   not applicable: attendance drawn per visit not applicable</span></span>
 <span><span class="co">#&gt; 13                                                            0           pass</span></span>
 <span><span class="co">#&gt; 14                                               0 of 0 exposed           pass</span></span>
@@ -822,20 +909,43 @@ fewer than three real patients held reached the output. <a href="https://iamstei
 scorecard</a> documents each row and its pass criterion.</p>
 </div>
 <div class="section level2">
-<h2 id="what-these-checks-do-not-establish">What These Checks Do Not Establish<a class="anchor" aria-label="anchor" href="#what-these-checks-do-not-establish"></a>
+<h2 id="outstanding-risks">Outstanding Risks<a class="anchor" aria-label="anchor" href="#outstanding-risks"></a>
 </h2>
+<p>These are the ways a release from this generator can still disclose
+something about a patient. Each is either inherent to releasing
+estimates without noise, or a gap the checks above do not yet close.</p>
 <ul>
 <li>
 <strong>An adversary who knows every other patient is not
 stopped.</strong> Such an adversary can compute the exact effect of the
 one patient they do not know, so any move at all is detectable, however
 far under a threshold it sits. That adversary is the one DP is defined
-against.</li>
+against, and only a DP mechanism stops them.</li>
 <li>
-<strong>The influence reading describes this study only.</strong>
-How far one patient moves an estimate is itself a fact about the data,
-which is why DP calibrates its noise to <em>smooth</em> sensitivity
-rather than local sensitivity [7]. Shrinkage makes the reading
+<strong>Three patients is the smallest threshold in common
+use.</strong> Every released frequency rests on at least three patients
+on each side, which is the floor the threshold rule of SDC starts from.
+A release held to a stricter rule needs <code>min_arm_patients</code>
+and <code>min_category_patients</code> raised to match.</li>
+<li>
+<strong>Numeric <code>keep</code> values are copied from one patient
+per arm.</strong> <code>keep</code> writes the arm’s first patient’s
+value onto every synthetic patient in the arm, as declared. A
+categorical value too few patients hold is removed; a numeric one is
+not, so a numeric column that varies within an arm carries one patient’s
+value. Declare there only values that are constant within an arm.</li>
+<li>
+<strong>Leaving out stops at a tenth of the cohort.</strong> A study
+with more patients than that whom the influence reading flags keeps the
+rest, and P5 then reads a review or a failure.</li>
+<li>
+<strong>The influence reading describes this study only, and its
+thresholds are empirical.</strong> How far one patient moves an estimate
+is itself a fact about the data, which is why DP calibrates its noise to
+<em>smooth</em> sensitivity rather than local sensitivity [7]. The
+review and failure thresholds were set against the public studies above,
+so that ordinary patients pass and a gross data error fails; they are
+not derived from a privacy target. Shrinkage makes the reading
 understate the move.</li>
 <li>
 <strong>Not every estimate is read.</strong> The residual error, a
@@ -843,14 +953,16 @@ parameter estimated without a between-subject term (bioavailability in a
 mixed-route model), and the PD shape parameters other than the baseline
 have no row.</li>
 <li>
-<strong>Per-arm rates and attendance can rest on fewer than three
-patients’ events.</strong> A dose reduction one patient had makes its
-arm’s reduction rate positive. These are treated as trial-level realized
-design, which a clinical study report tabulates in the same form.</li>
+<strong>The full fit holds diagnostics the release does
+not.</strong> The candidate AIC values, the starting values and the
+correlations between covariates and the individual random effects stay
+on the object <code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code> returns. Share the
+release or the synthetic data, never the fit.</li>
 <li>
-<strong>Columns declared in <code>keep</code> are copied from one
-patient per arm.</strong> Declare there only values that are constant
-within an arm.</li>
+<strong>The estimation warning names a patient.</strong> A patient
+who fails the influence reading is named on the console, so logs and
+rendered reports from the environment that holds the study carry that
+identifier.</li>
 <li>
 <strong>Rarity in the world is not measured.</strong> A covariate
 level held by many patients in this study can still identify someone if
@@ -884,7 +996,7 @@ neither, which rules them out here. The cost is the error law of the <a href="ht
 background</a> with the cohort size replaced by the number of groups. At
 about twenty patients per group, and a median Laplace error of
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>b</mi><mrow><mi mathvariant="normal">ln</mi><mo>⁡</mo></mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">b \ln 2</annotation></semantics></math>:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>patients <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">60</span>, <span class="fl">200</span>, <span class="fl">1000</span><span class="op">)</span>, released <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">11</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">grid</span><span class="op">$</span><span class="va">groups</span> <span class="op">&lt;-</span> <span class="va">grid</span><span class="op">$</span><span class="va">patients</span> <span class="op">/</span> <span class="fl">20</span></span>
 <span><span class="va">scale</span> <span class="op">&lt;-</span> <span class="va">grid</span><span class="op">$</span><span class="va">released</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">*</span> <span class="va">grid</span><span class="op">$</span><span class="va">groups</span><span class="op">)</span></span>

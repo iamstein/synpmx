@@ -204,7 +204,7 @@ it is an input to the generation step.</p>
 <span><span class="co">#&gt;                      all (32)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         2 endpoint(s) at 16 nominal time(s), 22 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   median 95% of an arm attends a slot (9% to 100%)</span></span>
+<span><span class="co">#&gt;   visit attendance   median 100% of an arm attends a slot (9% to 100%)</span></span>
 <span><span class="co">#&gt;   covariates         wt lognormal, age lognormal, sex categorical, drawn</span></span>
 <span><span class="co">#&gt;                      once for the whole study, independently of the</span></span>
 <span><span class="co">#&gt;                      profiles</span></span>
@@ -242,8 +242,8 @@ it is an input to the generation step.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
-<span><span class="co">#&gt;   time to fit        57.3 s</span></span>
-<span><span class="co">#&gt;   whole call         57.5 s, against 57.3 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        59.7 s</span></span>
+<span><span class="co">#&gt;   whole call         59.9 s, against 59.7 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;</span></span>
@@ -307,7 +307,7 @@ the object telling you how little evidence it had, and
 <span><span class="co">#&gt; [1] "2cmt_oral"</span></span>
 <span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged accepted      aic seconds note</span></span>
-<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  57.346</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  59.715</span></span></code></pre></div>
 <p>Each row is an attempted fit. The default stops when two compartments
 pass the acceptance checks; a rejected fit is followed by one
 compartment. <code>pk</code> names a particular model, or several to
@@ -520,7 +520,7 @@ generation.</p>
 <span><span class="fu">show</span><span class="op">(</span><span class="va">cells</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"endpoint"</span>, <span class="st">"time"</span>, <span class="st">"probability"</span><span class="op">)</span><span class="op">]</span>,</span>
 <span>     <span class="st">"Attendance, per grid cell"</span>, paged <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-1fb4450895fe099f74a1" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-1fb4450895fe099f74a1">{"x":{"filter":"none","vertical":false,"caption":"<caption>Attendance, per grid cell<\/caption>","data":[["cp","cp","cp","cp","cp","cp","cp","cp","cp","cp","cp","cp","cp","cp","pca","pca","pca","pca","pca","pca","pca","pca"],[0.5,1,1.5,2,3,6,9,12,24,36,48,72,96,120,0,24,36,48,72,96,120,144],[0.125,0.125,0.09379999999999999,0.156,0.375,0.406,0.312,0.25,1,1,1,1,0.969,0.906,0.9379999999999999,1,1,1,0.969,0.969,0.969,0.406]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>endpoint<\/th>\n      <th>time<\/th>\n      <th>probability<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"tip","paging":true,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[1,2]},{"name":"endpoint","targets":0},{"name":"time","targets":1},{"name":"probability","targets":2}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<script type="application/json" data-for="htmlwidget-1fb4450895fe099f74a1">{"x":{"filter":"none","vertical":false,"caption":"<caption>Attendance, per grid cell<\/caption>","data":[["cp","cp","cp","cp","cp","cp","cp","cp","cp","cp","cp","cp","cp","cp","pca","pca","pca","pca","pca","pca","pca","pca"],[0.5,1,1.5,2,3,6,9,12,24,36,48,72,96,120,0,24,36,48,72,96,120,144],[0.125,0.125,0.09379999999999999,0.156,0.375,0.406,0.312,0.25,1,1,1,1,1,0.906,1,1,1,1,1,1,1,0.406]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>endpoint<\/th>\n      <th>time<\/th>\n      <th>probability<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"tip","paging":true,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[1,2]},{"name":"endpoint","targets":0},{"name":"time","targets":1},{"name":"probability","targets":2}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://opensource.nibr.com/xgx/" class="external-link">xgxr</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/pkg/xgxr/man/xgx_theme_set.html" class="external-link">xgx_theme_set</a></span><span class="op">(</span><span class="op">)</span></span>

@@ -87,7 +87,7 @@ model_report(fit)
 #>                      all (32)
 #>   dose changes       none
 #>   visit grid         2 endpoint(s) at 16 nominal time(s), 22 slot(s) in all
-#>   visit attendance   median 95% of an arm attends a slot (9% to 100%)
+#>   visit attendance   median 100% of an arm attends a slot (9% to 100%)
 #>   covariates         wt lognormal, age lognormal, sex categorical, drawn
 #>                      once for the whole study, independently of the
 #>                      profiles
@@ -125,8 +125,8 @@ model_report(fit)
 #>   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 
 #>   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)
 #>   residual error     proportional 0.21 
-#>   time to fit        57.3 s
-#>   whole call         57.5 s, against 57.3 s in the fitter
+#>   time to fit        59.7 s
+#>   whole call         59.9 s, against 59.7 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;
@@ -200,7 +200,7 @@ fit$structural
 #> [1] "2cmt_oral"
 model_candidates(fit)
 #>       model converged accepted      aic seconds note
-#> 1 2cmt_oral      TRUE     TRUE 922.2948  57.346
+#> 1 2cmt_oral      TRUE     TRUE 922.2948  59.715
 ```
 
 Each row is an attempted fit. The default stops when two compartments

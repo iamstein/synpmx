@@ -129,7 +129,8 @@ No patient row survives it.</p>
 <span>  estimation <span class="op">=</span> <span class="st">"focei"</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  quiet <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  min_category_patients <span class="op">=</span> <span class="fl">3L</span></span>
+<span>  min_category_patients <span class="op">=</span> <span class="fl">3L</span>,</span>
+<span>  drop_influential <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -300,6 +301,19 @@ from the remaining levels in proportion to their counts. If none remain,
 the column is generated as missing with a warning. Set to 1 to retain all
 observed levels. This does not filter discrete observation endpoints.</p></dd>
 
+
+<dt id="arg-drop-influential">drop_influential<a class="anchor" aria-label="anchor" href="#arg-drop-influential"></a></dt>
+<dd><p>Leave out of the estimates any patient who moves a
+released estimate by 15 or more – in percent for a typical value, in
+points of the between-subject SD on the log scale for a spread – and
+estimate again without them. The patient is left out of the PK fit, the PD
+fits and the covariate summaries, and stays in the dosing, visit and arm
+models, so the cohort and arm sizes do not change. At most a tenth of the
+cohort is left out. Each patient left out is named on the console and
+nowhere in the fit, which records only how many and why. A patient given
+far more drug than the dosing record says is the usual case. <code>FALSE</code> keeps
+every patient and only reports the reading.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -327,7 +341,7 @@ floor is the whole defence and it is a threshold rather than an accounting.</p>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="synpmx_model_generate.html">synpmx_model_generate()</a></code>, <code><a href="synpmx_model.html">synpmx_model()</a></code>, <code><a href="model_report.html">model_report()</a></code>,
-<code><a href="model_candidates.html">model_candidates()</a></code>, <code><a href="model_parameters.html">model_parameters()</a></code>.</p></div>
+<code><a href="model_candidates.html">model_candidates()</a></code>, <code><a href="model_parameters.html">model_parameters()</a></code>, <code><a href="model_privacy_checks.html">model_privacy_checks()</a></code>.</p></div>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

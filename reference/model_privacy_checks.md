@@ -1,13 +1,17 @@
 # Privacy checks on a fitted model
 
 Five checks on what a fitted model releases, each with its pass
-criterion. The first four ask whether the release holds anything about
-one patient that it should not: a per-patient table, an identifier, a
-single patient's value, or a frequency resting on too few patients. The
-fifth asks how far any one patient moves a released estimate, from the
-individual random effects for the population model, from each subject's
-baseline for the PD shapes, and by leaving each patient out for the
-covariate summaries.
+criterion. The first three ask whether the release holds anything about
+one patient that it should not: a per-patient table, an identifier, or a
+single patient's value. The fourth recounts the smallest group of
+patients behind each kind of released frequency – arm sizes, attendance,
+dose-change rates, categorical levels and carried values – on both sides
+of it, since "one patient missed this visit" discloses as much as "one
+patient came". The fifth asks how far any one patient moves a released
+estimate, from the individual random effects for the population model,
+from each subject's baseline for the PD shapes, and by leaving each
+patient out for the covariate summaries; by default estimation has
+already left out any patient who moved one by 15 or more.
 
 ## Usage
 
@@ -29,10 +33,13 @@ model_privacy_checks(fitted_model)
 ## Value
 
 A `pmx_privacy_checks` data frame with columns `check`, `question`,
-`result`, `criterion` and `verdict`. On a full fit, the per-estimate
-reading behind check P5 is the `influence` attribute: one row per
-released estimate, with the released value, the largest move one patient
-causes, its unit and its verdict. No row is about a patient.
+`result`, `criterion` and `verdict`. On a full fit, the reading behind
+P5 is the `influence` attribute, one row per released estimate with the
+released value, the largest move one patient causes, its unit and its
+verdict; and the recount behind P4 is the `frequencies` attribute, one
+row per kind of released frequency with the smallest group behind it,
+its floor and how many values were changed to meet it. No row is about a
+patient.
 
 ## Details
 

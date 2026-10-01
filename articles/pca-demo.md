@@ -362,13 +362,16 @@ scorecard <- synpmx_scorecard(raw, synthetic, roles)
 synpmx_scorecard_datatable(scorecard)
 ```
 
-**Fifteen of the eighteen rows read the source and synthetic tables
+**Thirteen of the twenty-one rows read the source and synthetic tables
 directly** and answer for any generated dataset.
 
-**Three read `not applicable`, and that is not the same as passed.**
+**Eight read `not applicable`, and that is not the same as passed.**
 B1a, B1b and C2 expect a run record on the generated table, as a
-`pmx_settings` attribute, and this table carries none. B4a and B4b ask
-the copy question directly on the finished tables, and both read zero.
+`pmx_settings` attribute, and this table carries none. B2 and B4a ask
+whether a real patient’s profile or visit set was reused, and this
+generator draws both from a model of the cohort. E1, E2 and E3 score a
+fitted population model, and this generator fits none. B4b asks the copy
+question directly on the finished tables.
 
 **C2 is the one to be careful about.** It asks how many distinct
 dose-time schedules survived, and this is the row where the loss is

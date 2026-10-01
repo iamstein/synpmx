@@ -361,7 +361,7 @@ administration column, and a daily regimen written with
 against synthetic;</li>
 <li>report the scorecard.</li>
 </ol>
-<p>Five scorecard rows read <code>not applicable</code> on every card
+<p>Eight scorecard rows read <code>not applicable</code> on every card
 below, which the cards count in their tally and do not list.
 <strong>B1a</strong>, <strong>B1b</strong> and <strong>C2</strong> read
 a run record that <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> writes and this generator
@@ -370,10 +370,12 @@ observation times copies a real one, and <strong>B2</strong> whether a
 synthetic patient stands out from its stratum; both are disclosure
 questions where a real patient’s record was reused, and this generator
 draws each visit and each profile from a model of the cohort instead.
-That is a limitation of those rows rather than a property of any dataset
-here, and it is the same on all seven. <strong>B4b</strong> asks the
-copy question directly on the finished tables and is the row that
-carries the claim; the section at the end reports what it found.</p>
+<strong>E1</strong>, <strong>E2</strong> and <strong>E3</strong> score a
+fitted population model, and this generator fits none. That is a
+limitation of those rows rather than a property of any dataset here, and
+it is the same on every card. <strong>B4b</strong> asks the copy
+question directly on the finished tables and is the row that carries the
+claim; the section at the end reports what it found.</p>
 </div>
 <div class="section level2">
 <h2 id="the-nominal-grid-is-the-requirement">The nominal grid is the requirement<a class="anchor" aria-label="anchor" href="#the-nominal-grid-is-the-requirement"></a>
@@ -607,11 +609,7 @@ declaration, not a derivation.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">warfarin_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-36aa3d2a04d42bbc2145" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"caption":"<caption>12 pass, 1 review, 8 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.75 on wt (furthest of 4)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p><strong>B4a fails here</strong>, and it is the first of the two
-datasets that does. One generated subject’s complete list of observation
-times equals a real patient’s that no other patient shares. The section
-“What B4a found” below is what that does and does not mean; it is a
-finding about the visit draw rather than about this study.</p>
+<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"caption":"<caption>12 pass, 1 review, 8 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.75 on wt (furthest of 4)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script>
 </div>
 <div class="section level2">
 <h2 id="wbcsim-infusions-and-a-delayed-response">wbcSim: infusions and a delayed response<a class="anchor" aria-label="anchor" href="#wbcsim-infusions-and-a-delayed-response"></a>
@@ -633,7 +631,7 @@ rest.</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">wbc_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-febe03efa1a2d8d52a86" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"caption":"<caption>10 pass, 3 review, 8 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","A5b","D1"],["Observations per patient","Doses per patient","Values landing in the same range"],["both","both","both"],["3.91 -&gt; 3.53","1.16 -&gt; 1","sd x0.76 on DV (furthest of 1)"],["review","review","review"],["compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The figure is cut at 700 h because a handful of source patients are
+<script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"caption":"<caption>10 pass, 3 review, 8 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","A5b","D1"],["Observations per patient","Doses per patient","Values landing in the same range"],["both","both","both"],["3.91 -&gt; 3.27","1.16 -&gt; 1","sd x0.77 on DV (furthest of 1)"],["review","review","review"],["compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The figure is cut at 700 h because a handful of source patients are
 followed to 4580 h and the rest are not. Those late visits are exactly
 what the column guard removes: a grid cell fewer than
 <code>min_column_patients</code> patients reached describes those
@@ -649,8 +647,8 @@ patients and nobody else, so it is dropped rather than modelled.</p>
 the long tail shortens both the observation record and the dosing.
 <strong>This is the cost of the guard rather than a defect</strong>, and
 it is the number to judge — a study whose late follow-up matters is one
-to run at a lower <code>min_column_patients</code> and re-read this row.
-B4a fails here too, on four vectors, and is treated below.</p>
+to run at a lower <code>min_column_patients</code> and re-read this
+row.</p>
 </div>
 <div class="section level2">
 <h2 id="theo_md-seven-oral-doses-on-a-constructible-grid">theo_md: seven oral doses on a constructible grid<a class="anchor" aria-label="anchor" href="#theo_md-seven-oral-doses-on-a-constructible-grid"></a>
@@ -881,7 +879,7 @@ and a cell holds one value per subject.</p>
 <span>  recorded_times <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">mavoglurant</span><span class="op">$</span><span class="va">TIME</span><span class="op">[</span><span class="va">mavoglurant</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  nominal_times <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">mavoglurant</span><span class="op">$</span><span class="va">NTIME</span><span class="op">[</span><span class="va">mavoglurant</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    source_rows synthetic_rows recorded_times  nominal_times </span></span>
-<span><span class="co">#&gt;           2678           1460            117             15</span></span></code></pre></div>
+<span><span class="co">#&gt;           2678           1463            117             15</span></span></code></pre></div>
 <p>That is a property of the grid supplied, not of the generator: a
 wider design grid keeps more of the samples, at the price of cells fewer
 patients share. It is the one dataset here where the construction is
@@ -1277,13 +1275,14 @@ timepoints.</p>
 </tr>
 </tbody>
 </table>
-<p><code>not applicable</code> is 5 on every row and is a gap rather
-than a result. B1a, B1b and C2 read a run record this generator does not
-write; all three questions are answerable from the two tables, and until
-they are computed that way the card is silent exactly where this
-generator’s largest loss is — C2, the variety of dose schedules. B2 and
-B4a ask whether a real patient’s profile or visit set was reused, which
-this generator does not do at all.</p>
+<p><code>not applicable</code> is the same eight rows on every card, and
+it is a gap rather than a result. B1a, B1b and C2 read a run record this
+generator does not write; all three questions are answerable from the
+two tables, and until they are computed that way the card is silent
+exactly where this generator’s largest loss is — C2, the variety of dose
+schedules. B2 and B4a ask whether a real patient’s profile or visit set
+was reused, which this generator does not do at all, and E1 to E3 score
+a population model it does not fit.</p>
 <p><strong>D1 is <code>review</code> on all seven</strong>, and it is
 the row that describes the method rather than any study. It reports the
 furthest standard-deviation ratio over every numeric variable —
@@ -1305,12 +1304,11 @@ draw, 30.7 against 29), <code>wbcSim</code> (the column guard) and
 <code>mavoglurant</code> (the snapping). The four studies whose grids
 cost nothing read <code>pass</code> on it.</p>
 <div class="section level3">
-<h3 id="what-b4a-found">What B4a found<a class="anchor" aria-label="anchor" href="#what-b4a-found"></a>
+<h3 id="what-b4b-found">What B4b found<a class="anchor" aria-label="anchor" href="#what-b4b-found"></a>
 </h3>
-<p>B4a asks whether any generated subject’s complete list of observation
-times equals a real patient’s that <strong>no other patient
-shares</strong>. It fails on two of the seven, and it is worth being
-precise about what that is.</p>
+<p>B4b asks whether any generated subject’s vector of measured values
+equals a real patient’s that <strong>no other patient shares</strong>:
+the copy question, asked of what somebody’s assay said.</p>
 <div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">copies</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">runs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">entry</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">card</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">entry</span><span class="op">$</span><span class="va">card</span><span class="op">)</span></span>
@@ -1320,115 +1318,84 @@ precise about what that is.</p>
 <span>    `Median observations` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/median.html" class="external-link">median</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span></span>
 <span>      <span class="va">entry</span><span class="op">$</span><span class="va">source</span><span class="op">[[</span><span class="va">entry</span><span class="op">$</span><span class="va">roles</span><span class="op">$</span><span class="va">id</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="va">observations</span><span class="op">]</span></span>
 <span>    <span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    `Time vectors copied (B4a)` <span class="op">=</span> <span class="va">card</span><span class="op">$</span><span class="va">result</span><span class="op">[</span><span class="va">card</span><span class="op">$</span><span class="va">check</span> <span class="op">==</span> <span class="st">"B4a"</span><span class="op">]</span>,</span>
 <span>    `DV vectors copied (B4b)` <span class="op">=</span> <span class="va">card</span><span class="op">$</span><span class="va">result</span><span class="op">[</span><span class="va">card</span><span class="op">$</span><span class="va">check</span> <span class="op">==</span> <span class="st">"B4b"</span><span class="op">]</span>,</span>
 <span>    check.names <span class="op">=</span> <span class="cn">FALSE</span>, stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">copies</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>             caption <span class="op">=</span> <span class="st">"B4a and B4b across the nine runs, beside how long a source patient's record is."</span><span class="op">)</span></span></code></pre></div>
+<span>             caption <span class="op">=</span> <span class="st">"B4b across the nine runs, beside how long a source patient's record is."</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>B4a and B4b across the nine runs, beside how long a source
-patient’s record is.</caption>
-<colgroup>
-<col width="13%">
-<col width="20%">
-<col width="43%">
-<col width="24%">
-</colgroup>
+<caption>B4b across the nine runs, beside how long a source patient’s
+record is.</caption>
 <thead><tr class="header">
 <th align="left">Dataset</th>
 <th align="right">Median observations</th>
-<th align="left">Time vectors copied (B4a)</th>
 <th align="left">DV vectors copied (B4b)</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
 <td align="left">case1_pkpd</td>
 <td align="right">35</td>
-<td align="left">not applicable: attendance drawn per visit</td>
 <td align="left">0</td>
 </tr>
 <tr class="even">
 <td align="left">mad</td>
 <td align="right">68</td>
-<td align="left">not applicable: attendance drawn per visit</td>
 <td align="left">0</td>
 </tr>
 <tr class="odd">
 <td align="left">warfarin</td>
 <td align="right">13</td>
-<td align="left">not applicable: attendance drawn per visit</td>
 <td align="left">0</td>
 </tr>
 <tr class="even">
 <td align="left">wbcSim</td>
 <td align="right">4</td>
-<td align="left">not applicable: attendance drawn per visit</td>
 <td align="left">0</td>
 </tr>
 <tr class="odd">
 <td align="left">theo_md</td>
 <td align="right">22</td>
-<td align="left">not applicable: attendance drawn per visit</td>
 <td align="left">0</td>
 </tr>
 <tr class="even">
 <td align="left">nimoData</td>
 <td align="right">27</td>
-<td align="left">not applicable: attendance drawn per visit</td>
 <td align="left">0</td>
 </tr>
 <tr class="odd">
 <td align="left">mavoglurant</td>
 <td align="right">24</td>
-<td align="left">not applicable: attendance drawn per visit</td>
 <td align="left">0</td>
 </tr>
 <tr class="even">
 <td align="left">mixroute_sim</td>
 <td align="right">17</td>
-<td align="left">not applicable: attendance drawn per visit</td>
 <td align="left">0</td>
 </tr>
 <tr class="odd">
 <td align="left">onc_sim</td>
 <td align="right">16</td>
-<td align="left">not applicable: attendance drawn per visit</td>
 <td align="left">0</td>
 </tr>
 </tbody>
 </table>
-<p><strong>B4b is zero everywhere.</strong> No generated subject
-reproduces a real patient’s measured values on any of these studies,
-which is the row that would indicate a disclosure of what somebody’s
-assay said.</p>
-<p><strong>B4a is not zero, and the reason is the length of the lists
-being compared.</strong> The two datasets that fail are the two with the
-shortest records. <code>wbcSim</code> has a median of four observations
-per subject, and the vectors it matched have lengths 1, 3, 4 and 4 — one
-of them is the single element <code>0</code>. A one-visit list matching
-a one-visit list is two short lists colliding, not a patient being
-reproduced. <code>theo_md</code>, whose twelve time vectors are
-<em>all</em> singletons, reproduces none of them, because its grid is
-wide enough that an exact collision is negligible.</p>
-<p>It is reproducible rather than a seed accident. Over ten seeds,
-<code>warfarin</code> copies 0 to 2 vectors and fires on nine of them,
-<code>wbcSim</code> copies 2 to 7 and fires on all ten, and
-<code>theo_md</code> copies none on any.</p>
-<p><strong>The check cannot tell a coincidence from a copy, and the
-generator has no mechanism that would prevent a real one.</strong>
-Attendance is drawn independently per visit from the arm’s probability,
-with no floor on how many source patients hold the resulting set.
-<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> has such a floor —
+<p><strong>B4a, the same question asked of the list of observation
+times, does not apply to this generator.</strong> Attendance is drawn
+independently per visit from the arm’s probability, onto the declared
+grid, so a generated list that equals a real patient’s is a coincidence
+with a computable chance rather than a copy. On a study whose patients’
+visit lists are nearly all unique, which short records make likely, that
+chance is high, and a row firing on it would measure the width of the
+grid rather than a disclosure. The <a href="https://iamstein.github.io/synpmx/articles/scorecard.html">scorecard</a>
+gives the measurements behind that ruling, under B4a.</p>
+<p><strong>What remains is that the visit draw has no floor.</strong>
+Nothing stops a generated set from landing on one that a single real
+patient held. <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> has such a floor:
 <code>min_pattern_share</code> draws each avatar’s attendance from
-patterns at least that many subjects share — and this generator does
-not. On these seven studies what it produced were coincidences between
-short lists; on a study with genuinely distinctive attendance nothing
-would prevent a real reuse. Giving the visit draw the same floor is the
-obvious repair, and it needs measuring for what it costs in attendance
-realism before it ships — <code>wbcSim</code> is the dataset that would
-move.</p>
+patterns at least that many subjects share. On a study with genuinely
+distinctive attendance, a coincidence with a real patient’s visits is
+possible here and no row reports it.</p>
 </div>
 </div>
 <div class="section level2">

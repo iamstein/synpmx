@@ -172,15 +172,26 @@ and coarsening them \[9\].
 
 A frequency resting on one patient is that patient. The threshold rule
 of SDC publishes a count only where at least *k* units stand behind it
-\[9\], and `synadam` masks values held once \[13\]. Here *k* is 3 by
-default:
+\[9\], and `synadam` masks values held once \[13\]. The rule applies to
+both sides of a frequency: an arm’s attendance at a visit that all but
+one patient kept says as much about the one who missed it as attendance
+by one patient says about the one who came. Here *k* is 3 by default:
 
 - arms below `min_arm_patients` are dropped before anything is fitted;
 - a nominal visit slot, a dose level and a planned cycle are kept only
   where at least `min_arm_patients` patients reached them;
+- an arm’s attendance fraction at a slot with fewer than
+  `min_arm_patients` patients attending or missing is rounded to 0 or 1;
+- a dose-change rate whose events fewer than `min_arm_patients` patients
+  had takes the rate pooled over every arm, where that pools enough
+  patients, and is zero otherwise;
 - a categorical covariate level, and a binary or ordinal endpoint’s
   level at a visit, below `min_category_patients` patients is excluded,
-  or folded into the most common level.
+  or folded into the most common level;
+- a categorical `keep` value, copied from the arm’s first patient as
+  `keep` declares, is written as missing where fewer than
+  `min_category_patients` patients in the arm hold it. A numeric value
+  is carried unchanged.
 
 ### 6. Covariate Summaries Without Their Extremes
 
@@ -242,6 +253,16 @@ between-subject SD is 0.27, a patient 3 SD from the mean in a cohort of
 Shrinkage pulls every random effect toward zero and makes the reading
 understate the move, so it is reported beside it.
 
+A patient who moves an estimate by 15 or more is then left out of the
+estimates, and estimation runs again. The patient is left out of the PK
+fit, the PD fits and the covariate summaries, and stays in the dosing,
+visit and arm models, so the cohort and arm sizes the release describes
+do not change. Rounds repeat until the reading flags nobody, and stop
+before a tenth of the cohort has been left out. Each patient left out is
+named on the console; the fit records how many, and which estimates they
+moved. `drop_influential = FALSE` keeps every patient and leaves the
+reading as a review or a failure.
+
 ## The Five Checks
 
 [`model_privacy_checks()`](https://iamstein.github.io/synpmx/reference/model_privacy_checks.md)
@@ -254,13 +275,16 @@ not. The fifth is the reading of protection 8.
 | P1 | No per-patient table is released | the release holds only fields on the allowlist, none of them per patient |
 | P2 | No source identifier is released | no source ID label, and no source ID value as the synthetic ID offset |
 | P3 | No single patient’s value is released | floors on the 1-2-5 series, the reference weight rounded, no covariate median |
-| P4 | Every released frequency rests on several patients | every arm holds at least `min_arm_patients` patients |
-| P5 | No single patient moves a released estimate far | every estimate moves less than 15 |
+| P4 | Every released frequency rests on several patients, on both sides | each side of every frequency is none or at least `min_arm_patients` patients (`min_category_patients` for categorical levels and values) |
+| P5 | No single patient moves a released estimate far | every estimate moves less than 15, after any patient who moved one further has been left out |
 
-P1 to P4 are structural and read the release. They pass by construction
+P1 to P3 are structural and read the release. They pass by construction
 on a fit from this version, and exist to catch a release assembled some
-other way or a fit stored before the protections existed. P5 is read
-from the fit, and a release carries its verdict.
+other way or a fit stored before the protections existed. P4 recounts,
+at estimation, the smallest group of patients behind each kind of
+released frequency after the rules of protection 5 have run, and P5 is
+the reading of protection 8. A release carries the verdicts of both, and
+the fit the counts behind them.
 
 ``` r
 
@@ -272,12 +296,12 @@ as.data.frame(checks)[, c("check", "verdict", "result")]
 #> 3    P3    pass
 #> 4    P4    pass
 #> 5    P5    pass
-#>                                                                                                                 result
-#> 1                                                                                                                 none
-#> 2                                                                                                                 none
-#> 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored
-#> 4                                  smallest arm 32; visit slots, dose levels and categorical levels rest on at least 3
-#> 5                                                                        largest: cp: ka between-subject SD, 10 points
+#>                                                                                                                  result
+#> 1                                                                                                                  none
+#> 2                                                                                                                  none
+#> 3  none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored
+#> 4 smallest group: 3, patients on either side of an attendance fraction; adjusted to meet it: 5 (an attendance fraction)
+#> 5                                                                         largest: cp: ka between-subject SD, 10 points
 ```
 
 The reading behind P5 is the `influence` attribute of the full fit’s
@@ -325,6 +349,22 @@ digits3(attr(checks, "influence"))
 #> 16        NA    pass
 ```
 
+The recount behind P4 is the `frequencies` attribute: for each kind of
+released frequency, the smallest group of patients behind any one of
+them, the floor it is held to, and how many values the rules changed to
+meet it.
+
+``` r
+
+attr(checks, "frequencies")[, c("quantity", "smallest", "threshold",
+                                "adjusted")]
+#>                                            quantity smallest threshold adjusted
+#> 1                                patients in an arm       32         3        0
+#> 2 patients on either side of an attendance fraction        3         3        5
+#> 3       patients with the dose change behind a rate       NA         3        0
+#> 4    patients holding a categorical covariate level        5         3        0
+```
+
 The same checks on the release report P5 as a verdict only. A passing
 release states that every estimate moved less than 15, and nothing more,
 so the one data-dependent thing it carries about the reading is the
@@ -343,7 +383,7 @@ as.data.frame(model_privacy_checks(release))[, c("check", "verdict", "result")]
 #> 1                                                                                                                 none
 #> 2                                                                                                                 none
 #> 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored
-#> 4                                  smallest arm 32; visit slots, dose levels and categorical levels rest on at least 3
+#> 4                                                     every released frequency rests on at least the floor of patients
 #> 5                                                                           every released estimate moves less than 15
 ```
 
@@ -386,28 +426,39 @@ extreme_fit <- synpmx_model_estimate(extreme, roles, seed = 1)
 
 One patient received a thousand times the dose the record shows. A
 linear model sees concentrations a thousand times higher than the
-recorded dose implies. Estimation fits the patient anyway, and the
-variance terms absorb the excess. The estimation call warned that one
-patient moved a released estimate by 30 or more, and named the patient.
-The stored fit names nobody.
+recorded dose implies. The case is fitted twice: as estimation runs by
+default, and with `drop_influential = FALSE`, which keeps the patient so
+that the reading can be seen to catch them.
 
 ``` r
 
-misdosed_checks <- model_privacy_checks(misdosed_fit)
-as.data.frame(misdosed_checks)[, c("check", "verdict", "result")]
+misdosed_fit <- synpmx_model_estimate(misdosed, roles, seed = 1)
+misdosed_kept_fit <- synpmx_model_estimate(misdosed, roles, seed = 1,
+                                           drop_influential = FALSE)
+```
+
+Kept, the patient fails P5. The variance terms absorb the excess
+exposure, and estimation warned that one patient moved a released
+estimate by 30 or more, naming the patient on the console. The stored
+fit names nobody.
+
+``` r
+
+kept_checks <- model_privacy_checks(misdosed_kept_fit)
+as.data.frame(kept_checks)[, c("check", "verdict", "result")]
 #>   check verdict
 #> 1    P1    pass
 #> 2    P2    pass
 #> 3    P3    pass
 #> 4    P4    pass
 #> 5    P5    FAIL
-#>                                                                                                                 result
-#> 1                                                                                                                 none
-#> 2                                                                                                                 none
-#> 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored
-#> 4                                  smallest arm 32; visit slots, dose levels and categorical levels rest on at least 3
-#> 5                                                                      largest: cp: v2 between-subject SD, 70.7 points
-digits3(attr(misdosed_checks, "influence"))
+#>                                                                                                                  result
+#> 1                                                                                                                  none
+#> 2                                                                                                                  none
+#> 3  none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored
+#> 4 smallest group: 3, patients on either side of an attendance fraction; adjusted to meet it: 5 (an attendance fraction)
+#> 5                                                                       largest: cp: v2 between-subject SD, 70.7 points
+digits3(attr(kept_checks, "influence"))
 #>        group   name            quantity released   change   unit patients
 #> 1         PK cp: cl       typical value     0.11     26.2      %       32
 #> 2         PK cp: cl  between-subject SD    0.707     51.8 points       32
@@ -444,27 +495,62 @@ digits3(attr(misdosed_checks, "influence"))
 #> 16        NA    pass
 ```
 
-The synthetic data shows what the fit absorbed. The misdosed patient’s
-exposure has become between-subject variability, so the synthetic
-patients spread wider than the rest of the source cohort does:
+By default, estimation left the patient out of the estimates and ran
+again. The fit records how many patients were left out and which
+estimates they moved, and the checks pass:
 
 ``` r
 
-synthetic <- suppressWarnings(
-  synpmx_model_generate(misdosed_fit, seed = 11))
+misdosed_fit$privacy$left_out$patients
+#> [1] 1
+digits3(misdosed_fit$privacy$left_out$because)
+#>   group   name           quantity change   unit
+#> 1    PK cp: cl      typical value   26.2      %
+#> 2    PK cp: cl between-subject SD   51.8 points
+#> 3    PK  cp: v      typical value   25.5      %
+#> 4    PK  cp: v between-subject SD   53.6 points
+#> 5    PK cp: v2 between-subject SD   70.7 points
+as.data.frame(model_privacy_checks(misdosed_fit))[, c("check", "verdict",
+                                                      "result")]
+#>   check verdict
+#> 1    P1    pass
+#> 2    P2    pass
+#> 3    P3    pass
+#> 4    P4    pass
+#> 5    P5    pass
+#>                                                                                                                  result
+#> 1                                                                                                                  none
+#> 2                                                                                                                  none
+#> 3  none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored
+#> 4 smallest group: 3, patients on either side of an attendance fraction; adjusted to meet it: 5 (an attendance fraction)
+#> 5                      largest: cp: ka between-subject SD, 9.32 points; after leaving 1 patient(s) out of the estimates
+```
+
+The synthetic data shows the difference. Kept, the patient’s exposure
+becomes between-subject variability and the synthetic patients spread
+wider than the rest of the source cohort; left out, they do not:
+
+``` r
+
 concentration <- function(data, label) {
   rows <- data$evid == 0 & data$dvid == "cp" & data$dv > 0
   data.frame(dataset = label, id = as.character(data$id[rows]),
              time = data$time[rows], dv = data$dv[rows])
 }
+kept_synthetic <- suppressWarnings(
+  synpmx_model_generate(misdosed_kept_fit, seed = 11))
+synthetic <- suppressWarnings(synpmx_model_generate(misdosed_fit, seed = 11))
 plotted <- rbind(concentration(misdosed, "Source"),
-                 concentration(synthetic, "Synthetic"))
+                 concentration(kept_synthetic, "Synthetic, patient kept"),
+                 concentration(synthetic, "Synthetic, patient left out"))
+plotted$dataset <- factor(plotted$dataset, levels = unique(plotted$dataset))
 ggplot2::ggplot(plotted, ggplot2::aes(time, dv, group = id,
                                       colour = dataset)) +
   ggplot2::geom_line(alpha = 0.4) +
   ggplot2::facet_wrap(~dataset) +
   ggplot2::scale_y_log10() +
-  ggplot2::scale_colour_manual(values = comparison_colours) +
+  ggplot2::scale_colour_manual(values = c(unname(comparison_colours),
+                                          "#7570B3")) +
   ggplot2::labs(x = "Time (hours)", y = "Warfarin concentration") +
   ggplot2::theme_minimal() +
   ggplot2::theme(legend.position = "none")
@@ -472,22 +558,26 @@ ggplot2::ggplot(plotted, ggplot2::aes(time, dv, group = id,
 
 ![](pmxmodel-privacy_files/figure-html/misdosed-plot-1.png)
 
-The scorecard reads the release’s verdict as row E3, so the same finding
+The scorecard reads each release’s verdict as row E3, so the finding
 reaches anyone who scores the synthetic data:
 
 ``` r
 
+kept_card <- synpmx_scorecard(misdosed, kept_synthetic, roles)
 card <- synpmx_scorecard(misdosed, synthetic, roles)
-as.data.frame(card)[card$check %in% c("E1", "E2", "E3"),
-                    c("check", "result", "verdict")]
-#>    check                                          result verdict
-#> 19    E1                              moved (1 model(s))    pass
-#> 20    E2                                       estimated    pass
-#> 21    E3 largest: cp: v2 between-subject SD, 70.7 points    FAIL
+data.frame(fit = c("patient kept", "patient left out"),
+           E3 = c(kept_card$verdict[kept_card$check == "E3"],
+                  card$verdict[card$check == "E3"]),
+           result = c(kept_card$result[kept_card$check == "E3"],
+                      card$result[card$check == "E3"]))
+#>                fit   E3                                          result
+#> 1     patient kept FAIL largest: cp: v2 between-subject SD, 70.7 points
+#> 2 patient left out pass      every released estimate moves less than 15
 ```
 
-The remedy is to correct the data: fix the patient’s dosing record, or
-leave the patient out, and fit again.
+Leaving the patient out protects the release and keeps the synthetic
+data plausible. The record is still wrong, and correcting the patient’s
+dosing is the remedy for any analysis of the real study.
 
 ### Extreme Covariates
 
@@ -592,26 +682,29 @@ rows <- lapply(names(files), function(study) {
   if (!inherits(one, "pmx_fitted_model")) return(NULL)
   checks <- model_privacy_checks(one)
   verdicts <- stats::setNames(checks$verdict, checks$check)
-  data.frame(study = study, patients = one$n_source, t(verdicts),
-             largest = checks$result[checks$check == "P5"],
+  data.frame(study = study, patients = one$n_source,
+             left_out = if (is.null(one$privacy$left_out)) 0L else
+               one$privacy$left_out$patients, t(verdicts),
+             largest = sub("; after leaving.*$", "",
+                           checks$result[checks$check == "P5"]),
              check.names = FALSE)
 })
 do.call(rbind, rows[!vapply(rows, is.null, logical(1))])
-#>           study patients   P1   P2   P3   P4     P5
-#> 1      warfarin       32 pass pass pass pass   pass
-#> 2       theo_md       12 pass pass pass pass   pass
-#> 3           mad       60 pass pass pass pass review
-#> 4    case1_pkpd      180 pass pass pass pass   pass
-#> 5        wbcSim       45 pass pass pass pass   pass
-#> 6   mavoglurant      120 pass pass pass pass   pass
-#> 7      nimoData       12 pass pass pass pass   pass
-#> 8      pheno_sd       59 pass pass pass pass   pass
-#> 9  mixroute_sim       90 pass pass pass pass   pass
-#> 10      onc_sim      200 pass pass pass pass   pass
+#>           study patients left_out   P1   P2   P3   P4   P5
+#> 1      warfarin       32        0 pass pass pass pass pass
+#> 2       theo_md       12        0 pass pass pass pass pass
+#> 3           mad       60        1 pass pass pass pass pass
+#> 4    case1_pkpd      180        0 pass pass pass pass pass
+#> 5        wbcSim       45        0 pass pass pass pass pass
+#> 6   mavoglurant      120        0 pass pass pass pass pass
+#> 7      nimoData       12        0 pass pass pass pass pass
+#> 8      pheno_sd       59        0 pass pass pass pass pass
+#> 9  mixroute_sim       90        0 pass pass pass pass pass
+#> 10      onc_sim      200        0 pass pass pass pass pass
 #>                                                           largest
 #> 1                   largest: cp: ka between-subject SD, 10 points
 #> 2                           largest: DV: ka typical value, 9.92 %
-#> 3        largest: PD - Continuous between-subject SD, 23.7 points
+#> 3        largest: PD - Continuous between-subject SD, 10.3 points
 #> 4        largest: PD - Continuous between-subject SD, 6.44 points
 #> 5                     largest: DV between-subject SD, 2.25 points
 #> 6                 largest: DV: v2 between-subject SD, 1.92 points
@@ -621,11 +714,11 @@ do.call(rbind, rows[!vapply(rows, is.null, logical(1))])
 #> 10 largest: Everolimus trough: ka between-subject SD, 3.21 points
 ```
 
-A `review` there is a study in which one patient moves an estimate by 15
-or more, and the influence table of its fit says which estimate. A move
-is a fraction of the cohort’s spread divided by the cohort size, so the
-same patient moves a twelve-patient fit about five times as far as a
-sixty-patient one.
+`left_out` counts the patients each study’s estimation left out for
+moving an estimate by 15 or more, and `largest` is the largest move
+among the patients that remain. A move is a fraction of the cohort’s
+spread divided by the cohort size, so the same patient moves a
+twelve-patient fit about five times as far as a sixty-patient one.
 
 ## Checks on the Synthetic Table
 
@@ -657,7 +750,7 @@ as.data.frame(card)[substr(card$check, 1, 1) %in% c("B", "E"),
 #> 8                                                 no run record not applicable
 #> 9                                                 no run record not applicable
 #> 10 not applicable: profiles simulated, not built from a patient not applicable
-#> 11                                      0.531 in [0.312, 0.781]           pass
+#> 11                                      0.688 in [0.288, 0.743]           pass
 #> 12                   not applicable: attendance drawn per visit not applicable
 #> 13                                                            0           pass
 #> 14                                               0 of 0 exposed           pass
@@ -673,26 +766,52 @@ fewer than three real patients held reached the output. [The
 scorecard](https://iamstein.github.io/synpmx/articles/scorecard.html)
 documents each row and its pass criterion.
 
-## What These Checks Do Not Establish
+## Outstanding Risks
+
+These are the ways a release from this generator can still disclose
+something about a patient. Each is either inherent to releasing
+estimates without noise, or a gap the checks above do not yet close.
 
 - **An adversary who knows every other patient is not stopped.** Such an
   adversary can compute the exact effect of the one patient they do not
   know, so any move at all is detectable, however far under a threshold
-  it sits. That adversary is the one DP is defined against.
-- **The influence reading describes this study only.** How far one
-  patient moves an estimate is itself a fact about the data, which is
-  why DP calibrates its noise to *smooth* sensitivity rather than local
-  sensitivity \[7\]. Shrinkage makes the reading understate the move.
+  it sits. That adversary is the one DP is defined against, and only a
+  DP mechanism stops them.
+- **Three patients is the smallest threshold in common use.** Every
+  released frequency rests on at least three patients on each side,
+  which is the floor the threshold rule of SDC starts from. A release
+  held to a stricter rule needs `min_arm_patients` and
+  `min_category_patients` raised to match.
+- **Numeric `keep` values are copied from one patient per arm.** `keep`
+  writes the arm’s first patient’s value onto every synthetic patient in
+  the arm, as declared. A categorical value too few patients hold is
+  removed; a numeric one is not, so a numeric column that varies within
+  an arm carries one patient’s value. Declare there only values that are
+  constant within an arm.
+- **Leaving out stops at a tenth of the cohort.** A study with more
+  patients than that whom the influence reading flags keeps the rest,
+  and P5 then reads a review or a failure.
+- **The influence reading describes this study only, and its thresholds
+  are empirical.** How far one patient moves an estimate is itself a
+  fact about the data, which is why DP calibrates its noise to *smooth*
+  sensitivity rather than local sensitivity \[7\]. The review and
+  failure thresholds were set against the public studies above, so that
+  ordinary patients pass and a gross data error fails; they are not
+  derived from a privacy target. Shrinkage makes the reading understate
+  the move.
 - **Not every estimate is read.** The residual error, a parameter
   estimated without a between-subject term (bioavailability in a
   mixed-route model), and the PD shape parameters other than the
   baseline have no row.
-- **Per-arm rates and attendance can rest on fewer than three patients’
-  events.** A dose reduction one patient had makes its arm’s reduction
-  rate positive. These are treated as trial-level realized design, which
-  a clinical study report tabulates in the same form.
-- **Columns declared in `keep` are copied from one patient per arm.**
-  Declare there only values that are constant within an arm.
+- **The full fit holds diagnostics the release does not.** The candidate
+  AIC values, the starting values and the correlations between
+  covariates and the individual random effects stay on the object
+  [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md)
+  returns. Share the release or the synthetic data, never the fit.
+- **The estimation warning names a patient.** A patient who fails the
+  influence reading is named on the console, so logs and rendered
+  reports from the environment that holds the study carry that
+  identifier.
 - **Rarity in the world is not measured.** A covariate level held by
   many patients in this study can still identify someone if few people
   alive hold it.

@@ -27,7 +27,8 @@ synpmx_model_estimate(
   estimation = "focei",
   seed = NULL,
   quiet = FALSE,
-  min_category_patients = 3L
+  min_category_patients = 3L,
+  drop_influential = TRUE
 )
 ```
 
@@ -221,6 +222,19 @@ synpmx_model_estimate(
   retain all observed levels. This does not filter discrete observation
   endpoints.
 
+- drop_influential:
+
+  Leave out of the estimates any patient who moves a released estimate
+  by 15 or more – in percent for a typical value, in points of the
+  between-subject SD on the log scale for a spread – and estimate again
+  without them. The patient is left out of the PK fit, the PD fits and
+  the covariate summaries, and stays in the dosing, visit and arm
+  models, so the cohort and arm sizes do not change. At most a tenth of
+  the cohort is left out. Each patient left out is named on the console
+  and nowhere in the fit, which records only how many and why. A patient
+  given far more drug than the dosing record says is the usual case.
+  `FALSE` keeps every patient and only reports the reading.
+
 ## Value
 
 A `pmx_fitted_model`.
@@ -256,4 +270,5 @@ whole defence and it is a threshold rather than an accounting.
 [`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md),
 [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md),
 [`model_candidates()`](https://iamstein.github.io/synpmx/reference/model_candidates.md),
-[`model_parameters()`](https://iamstein.github.io/synpmx/reference/model_parameters.md).
+[`model_parameters()`](https://iamstein.github.io/synpmx/reference/model_parameters.md),
+[`model_privacy_checks()`](https://iamstein.github.io/synpmx/reference/model_privacy_checks.md).

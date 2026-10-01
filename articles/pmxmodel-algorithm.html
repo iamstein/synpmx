@@ -285,6 +285,14 @@ subject.</td>
 <td><code>"focei"</code></td>
 <td>Passed to <code>nlmixr2</code>.</td>
 </tr>
+<tr class="even">
+<td><code>drop_influential</code></td>
+<td><code>TRUE</code></td>
+<td>Leave out of the PK, PD and covariate estimates any patient who
+moves a released estimate by 15 or more, and estimate again (Step 5).
+<code>FALSE</code> keeps every patient and only reports the
+reading.</td>
+</tr>
 </tbody>
 </table>
 <p><strong>The default tries two compartments first</strong>, with a
@@ -805,7 +813,7 @@ checks.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged accepted      aic seconds note</span></span>
-<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  57.346</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  59.715</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="covariates">Covariates<a class="anchor" aria-label="anchor" href="#covariates"></a>
@@ -974,6 +982,30 @@ because the rates already say it.</p>
 distinct patients hold an observation there. A nominal time one patient
 attended is that patient, and generating from it would put them
 back.</p>
+<p><strong>Every rate and fraction rests on at least
+<code>min_arm_patients</code> patients on each side.</strong> This is
+the threshold rule of statistical disclosure control, applied to both
+sides because “one patient missed this visit” discloses as much as “one
+patient came”:</p>
+<ul>
+<li>A dose-change rate whose events one or two patients had takes the
+rate pooled over every arm, where that pools at least
+<code>min_arm_patients</code> patients, and is zero otherwise. Pooling
+keeps a rare dose change in the generated study without tying it to an
+arm. A reduction is zeroed rather than pooled, because stepping down
+needs the arm’s own ladder of levels and such an arm has none.</li>
+<li>An arm’s attendance fraction at a slot with fewer than
+<code>min_arm_patients</code> patients on either side, attending or
+missing, is rounded to 0 or 1, whichever is nearer, and a tie keeps the
+visit.</li>
+</ul>
+<p>Each arm also carries the values of its <code>strata</code> and
+<code>keep</code> columns, copied from the arm’s first patient as
+declared. A categorical <code>keep</code> value fewer than
+<code>min_category_patients</code> patients in the arm hold is written
+as missing, with a warning; a numeric value is carried unchanged. A
+<code>strata</code> column is exempt, because it defines the arm and the
+arm has its own floor.</p>
 <p>Baseline covariates are drawn independently from study-wide
 distributions. Each patient’s first row contributes one value, after
 small arms are excluded.</p>
@@ -992,8 +1024,8 @@ excluded. The remaining counts are renormalized to probabilities, and
 every synthetic subject draws from that distribution. Set
 <code>min_category_patients = 1</code> to retain all observed levels.
 Numeric category codes must be supplied as factors; numeric covariates
-keep their continuous distribution models. Discrete observation
-endpoints are unaffected.</p>
+keep their continuous distribution models. Binary and ordinal endpoints
+are folded by the same threshold at each visit (Step 3).</p>
 <p>If no categorical level remains, generation keeps the column with
 missing values and estimation warns. Excluded factor labels are also
 removed from the stored schema. This changes the category proportions
@@ -1053,12 +1085,23 @@ with
 The PD baselines and the covariate summaries are recomputed with each
 patient left out, which needs no approximation. The largest move over
 all patients is kept per estimate, in percent for a typical value and in
-points of the between-subject SD on the log scale for a spread. A move
-of 15 asks for a review, and a move of 30 fails and warns at estimation,
-naming the patient on the console. Shrinkage pulls every random effect
-toward zero and makes the reading understate the move, so it is reported
-beside it. <code><a href="../reference/model_privacy_checks.html">model_privacy_checks()</a></code> returns the reading and
-four structural checks on the release.</p>
+points of the between-subject SD on the log scale for a spread.
+Shrinkage pulls every random effect toward zero and makes the reading
+understate the move, so it is reported beside it.</p>
+<p><strong>A patient who moves an estimate by 15 or more is left out of
+the estimates, and estimation runs again.</strong> The patient is left
+out of the PK fit, the PD fits and the covariate summaries, and stays in
+the dosing, visit and arm models, so the cohort and arm sizes do not
+change. Rounds repeat until the reading flags nobody, and stop before a
+tenth of the cohort has been left out. Each patient left out is named on
+the console, in the environment that holds the study; the fit records
+how many and which estimates they moved, and no identifier. A reading
+that still reaches 15 asks for a review, and 30 fails and warns.
+<code>drop_influential = FALSE</code> keeps every patient and only
+reports the reading.</p>
+<p><code><a href="../reference/model_privacy_checks.html">model_privacy_checks()</a></code> returns the reading, a recount of
+the smallest group of patients behind each kind of released frequency
+(Step 4), and three structural checks on the release.</p>
 <p><strong>No individual estimates.</strong> Empirical Bayes estimates
 (EBEs) are per-subject quantities, and a fitted model that carried them
 would be writing out a description of each real patient. They are read
@@ -1072,7 +1115,7 @@ effects from the covariance matrix instead.</p>
 <span><span class="co">#&gt;                      all (32)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         2 endpoint(s) at 16 nominal time(s), 22 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   median 95% of an arm attends a slot (9% to 100%)</span></span>
+<span><span class="co">#&gt;   visit attendance   median 100% of an arm attends a slot (9% to 100%)</span></span>
 <span><span class="co">#&gt;   covariates         wt lognormal, age lognormal, sex categorical, drawn</span></span>
 <span><span class="co">#&gt;                      once for the whole study, independently of the</span></span>
 <span><span class="co">#&gt;                      profiles</span></span>
@@ -1110,8 +1153,8 @@ effects from the covariance matrix instead.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
-<span><span class="co">#&gt;   time to fit        57.3 s</span></span>
-<span><span class="co">#&gt;   whole call         57.5 s, against 57.3 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        59.7 s</span></span>
+<span><span class="co">#&gt;   whole call         59.9 s, against 59.7 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;</span></span>
@@ -1250,19 +1293,41 @@ no level is held by that many patients is not drawn.</td>
 </tr>
 <tr class="odd">
 <td>Single-patient influence</td>
-<td>a move of 15 (review) or 30 (fail), in % or points</td>
-<td>Recorded with the fit and read by
-<code><a href="../reference/model_privacy_checks.html">model_privacy_checks()</a></code> and scorecard row E3. From 30, warns
-at estimation and names the patient on the console; nothing per patient
-is stored.</td>
+<td>a move of 15 or more, in % or points</td>
+<td>Leaves the patient out of the PK, PD and covariate estimates and
+estimates again, at most a tenth of the cohort, naming them on the
+console. A move still at 15 is a review and at 30 a failure that warns;
+<code>drop_influential = FALSE</code> skips the leaving out. Read by
+<code><a href="../reference/model_privacy_checks.html">model_privacy_checks()</a></code> and scorecard row E3; nothing per
+patient is stored.</td>
 </tr>
 <tr class="even">
+<td>Thin dose-change rate</td>
+<td>fewer than <code>min_arm_patients</code> patients with the
+event</td>
+<td>Takes the rate pooled over arms where that rests on enough patients,
+and is zero otherwise. A reduction is zeroed.</td>
+</tr>
+<tr class="odd">
+<td>Thin attendance fraction</td>
+<td>fewer than <code>min_arm_patients</code> patients attending or
+missing</td>
+<td>Rounded to 0 or 1, whichever is nearer; a tie keeps the visit.</td>
+</tr>
+<tr class="even">
+<td>Rare kept value</td>
+<td>a categorical <code>keep</code> value fewer than
+<code>min_category_patients</code> patients in the arm hold</td>
+<td>Written as missing, with a warning. Numeric values, and
+<code>strata</code> columns, are carried unchanged.</td>
+</tr>
+<tr class="odd">
 <td>No grid cell shared</td>
 <td><code>min_arm_patients</code></td>
 <td>The cell is dropped. A nominal time one patient attended is that
 patient.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Administration column</td>
 <td>
 <code>adm</code> and <code>routes</code> together</td>
@@ -1270,7 +1335,7 @@ patient.</td>
 convention of the dataset, and reading it wrong routes every dose to the
 wrong compartment silently.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>PD shape candidacy</td>
 <td>1 residual degree of freedom</td>
 <td>The shape is dropped from the comparison, not the endpoint from the
@@ -1279,14 +1344,14 @@ its mean. A shape fitted exactly through its own points has
 <code>AIC</code> <code>-Inf</code> and would win any comparison it
 entered.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>No PK endpoint identified</td>
 <td>—</td>
 <td>All continuous endpoints fail the baseline signal, or there are only
 discrete endpoints: infer PD-only and skip PK fitting. Other unresolved
 classifications error and name <code>endpoint_roles</code>.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Optimizer convergence</td>
 <td>Successful termination or false convergence alone; finite AIC for
 FOCEi</td>
@@ -1294,20 +1359,20 @@ FOCEi</td>
 checks; other failures reject the candidate. SAEM uses the trajectory
 screen described in Step 3.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Parameter validity</td>
 <td>Positive finite fixed effects; non-negative finite residual; usable
 covariance</td>
 <td>Rejects the candidate.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Generation validity</td>
 <td>Finite parameters and concentrations; numerical negatives below
 -1e-8 rejected</td>
 <td>Rejects the candidate, using new population draws on the recorded
 designs.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Gross generation discrepancy</td>
 <td>Median more than 100-fold outside source median bounds, or over 10%
 of profiles above 100 times their source-design maximum</td>
@@ -1315,7 +1380,7 @@ of profiles above 100 times their source-design maximum</td>
 maxima omit the affected designs from the upper-tail check. Omissions
 are reported.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Moderate generation discrepancy</td>
 <td>Median more than twofold outside source median bounds; uncensored
 interquartile-range ratio outside 0.5–2; median typical-profile
@@ -1323,25 +1388,25 @@ discrepancy over fourfold on positive uncensored observations</td>
 <td>Warns; does not trigger fallback. Censoring omits the spread
 comparison.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>No candidate accepted</td>
 <td>—</td>
 <td>Errors with each attempted model’s rejection reason.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>The between-subject terms did not move</td>
 <td>1% of the eta init, fixed effects moved</td>
 <td>A line under the parameter block in <code><a href="../reference/model_report.html">model_report()</a></code>, not
 the banner: the fixed effects are estimates, but the spread synthetic
 subjects get is the starting value rather than this study’s.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Two endpoints tie as concentrations</td>
 <td>neither tie-break separates them</td>
 <td>Errors, naming both and <code>endpoint_roles</code>. Naming several
 is accepted, and each is fitted its own model.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>The fit did not move</td>
 <td>1% of every starting value</td>
 <td>Warns, and prints <code>!! THE FIT DID NOT MOVE !!</code> above the
@@ -1355,7 +1420,7 @@ shape and a fit that never moved does neither. Each parameter’s start,
 estimate and percent change are listed, because “did not move” is a
 claim the reader has to be able to check.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>A fitted model as a public input</td>
 <td>—</td>
 <td>

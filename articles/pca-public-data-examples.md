@@ -160,19 +160,20 @@ Every example follows the same five steps:
     against synthetic;
 5.  report the scorecard.
 
-Five scorecard rows read `not applicable` on every card below, which the
-cards count in their tally and do not list. **B1a**, **B1b** and **C2**
-read a run record that
+Eight scorecard rows read `not applicable` on every card below, which
+the cards count in their tally and do not list. **B1a**, **B1b** and
+**C2** read a run record that
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
 writes and this generator does not. **B4a** asks whether a generated set
 of observation times copies a real one, and **B2** whether a synthetic
 patient stands out from its stratum; both are disclosure questions where
 a real patient’s record was reused, and this generator draws each visit
-and each profile from a model of the cohort instead. That is a
-limitation of those rows rather than a property of any dataset here, and
-it is the same on all seven. **B4b** asks the copy question directly on
-the finished tables and is the row that carries the claim; the section
-at the end reports what it found.
+and each profile from a model of the cohort instead. **E1**, **E2** and
+**E3** score a fitted population model, and this generator fits none.
+That is a limitation of those rows rather than a property of any dataset
+here, and it is the same on every card. **B4b** asks the copy question
+directly on the finished tables and is the row that carries the claim;
+the section at the end reports what it found.
 
 ## The nominal grid is the requirement
 
@@ -407,12 +408,6 @@ compare_pmx_distributions(warfarin_run$source, warfarin_run$synthetic,
 synpmx_scorecard_datatable(warfarin_run$card, report = "minimal")
 ```
 
-**B4a fails here**, and it is the first of the two datasets that does.
-One generated subject’s complete list of observation times equals a real
-patient’s that no other patient shares. The section “What B4a found”
-below is what that does and does not mean; it is a finding about the
-visit draw rather than about this study.
-
 ## wbcSim: infusions and a delayed response
 
 45 subjects with infusion start/stop pairs and a delayed
@@ -458,8 +453,7 @@ A5a and A5b read `review` for the same reason: dropping the long tail
 shortens both the observation record and the dosing. **This is the cost
 of the guard rather than a defect**, and it is the number to judge — a
 study whose late follow-up matters is one to run at a lower
-`min_column_patients` and re-read this row. B4a fails here too, on four
-vectors, and is treated below.
+`min_column_patients` and re-read this row.
 
 ## theo_md: seven oral doses on a constructible grid
 
@@ -674,7 +668,7 @@ c(source_rows = nrow(mavoglurant),
   recorded_times = length(unique(mavoglurant$TIME[mavoglurant$EVID == 0])),
   nominal_times = length(unique(mavoglurant$NTIME[mavoglurant$EVID == 0])))
 #>    source_rows synthetic_rows recorded_times  nominal_times 
-#>           2678           1460            117             15
+#>           2678           1463            117             15
 ```
 
 That is a property of the grid supplied, not of the generator: a wider
@@ -926,13 +920,14 @@ knitr::kable(verdicts, row.names = FALSE,
 
 Scorecard verdicts across the nine runs. {.table}
 
-`not applicable` is 5 on every row and is a gap rather than a result.
-B1a, B1b and C2 read a run record this generator does not write; all
-three questions are answerable from the two tables, and until they are
-computed that way the card is silent exactly where this generator’s
-largest loss is — C2, the variety of dose schedules. B2 and B4a ask
-whether a real patient’s profile or visit set was reused, which this
-generator does not do at all.
+`not applicable` is the same eight rows on every card, and it is a gap
+rather than a result. B1a, B1b and C2 read a run record this generator
+does not write; all three questions are answerable from the two tables,
+and until they are computed that way the card is silent exactly where
+this generator’s largest loss is — C2, the variety of dose schedules. B2
+and B4a ask whether a real patient’s profile or visit set was reused,
+which this generator does not do at all, and E1 to E3 score a population
+model it does not fit.
 
 **D1 is `review` on all seven**, and it is the row that describes the
 method rather than any study. It reports the furthest standard-deviation
@@ -953,11 +948,11 @@ dropped: `case1_pkpd` (the visit draw, 30.7 against 29), `wbcSim` (the
 column guard) and `mavoglurant` (the snapping). The four studies whose
 grids cost nothing read `pass` on it.
 
-### What B4a found
+### What B4b found
 
-B4a asks whether any generated subject’s complete list of observation
-times equals a real patient’s that **no other patient shares**. It fails
-on two of the seven, and it is worth being precise about what that is.
+B4b asks whether any generated subject’s vector of measured values
+equals a real patient’s that **no other patient shares**: the copy
+question, asked of what somebody’s assay said.
 
 ``` r
 
@@ -969,60 +964,47 @@ copies <- do.call(rbind, lapply(runs, function(entry) {
     `Median observations` = as.numeric(stats::median(table(
       entry$source[[entry$roles$id]][observations]
     ))),
-    `Time vectors copied (B4a)` = card$result[card$check == "B4a"],
     `DV vectors copied (B4b)` = card$result[card$check == "B4b"],
     check.names = FALSE, stringsAsFactors = FALSE
   )
 }))
 knitr::kable(copies, row.names = FALSE,
-             caption = "B4a and B4b across the nine runs, beside how long a source patient's record is.")
+             caption = "B4b across the nine runs, beside how long a source patient's record is.")
 ```
 
-| Dataset | Median observations | Time vectors copied (B4a) | DV vectors copied (B4b) |
-|:---|---:|:---|:---|
-| case1_pkpd | 35 | not applicable: attendance drawn per visit | 0 |
-| mad | 68 | not applicable: attendance drawn per visit | 0 |
-| warfarin | 13 | not applicable: attendance drawn per visit | 0 |
-| wbcSim | 4 | not applicable: attendance drawn per visit | 0 |
-| theo_md | 22 | not applicable: attendance drawn per visit | 0 |
-| nimoData | 27 | not applicable: attendance drawn per visit | 0 |
-| mavoglurant | 24 | not applicable: attendance drawn per visit | 0 |
-| mixroute_sim | 17 | not applicable: attendance drawn per visit | 0 |
-| onc_sim | 16 | not applicable: attendance drawn per visit | 0 |
+| Dataset      | Median observations | DV vectors copied (B4b) |
+|:-------------|--------------------:|:------------------------|
+| case1_pkpd   |                  35 | 0                       |
+| mad          |                  68 | 0                       |
+| warfarin     |                  13 | 0                       |
+| wbcSim       |                   4 | 0                       |
+| theo_md      |                  22 | 0                       |
+| nimoData     |                  27 | 0                       |
+| mavoglurant  |                  24 | 0                       |
+| mixroute_sim |                  17 | 0                       |
+| onc_sim      |                  16 | 0                       |
 
-B4a and B4b across the nine runs, beside how long a source patient’s
-record is. {.table}
+B4b across the nine runs, beside how long a source patient’s record is.
+{.table}
 
-**B4b is zero everywhere.** No generated subject reproduces a real
-patient’s measured values on any of these studies, which is the row that
-would indicate a disclosure of what somebody’s assay said.
+**B4a, the same question asked of the list of observation times, does
+not apply to this generator.** Attendance is drawn independently per
+visit from the arm’s probability, onto the declared grid, so a generated
+list that equals a real patient’s is a coincidence with a computable
+chance rather than a copy. On a study whose patients’ visit lists are
+nearly all unique, which short records make likely, that chance is high,
+and a row firing on it would measure the width of the grid rather than a
+disclosure. The
+[scorecard](https://iamstein.github.io/synpmx/articles/scorecard.html)
+gives the measurements behind that ruling, under B4a.
 
-**B4a is not zero, and the reason is the length of the lists being
-compared.** The two datasets that fail are the two with the shortest
-records. `wbcSim` has a median of four observations per subject, and the
-vectors it matched have lengths 1, 3, 4 and 4 — one of them is the
-single element `0`. A one-visit list matching a one-visit list is two
-short lists colliding, not a patient being reproduced. `theo_md`, whose
-twelve time vectors are *all* singletons, reproduces none of them,
-because its grid is wide enough that an exact collision is negligible.
-
-It is reproducible rather than a seed accident. Over ten seeds,
-`warfarin` copies 0 to 2 vectors and fires on nine of them, `wbcSim`
-copies 2 to 7 and fires on all ten, and `theo_md` copies none on any.
-
-**The check cannot tell a coincidence from a copy, and the generator has
-no mechanism that would prevent a real one.** Attendance is drawn
-independently per visit from the arm’s probability, with no floor on how
-many source patients hold the resulting set.
+**What remains is that the visit draw has no floor.** Nothing stops a
+generated set from landing on one that a single real patient held.
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-has such a floor — `min_pattern_share` draws each avatar’s attendance
-from patterns at least that many subjects share — and this generator
-does not. On these seven studies what it produced were coincidences
-between short lists; on a study with genuinely distinctive attendance
-nothing would prevent a real reuse. Giving the visit draw the same floor
-is the obvious repair, and it needs measuring for what it costs in
-attendance realism before it ships — `wbcSim` is the dataset that would
-move.
+has such a floor: `min_pattern_share` draws each avatar’s attendance
+from patterns at least that many subjects share. On a study with
+genuinely distinctive attendance, a coincidence with a real patient’s
+visits is possible here and no row reports it.
 
 ## What is preserved, and what is not
 

@@ -203,8 +203,8 @@ model_fit
 #>   fixed effects      cl 2.8, v 29, q 1.9, v2 4.2, ka 1.2 
 #>   between-subject    cl 0.19, v 0.141, ka 0.52, q 0.237, v2 0.274 (as SD on the log scale)
 #>   residual error     proportional 0.22 
-#>   time to fit        52.0 s
-#>   whole call         52.1 s, against 52.0 s in the fitter
+#>   time to fit        53.7 s
+#>   whole call         53.7 s, against 53.7 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: DV: ka typical value, 9.92 %;
@@ -728,9 +728,9 @@ knitr::kable(
 |                 | n_observations | median |  p10 |  p90 |
 |:----------------|---------------:|-------:|-----:|-----:|
 | Source          |            264 |   5.74 | 1.25 | 9.30 |
-| 1\. PMX model   |            265 |   5.55 | 1.54 | 9.38 |
+| 1\. PMX model   |            266 |   5.43 | 1.89 | 9.56 |
 | 2\. AVATAR      |            264 |   5.21 | 1.21 | 8.33 |
-| 3\. PCA         |            261 |   5.95 | 1.31 | 9.31 |
+| 3\. PCA         |            262 |   5.97 | 1.32 | 9.30 |
 | 4\. Prior only  |            240 |   3.16 | 0.28 | 6.43 |
 | 5\. Calibration |            240 |   4.05 | 0.36 | 7.54 |
 
