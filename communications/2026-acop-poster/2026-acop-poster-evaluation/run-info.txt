@@ -16,7 +16,7 @@ study reported and were raised to half of it.
 Survey, script, stored-fit and working-tree R source MD5s:
 /Users/steinanf/git/synpmx/vignettes/articles/pmxmodel-public-data-examples.Rmd
                                              "3c3f660403635ba0d52e378284f9ce28"
-        /Users/steinanf/git/synpmx/communications/2026-acop-poster-evaluation.R
+        /Users/steinanf/git/synpmx/communications/2026-acop-poster/2026-acop-poster-evaluation.R
                                              "3b796ad04470404c856d4c3828889579"
                /Users/steinanf/git/synpmx/inst/extdata/case1-pkpd-model-fit.rds
                                              "540dc56dc980da2e01f34e7ce630bdf6"

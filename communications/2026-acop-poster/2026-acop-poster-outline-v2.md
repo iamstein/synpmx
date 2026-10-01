@@ -159,7 +159,7 @@ Run [2026-acop-poster-figures.R](2026-acop-poster-figures.R) from the
 repository root:
 
 ```sh
-Rscript communications/2026-acop-poster-figures.R
+Rscript communications/2026-acop-poster/2026-acop-poster-figures.R
 ```
 
 The script loads the working-tree package, reads public `xgxr::mad` data and
@@ -190,7 +190,7 @@ internal-study data.
 Run [2026-acop-poster-evaluation.R](2026-acop-poster-evaluation.R) to regenerate
 the public-data table:
 ```sh
-Rscript communications/2026-acop-poster-evaluation.R
+Rscript communications/2026-acop-poster/2026-acop-poster-evaluation.R
 ```
 The script uses the evaluation article's dataset preparation, roles, stored
 fits and generation seeds. It saves a Markdown table and aggregate CSV,

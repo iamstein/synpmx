@@ -132,7 +132,7 @@ What broke, why, and what stops it coming back. Rows are permanent.
 
 | ID | Area | What broke, and why | Pinned by |
 |---|---|---|---|
-| `REV-055` | Poster figure labels | The continuous-PD figure clipped its source/synthetic row labels, and the distribution figure called peak-scaled densities relative frequencies. The poster script now reserves left-side strip space and labels density panels as scaled density and categorical panels as proportion. | Assertions in `communications/2026-acop-poster-figures.R` check both left row strips, absence of right strips, panel kinds and axis labels; rendered PNGs are inspected before delivery. |
+| `REV-055` | Poster figure labels | The continuous-PD figure clipped its source/synthetic row labels, and the distribution figure called peak-scaled densities relative frequencies. The poster script now reserves left-side strip space and labels density panels as scaled density and categorical panels as proportion. | Assertions in `communications/2026-acop-poster/2026-acop-poster-figures.R` check both left row strips, absence of right strips, panel kinds and axis labels; rendered PNGs are inspected before delivery. |
 
 ### Differential privacy and decoding
 

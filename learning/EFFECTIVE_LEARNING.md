@@ -258,7 +258,7 @@ the evidence for each, from memory. The blanks are the reading list, generated b
 you rather than assigned. The meeting then becomes the rehearsal rather than a
 status update.
 
-[Author note: poster outline is in progress in communication/2026-acop-poster-notes.md]
+[Author note: poster outline is in progress in communications/2026-acop-poster/2026-acop-poster-notes.md]
 
 ## Reading list
 

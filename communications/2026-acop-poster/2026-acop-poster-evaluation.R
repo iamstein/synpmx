@@ -1,6 +1,6 @@
 # Rebuild the public-data evaluation table for the poster.
 # Run from the repository root:
-#   Rscript communications/2026-acop-poster-evaluation.R
+#   Rscript communications/2026-acop-poster/2026-acop-poster-evaluation.R
 # Reads the dataset preparation and stored-fit generation chunks in the model
 # survey, preserving its roles and seeds. Estimation calls are never executed.
 # Writes aggregate CSV, a Markdown table and run information beside this script.
@@ -9,8 +9,8 @@
 script_arg <- grep("^--file=", commandArgs(), value = TRUE)
 if (length(script_arg) != 1L) stop("Run with Rscript.")
 script <- normalizePath(sub("^--file=", "", script_arg), mustWork = TRUE)
-root <- dirname(dirname(script))
-out <- file.path(root, "communications", "2026-acop-poster-evaluation")
+root <- dirname(dirname(dirname(script)))
+out <- file.path(root, "communications", "2026-acop-poster", "2026-acop-poster-evaluation")
 required <- c("devtools", "xgxr", "nlmixr2data")
 missing <- required[!vapply(required, requireNamespace, logical(1), quietly = TRUE)]
 if (length(missing)) stop("Install required packages: ", paste(missing, collapse = ", "))

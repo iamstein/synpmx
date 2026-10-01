@@ -1,8 +1,8 @@
 # Generate the public mad example figures for the ACOP poster.
 # From the repository root:
-#   Rscript communications/2026-acop-poster-figures.R
+#   Rscript communications/2026-acop-poster/2026-acop-poster-figures.R
 # Optional output directory and generation seed:
-#   Rscript communications/2026-acop-poster-figures.R /tmp/acop-figures 909
+#   Rscript communications/2026-acop-poster/2026-acop-poster-figures.R /tmp/acop-figures 909
 # Uses the working-tree package and the stored fit; never estimates a new fit.
 # Inputs are fixed to public xgxr data. No internal-study input is accepted.
 # Outputs: PNG (200 dpi), vector PDF, aggregate evaluation CSV and run provenance.
@@ -12,9 +12,9 @@ if (length(args) > 2L) stop("Expected at most an output directory and a seed.")
 script_arg <- grep("^--file=", commandArgs(), value = TRUE)
 if (length(script_arg) != 1L) stop("Run this script with Rscript.")
 script <- normalizePath(sub("^--file=", "", script_arg), mustWork = TRUE)
-root <- dirname(dirname(script))
+root <- dirname(dirname(dirname(script)))
 out <- if (length(args)) args[[1L]] else
-  file.path(root, "communications", "2026-acop-poster-figures")
+  file.path(root, "communications", "2026-acop-poster", "2026-acop-poster-figures")
 seed <- if (length(args) == 2L) suppressWarnings(as.integer(args[[2L]])) else 909L
 if (is.na(seed) || seed < 0L) stop("Seed must be a non-negative integer.")
 packages <- c("devtools", "xgxr", "ggplot2", "patchwork")
