@@ -43,6 +43,7 @@ about the source that reaches the output has already passed through the fit."></
     <li><a class="dropdown-item" href="../articles/pmxmodel-public-data-examples.html">Evaluation on public data</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/pmxmodel-fingerprint.html">Study fingerprint</a></li>
+    <li><a class="dropdown-item" href="../articles/pmxmodel-privacy.html">Privacy protections and checks</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown--avatar" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">2. AVATAR</button>
@@ -108,7 +109,8 @@ about the source that reaches the output has already passed through the fit.</p>
 
 
 <dl><dt id="arg-fitted-model">fitted_model<a class="anchor" aria-label="anchor" href="#arg-fitted-model"></a></dt>
-<dd><p>A <code>pmx_fitted_model</code> from <code><a href="synpmx_model_estimate.html">synpmx_model_estimate()</a></code>.</p></dd>
+<dd><p>A <code>pmx_fitted_model</code> from <code><a href="synpmx_model_estimate.html">synpmx_model_estimate()</a></code>, or
+its <code><a href="model_release.html">model_release()</a></code>.</p></dd>
 
 
 <dt id="arg-n-subjects">n_subjects<a class="anchor" aria-label="anchor" href="#arg-n-subjects"></a></dt>
@@ -121,8 +123,9 @@ about the source that reaches the output has already passed through the fit.</p>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A data frame in the source's shape, carrying the fitted model as a
-<code>pmx_fitted_model</code> attribute.</p>
+    <p>A data frame in the source's shape, carrying <code><a href="model_release.html">model_release()</a></code> of
+the fitted model as its <code>pmx_fitted_model</code> attribute: what generation read,
+without the diagnostics the full fit holds.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

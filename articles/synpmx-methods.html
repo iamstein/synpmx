@@ -56,6 +56,7 @@
     <li><a class="dropdown-item" href="../articles/pmxmodel-public-data-examples.html">Evaluation on public data</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/pmxmodel-fingerprint.html">Study fingerprint</a></li>
+    <li><a class="dropdown-item" href="../articles/pmxmodel-privacy.html">Privacy protections and checks</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -285,7 +286,7 @@ so this article reads a stored result of
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
-<span><span class="co">#&gt;     DV                 0.075, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt;     DV                 0.2, no assay limit: half the lowest value several patients reached, rounded down</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
 <span><span class="co">#&gt;   DV                 inferred from the following data characteristics:</span></span>
@@ -307,11 +308,15 @@ so this article reads a stored result of
 <span><span class="co">#&gt;                      confirmed. Check that the synthetic data reasonably</span></span>
 <span><span class="co">#&gt;                      reproduces the source data's patterns and variability.</span></span>
 <span><span class="co">#&gt;   fitted on          all 12 patients with a concentration</span></span>
-<span><span class="co">#&gt;   fixed effects      cl 2.811, v 29.43, q 1.916, v2 4.204, ka 1.233 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.191, v 0.14, ka 0.517, q 0.237, v2 0.274 (as SD on the log scale)</span></span>
-<span><span class="co">#&gt;   residual error     proportional 0.216 </span></span>
-<span><span class="co">#&gt;   time to fit        1 min 18 s</span></span>
-<span><span class="co">#&gt;   whole call         1 min 18 s, against 1 min 18 s in the fitter</span></span>
+<span><span class="co">#&gt;   fixed effects      cl 2.8, v 29, q 1.9, v2 4.2, ka 1.2 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.19, v 0.141, ka 0.52, q 0.237, v2 0.274 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   residual error     proportional 0.22 </span></span>
+<span><span class="co">#&gt;   time to fit        52.0 s</span></span>
+<span><span class="co">#&gt;   whole call         52.1 s, against 52.0 s in the fitter</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Privacy</span></span>
+<span><span class="co">#&gt;   one patient's pull pass: largest: DV: ka typical value, 9.92 %;</span></span>
+<span><span class="co">#&gt;                      `model_privacy_checks()` has every check</span></span>
 <span><span class="va">model_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">model_fit</span>, n_subjects <span class="op">=</span> <span class="fl">12</span>, seed <span class="op">=</span> <span class="fl">11</span><span class="op">)</span></span></code></pre></div>
 <p>What leaves the study is the printed object and nothing else: a
 structural model, three fixed effects, a covariance matrix, a residual
@@ -770,9 +775,9 @@ against each other.</p>
 <tr class="even">
 <td align="left">1. PMX model</td>
 <td align="right">265</td>
-<td align="right">5.57</td>
-<td align="right">1.56</td>
-<td align="right">9.30</td>
+<td align="right">5.55</td>
+<td align="right">1.54</td>
+<td align="right">9.38</td>
 </tr>
 <tr class="odd">
 <td align="left">2. AVATAR</td>
@@ -786,7 +791,7 @@ against each other.</p>
 <td align="right">261</td>
 <td align="right">5.95</td>
 <td align="right">1.31</td>
-<td align="right">9.30</td>
+<td align="right">9.31</td>
 </tr>
 <tr class="odd">
 <td align="left">4. Prior only</td>

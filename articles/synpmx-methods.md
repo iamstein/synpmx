@@ -178,7 +178,7 @@ model_fit
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT
 #> 
 #> Values at the lower limit of what was observed
-#>     DV                 0.075, half the smallest value seen, no assay limit
+#>     DV                 0.2, no assay limit: half the lowest value several patients reached, rounded down
 #> 
 #> PK endpoint for the PopPK model
 #>   DV                 inferred from the following data characteristics:
@@ -200,11 +200,15 @@ model_fit
 #>                      confirmed. Check that the synthetic data reasonably
 #>                      reproduces the source data's patterns and variability.
 #>   fitted on          all 12 patients with a concentration
-#>   fixed effects      cl 2.811, v 29.43, q 1.916, v2 4.204, ka 1.233 
-#>   between-subject    cl 0.191, v 0.14, ka 0.517, q 0.237, v2 0.274 (as SD on the log scale)
-#>   residual error     proportional 0.216 
-#>   time to fit        1 min 18 s
-#>   whole call         1 min 18 s, against 1 min 18 s in the fitter
+#>   fixed effects      cl 2.8, v 29, q 1.9, v2 4.2, ka 1.2 
+#>   between-subject    cl 0.19, v 0.141, ka 0.52, q 0.237, v2 0.274 (as SD on the log scale)
+#>   residual error     proportional 0.22 
+#>   time to fit        52.0 s
+#>   whole call         52.1 s, against 52.0 s in the fitter
+#> 
+#> Privacy
+#>   one patient's pull pass: largest: DV: ka typical value, 9.92 %;
+#>                      `model_privacy_checks()` has every check
 model_data <- synpmx_model_generate(model_fit, n_subjects = 12, seed = 11)
 ```
 
@@ -724,9 +728,9 @@ knitr::kable(
 |                 | n_observations | median |  p10 |  p90 |
 |:----------------|---------------:|-------:|-----:|-----:|
 | Source          |            264 |   5.74 | 1.25 | 9.30 |
-| 1\. PMX model   |            265 |   5.57 | 1.56 | 9.30 |
+| 1\. PMX model   |            265 |   5.55 | 1.54 | 9.38 |
 | 2\. AVATAR      |            264 |   5.21 | 1.21 | 8.33 |
-| 3\. PCA         |            261 |   5.95 | 1.31 | 9.30 |
+| 3\. PCA         |            261 |   5.95 | 1.31 | 9.31 |
 | 4\. Prior only  |            240 |   3.16 | 0.28 | 6.43 |
 | 5\. Calibration |            240 |   4.05 | 0.36 | 7.54 |
 

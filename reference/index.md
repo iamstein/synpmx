@@ -66,7 +66,8 @@ and the components over time.
 What
 [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md)
 read out of the source data: the estimated half, the candidates it chose
-between, and the apparatus it summarized.
+between, the apparatus it summarized, the release that generation reads,
+and the privacy checks on it.
 
 - [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
   : What a fitted model carries
@@ -74,6 +75,10 @@ between, and the apparatus it summarized.
   : The candidate models the selection was made from
 - [`model_parameters()`](https://iamstein.github.io/synpmx/reference/model_parameters.md)
   : The estimated parameters
+- [`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md)
+  : What leaves the study: the release of a fitted model
+- [`model_privacy_checks()`](https://iamstein.github.io/synpmx/reference/model_privacy_checks.md)
+  : Privacy checks on a fitted model
 
 ## Declaring the data
 

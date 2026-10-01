@@ -51,6 +51,6 @@ roles <- pmx_roles(
 )
 head(pca_dosing(synpmx_pca(data, roles, seed = 1)))
 #>   arm cycle time planned_amt
-#> 1 all     1    0    100.0885
-#> 2 all     2   12    100.0885
+#> 1 all     1    0         100
+#> 2 all     2   12         100
 ```

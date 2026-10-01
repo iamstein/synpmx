@@ -17,7 +17,9 @@ synpmx_model_generate(fitted_model, n_subjects = NULL, seed = NULL)
 - fitted_model:
 
   A `pmx_fitted_model` from
-  [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md).
+  [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md),
+  or its
+  [`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md).
 
 - n_subjects:
 
@@ -29,8 +31,10 @@ synpmx_model_generate(fitted_model, n_subjects = NULL, seed = NULL)
 
 ## Value
 
-A data frame in the source's shape, carrying the fitted model as a
-`pmx_fitted_model` attribute.
+A data frame in the source's shape, carrying
+[`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md)
+of the fitted model as its `pmx_fitted_model` attribute: what generation
+read, without the diagnostics the full fit holds.
 
 ## Details
 

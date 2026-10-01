@@ -43,6 +43,7 @@ magnitude and one that crosses zero separates early from late."></head><body>
     <li><a class="dropdown-item" href="../articles/pmxmodel-public-data-examples.html">Evaluation on public data</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/pmxmodel-fingerprint.html">Study fingerprint</a></li>
+    <li><a class="dropdown-item" href="../articles/pmxmodel-privacy.html">Privacy protections and checks</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown--avatar" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">2. AVATAR</button>
@@ -126,12 +127,12 @@ carrying <code>variance_explained</code> as an attribute.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="pmx_simulated_fixture.html">pmx_simulated_fixture</a></span><span class="op">(</span><span class="fl">60</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">pca_components</span><span class="op">(</span><span class="fu"><a href="synpmx_pca.html">synpmx_pca</a></span><span class="op">(</span><span class="va">data</span>, <span class="fu"><a href="pmx_generated_roles.html">pmx_generated_roles</a></span><span class="op">(</span><span class="op">)</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    feature          kind endpoint  time covariate patients component    loading</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 dv_cp__1 endpoint_cell       cp  0.25      &lt;NA&gt;       60       PC1 -0.2672606</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 dv_cp__2 endpoint_cell       cp  1.00      &lt;NA&gt;       60       PC1 -0.2672596</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 dv_cp__3 endpoint_cell       cp  2.00      &lt;NA&gt;       60       PC1 -0.2672610</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 dv_cp__4 endpoint_cell       cp  6.00      &lt;NA&gt;       60       PC1 -0.2672620</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 dv_cp__5 endpoint_cell       cp 12.25      &lt;NA&gt;       60       PC1 -0.2672614</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 dv_cp__6 endpoint_cell       cp 13.00      &lt;NA&gt;       60       PC1 -0.2672595</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 dv_cp__1 endpoint_cell       cp  0.25      &lt;NA&gt;       60       PC1 -0.2672612</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 dv_cp__2 endpoint_cell       cp  1.00      &lt;NA&gt;       60       PC1 -0.2672607</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 dv_cp__3 endpoint_cell       cp  2.00      &lt;NA&gt;       60       PC1 -0.2672611</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 dv_cp__4 endpoint_cell       cp  6.00      &lt;NA&gt;       60       PC1 -0.2672616</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 dv_cp__5 endpoint_cell       cp 12.25      &lt;NA&gt;       60       PC1 -0.2672615</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 dv_cp__6 endpoint_cell       cp 13.00      &lt;NA&gt;       60       PC1 -0.2672606</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

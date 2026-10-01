@@ -56,6 +56,7 @@
     <li><a class="dropdown-item" href="../articles/pmxmodel-public-data-examples.html">Evaluation on public data</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/pmxmodel-fingerprint.html">Study fingerprint</a></li>
+    <li><a class="dropdown-item" href="../articles/pmxmodel-privacy.html">Privacy protections and checks</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -210,16 +211,16 @@ it is an input to the generation step.</p>
 <span><span class="co">#&gt;   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
-<span><span class="co">#&gt;     cp                 0.3, half the smallest value seen, no assay limit</span></span>
-<span><span class="co">#&gt;     pca                4.5, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt;     cp                 0.2, no assay limit: half the lowest value several patients reached, rounded down</span></span>
+<span><span class="co">#&gt;     pca                5, no assay limit: half the lowest value several patients reached, rounded down</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Each non-PK continuous endpoint, fitted as constant, linear, or exponential</span></span>
 <span><span class="co">#&gt;   pca                exponential</span></span>
-<span><span class="co">#&gt;                        plateau          27.34</span></span>
-<span><span class="co">#&gt;                        baseline         96.3</span></span>
-<span><span class="co">#&gt;                        rate             0.09877</span></span>
-<span><span class="co">#&gt;                        between-subject  0.146 (SD on the log baseline)</span></span>
-<span><span class="co">#&gt;                        residual         additive 12.4</span></span>
+<span><span class="co">#&gt;                        plateau          27</span></span>
+<span><span class="co">#&gt;                        baseline         96</span></span>
+<span><span class="co">#&gt;                        rate             0.099</span></span>
+<span><span class="co">#&gt;                        between-subject  0.15 (SD on the log baseline)</span></span>
+<span><span class="co">#&gt;                        residual         additive 12</span></span>
 <span><span class="co">#&gt;                        chosen on AIC from constant, linear, exponential</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
@@ -238,11 +239,15 @@ it is an input to the generation step.</p>
 <span><span class="co">#&gt;   structural model   2cmt_oral </span></span>
 <span><span class="co">#&gt;   selected by        two-compartment model passed acceptance checks</span></span>
 <span><span class="co">#&gt;   fitted on          all 32 patients with a concentration</span></span>
-<span><span class="co">#&gt;   fixed effects      cl 0.1314, v 6.574, q 0.09833, v2 1.562, ka 0.4206 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.268, v 0.192, ka 0.555, q 0.0746, v2 0.638 (as SD on the log scale)</span></span>
-<span><span class="co">#&gt;   residual error     proportional 0.206 </span></span>
-<span><span class="co">#&gt;   time to fit        51.8 s</span></span>
-<span><span class="co">#&gt;   whole call         52.0 s, against 51.8 s in the fitter</span></span></code></pre></div>
+<span><span class="co">#&gt;   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
+<span><span class="co">#&gt;   time to fit        57.3 s</span></span>
+<span><span class="co">#&gt;   whole call         57.5 s, against 57.3 s in the fitter</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Privacy</span></span>
+<span><span class="co">#&gt;   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;</span></span>
+<span><span class="co">#&gt;                      `model_privacy_checks()` has every check</span></span></code></pre></div>
 <p>Every section below expands one part of it. The object is a plain
 list and the names used are its own, so a quantity can be reached
 directly when no accessor covers it.</p>
@@ -256,7 +261,7 @@ directly when no accessor covers it.</p>
 <span><span class="co">#&gt; [16] "design"               "correlations"         "censoring"           </span></span>
 <span><span class="co">#&gt; [19] "quantification_floor" "timing"               "movement"            </span></span>
 <span><span class="co">#&gt; [22] "fit_subjects"         "start_param"          "dose_records"        </span></span>
-<span><span class="co">#&gt; [25] "pk_models"            "endpoints"</span></span></code></pre></div>
+<span><span class="co">#&gt; [25] "privacy"              "pk_models"            "endpoints"</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="the-settings-that-produced-it">The settings that produced it<a class="anchor" aria-label="anchor" href="#the-settings-that-produced-it"></a>
@@ -302,7 +307,7 @@ the object telling you how little evidence it had, and
 <span><span class="co">#&gt; [1] "2cmt_oral"</span></span>
 <span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged accepted      aic seconds note</span></span>
-<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  51.794</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  57.346</span></span></code></pre></div>
 <p>Each row is an attempted fit. The default stops when two compartments
 pass the acceptance checks; a rejected fit is followed by one
 compartment. <code>pk</code> names a particular model, or several to
@@ -322,8 +327,8 @@ that look most like a result and are least entitled to be read as
 one.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_parameters.html">model_parameters</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">fixed</span></span>
-<span><span class="co">#&gt;         cl          v          q         v2         ka </span></span>
-<span><span class="co">#&gt; 0.13140202 6.57422812 0.09833005 1.56198488 0.42057604</span></span></code></pre></div>
+<span><span class="co">#&gt;    cl     v     q    v2    ka </span></span>
+<span><span class="co">#&gt; 0.130 6.600 0.098 1.600 0.420</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="between-subject-variability">Between-subject variability<a class="anchor" aria-label="anchor" href="#between-subject-variability"></a>
@@ -333,20 +338,22 @@ a random effect. Generation draws each synthetic subject’s deviations
 from this matrix.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_parameters.html">model_parameters</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">omega</span></span>
-<span><span class="co">#&gt;            cl          v        ka           q        v2</span></span>
-<span><span class="co">#&gt; cl 0.07161216 0.00000000 0.0000000 0.000000000 0.0000000</span></span>
-<span><span class="co">#&gt; v  0.00000000 0.03696289 0.0000000 0.000000000 0.0000000</span></span>
-<span><span class="co">#&gt; ka 0.00000000 0.00000000 0.3081432 0.000000000 0.0000000</span></span>
-<span><span class="co">#&gt; q  0.00000000 0.00000000 0.0000000 0.005565667 0.0000000</span></span>
-<span><span class="co">#&gt; v2 0.00000000 0.00000000 0.0000000 0.000000000 0.4071258</span></span>
+<span><span class="co">#&gt;       cl     v   ka      q   v2</span></span>
+<span><span class="co">#&gt; cl 0.072 0.000 0.00 0.0000 0.00</span></span>
+<span><span class="co">#&gt; v  0.000 0.037 0.00 0.0000 0.00</span></span>
+<span><span class="co">#&gt; ka 0.000 0.000 0.31 0.0000 0.00</span></span>
+<span><span class="co">#&gt; q  0.000 0.000 0.00 0.0056 0.00</span></span>
+<span><span class="co">#&gt; v2 0.000 0.000 0.00 0.0000 0.41</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/diag.html" class="external-link">diag</a></span><span class="op">(</span><span class="fu"><a href="../reference/model_parameters.html">model_parameters</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">omega</span><span class="op">)</span><span class="op">)</span>  <span class="co"># as CV on the log scale</span></span>
-<span><span class="co">#&gt;        cl         v        ka         q        v2 </span></span>
-<span><span class="co">#&gt; 0.2676045 0.1922573 0.5551065 0.0746034 0.6380641</span></span></code></pre></div>
+<span><span class="co">#&gt;         cl          v         ka          q         v2 </span></span>
+<span><span class="co">#&gt; 0.26832816 0.19235384 0.55677644 0.07483315 0.64031242</span></span></code></pre></div>
 <p><strong>No individual estimates.</strong> Empirical Bayes estimates
 are per-subject quantities, and an object carrying them would be a
-description of each real patient. They are not here. This matrix is what
-stands in for them, and it is a statement about the population rather
-than about anybody in it.</p>
+description of each real patient. They are read for the correlations
+below and for how far one patient moves each estimate, and then dropped.
+This matrix is what stands in for them, and it is a statement about the
+population rather than about anybody in it. Like every estimate in the
+fingerprint, it is rounded to two significant figures.</p>
 </div>
 <div class="section level2">
 <h2 id="the-residual-error">The residual error<a class="anchor" aria-label="anchor" href="#the-residual-error"></a>
@@ -357,11 +364,13 @@ than about anybody in it.</p>
 <span><span class="co">#&gt; [1] "proportional"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $cv</span></span>
-<span><span class="co">#&gt; [1] 0.2056582</span></span></code></pre></div>
-<p>Additive here rather than proportional, because <code>warfarin</code>
-holds concentrations recorded as zero and a proportional error on zero
-is zero. The substitution is recorded on the object rather than being
-silent.</p>
+<span><span class="co">#&gt; [1] 0.21</span></span></code></pre></div>
+<p>Proportional, with the kind recorded on the object.
+<code>warfarin</code> reports a few concentrations at or below zero,
+which is what an assay returns near its limit rather than evidence that
+the endpoint reaches zero, so those rows are fitted at half the smallest
+positive value and the error stays proportional. An endpoint whose
+values reach zero in many rows is given an additive error instead.</p>
 </div>
 <div class="section level2">
 <h2 id="what-the-assay-limit-cost">What the assay limit cost<a class="anchor" aria-label="anchor" href="#what-the-assay-limit-cost"></a>
@@ -421,7 +430,7 @@ the object.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">pd</span>, <span class="kw">function</span><span class="op">(</span><span class="va">shape</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>shape <span class="op">=</span> <span class="va">shape</span><span class="op">$</span><span class="va">pd</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">shape</span><span class="op">$</span><span class="va">typical</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; $pca</span></span>
 <span><span class="co">#&gt;         shape       plateau      baseline          rate </span></span>
-<span><span class="co">#&gt; "exponential"      "27.335"      "96.296"       "0.099"</span></span></code></pre></div>
+<span><span class="co">#&gt; "exponential"          "27"          "96"       "0.099"</span></span></code></pre></div>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">show</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">pd</span><span class="op">[[</span><span class="fl">1L</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">candidates</span>, <span class="st">"The three shapes, compared on AIC"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-36aa3d2a04d42bbc2145" style="width:100%;height:auto;"></div>
@@ -439,6 +448,9 @@ baseline covariate is recorded before the first dose: in a randomized
 study what separates two arms’ weights is the sampling noise of however
 many patients the arm has, and modelling it per arm reproduces that
 noise as if it were structure.</p>
+<p>A continuous covariate is summarized after its highest and lowest 5%
+of patients are set aside, at least one at each end, so no patient at
+either extreme enters the mean or the SD, and no median is stored.</p>
 <p>Categorical distributions retain only levels held by at least
 <code>min_category_patients</code> patients (default 3), counted once
 per patient after small arms are excluded. The remaining frequencies are
@@ -450,16 +462,14 @@ re-estimated to apply the threshold.</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">covariates</span>, max.level <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="co">#&gt; List of 3</span></span>
-<span><span class="co">#&gt;  $ wt :List of 4</span></span>
+<span><span class="co">#&gt;  $ wt :List of 3</span></span>
 <span><span class="co">#&gt;   ..$ kind   : chr "lognormal"</span></span>
 <span><span class="co">#&gt;   ..$ meanlog: num 4.23</span></span>
-<span><span class="co">#&gt;   ..$ sdlog  : num 0.19</span></span>
-<span><span class="co">#&gt;   ..$ median : num 71.7</span></span>
-<span><span class="co">#&gt;  $ age:List of 4</span></span>
+<span><span class="co">#&gt;   ..$ sdlog  : num 0.18</span></span>
+<span><span class="co">#&gt;  $ age:List of 3</span></span>
 <span><span class="co">#&gt;   ..$ kind   : chr "lognormal"</span></span>
-<span><span class="co">#&gt;   ..$ meanlog: num 3.39</span></span>
-<span><span class="co">#&gt;   ..$ sdlog  : num 0.304</span></span>
-<span><span class="co">#&gt;   ..$ median : num 27.5</span></span>
+<span><span class="co">#&gt;   ..$ meanlog: num 3.37</span></span>
+<span><span class="co">#&gt;   ..$ sdlog  : num 0.34</span></span>
 <span><span class="co">#&gt;  $ sex:List of 3</span></span>
 <span><span class="co">#&gt;   ..$ kind       : chr "categorical"</span></span>
 <span><span class="co">#&gt;   ..$ levels     : chr [1:2] "female" "male"</span></span>
@@ -552,8 +562,15 @@ endpoint, and how identifiers are written.</p>
 <div class="section level2">
 <h2 id="generating-from-it">Generating from it<a class="anchor" aria-label="anchor" href="#generating-from-it"></a>
 </h2>
-<p>Everything above, and nothing else, is what the next line reads.</p>
+<p>The diagnostics above stay with the fit: the candidate table, the
+correlations and the timings. <code><a href="../reference/model_release.html">model_release()</a></code> is the part
+generation reads, and it is what <code><a href="../reference/synpmx_model_generate.html">synpmx_model_generate()</a></code>
+attaches to the data it returns.</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">setdiff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/model_release.html">model_release</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "candidates"   "design"       "correlations" "censoring"    "timing"      </span></span>
+<span><span class="co">#&gt; [6] "movement"     "fit_subjects" "start_param"  "dose_records"</span></span></code></pre></div>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">fit</span>, n_subjects <span class="op">=</span> <span class="fl">32</span>, seed <span class="op">=</span> <span class="fl">7</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>rows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span>,</span>
 <span>  subjects <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -578,6 +595,11 @@ description of the profiles.</li>
 <li>
 <code><a href="../articles/scorecard.html">vignette("scorecard")</a></code> — the checks that read a
 generated dataset against its source.</li>
+<li>
+<a href="https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html">Privacy
+protections in the PMX model generator</a> — what of this fingerprint
+leaves the study, the protections on it, and the checks that measure
+them.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

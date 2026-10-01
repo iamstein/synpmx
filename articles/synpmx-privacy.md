@@ -57,8 +57,9 @@ trajectory shapes for free, needs no elicited model or priors — and
 makes **no formal privacy guarantee**. Its safety rests on governance:
 the data stays inside a trusted, access-controlled environment. This is
 the same footing as Novartis’s `synadam`, an ADaM (Analysis Data Model)
-synthetic-data package that resamples each column marginally from the
-real data with no privacy accounting at all.
+synthetic-data package that draws each numeric column uniformly between
+its observed minimum and maximum and each categorical column from the
+values seen at least twice, with no privacy accounting.
 
 ### Differential privacy: a bound on what any one subject can change
 
@@ -201,7 +202,7 @@ and adding noise mitigates this, but not formally, and pushing the noise
 high enough to defeat a nearest-neighbor linkage attack would destroy
 the same signal a DP mechanism would have destroyed — without the
 accounting to prove it. AVATAR therefore leans on the governance context
-more heavily than column-wise resampling like `synadam` does. This
+more heavily than column-wise generation like `synadam`’s does. This
 package has undergone no attack-based privacy validation.
 
 ## What each family asks of you
@@ -470,6 +471,13 @@ prints the realized accounting.
 - [The AVATAR
   Algorithm](https://iamstein.github.io/synpmx/articles/avatar-algorithm.html)
   — the default generator in detail.
+- [Privacy protections in the PMX model
+  generator](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html)
+  — what
+  [`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md)
+  releases, the protections on it and the checks that measure them. Like
+  [`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md),
+  it makes no formal privacy claim.
 - [Model
   elicitation](https://iamstein.github.io/synpmx/articles/model-elicitation.html)
   and [data

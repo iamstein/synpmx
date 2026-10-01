@@ -83,9 +83,9 @@ subject.
 must pass the same convergence, parameter and generation checks, and is
 never replaced by another model automatically.
 
-A clearance of 6.25 L/h and a volume of 48.5 L. Whether those are the
-right numbers for this compound is not the question the generator asks:
-they exist to put the simulated profiles where the source’s are, and the
+A clearance of 6.3 L/h and a volume of 49 L. Whether those are the right
+numbers for this compound is not the question the generator asks: they
+exist to put the simulated profiles where the source’s are, and the
 object prints that warning with itself.
 
 ## What the fit carries
@@ -119,23 +119,23 @@ model_report(fit)
 #>                      WEIGHTB, SEX, TRTACT, DOSE
 #> 
 #> Values at the lower limit of what was observed
-#>     PK Concentration   0.025, half the smallest value seen, no assay limit
-#>     PD - Continuous    0.0825, half the smallest value seen, no assay limit
+#>     PK Concentration   0.02, no assay limit: half the lowest value several patients reached, rounded down
+#>     PD - Continuous    0.1, no assay limit: half the lowest value several patients reached, rounded down
 #> 
 #> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   PD - Continuous    exponential
-#>                        plateau          31.47
-#>                        baseline         1.637
-#>                        rate             0.01344
-#>                        between-subject  1.33 (SD on the log baseline)
-#>                        residual         additive 8.13
+#>                        plateau          31
+#>                        baseline         1.6
+#>                        rate             0.013
+#>                        between-subject  1.3 (SD on the log baseline)
+#>                        residual         additive 8.1
 #>                        chosen on AIC from constant, linear, exponential
 #>   PD - Count         exponential
-#>                        plateau          2.888
-#>                        baseline         10.38
-#>                        rate             0.01484
-#>                        between-subject  0.248 (SD on the log baseline)
-#>                        residual         additive 2.78
+#>                        plateau          2.9
+#>                        baseline         10
+#>                        rate             0.015
+#>                        between-subject  0.25 (SD on the log baseline)
+#>                        residual         additive 2.8
 #>                        chosen on AIC from constant, linear, exponential
 #> 
 #> PK endpoint for the PopPK model
@@ -156,11 +156,15 @@ model_report(fit)
 #>   structural model   2cmt_oral 
 #>   selected by        two-compartment model passed acceptance checks
 #>   fitted on          all 50 patients with a concentration
-#>   fixed effects      cl 6.254, v 48.55, q 4.871, v2 147, ka 1.208 
-#>   between-subject    cl 0.42, v 0.445, ka 0.372, q 0.534, v2 0.424 (as SD on the log scale)
-#>   residual error     proportional 0.372 
-#>   time to fit        5 min 42 s
-#>   whole call         5 min 43 s, against 5 min 42 s in the fitter
+#>   fixed effects      cl 6.3, v 49, q 4.9, v2 150, ka 1.2 
+#>   between-subject    cl 0.424, v 0.447, ka 0.374, q 0.539, v2 0.424 (as SD on the log scale)
+#>   residual error     proportional 0.37 
+#>   time to fit        3 min 22 s
+#>   whole call         3 min 22 s, against 3 min 22 s in the fitter
+#> 
+#> Privacy
+#>   one patient's pull review: largest: PD - Continuous between-subject SD,
+#>                      23.7 points; `model_privacy_checks()` has every check
 ```
 
 The concentration has a proportional residual error. The continuous and
@@ -363,7 +367,9 @@ documents what each row asks and what its pass criterion is.
 
 [`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md)
 is the two stages together, for when you do not need to look at the fit
-first. It is on the result either way, as an attribute.
+first. The result carries the fit’s release as an attribute, which is
+what generation read; the candidate table and the other diagnostics are
+only on the fit itself.
 
 ``` r
 
@@ -387,3 +393,6 @@ attr(synthetic, "pmx_fitted_model")
   — a worked study through blending.
 - [`vignette("scorecard")`](https://iamstein.github.io/synpmx/articles/scorecard.md)
   — the checks above, in detail.
+- [Privacy protections in the PMX model
+  generator](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html)
+  — what leaves the study, and the checks on it.

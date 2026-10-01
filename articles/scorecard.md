@@ -22,7 +22,7 @@ The scorecard contains a table of the following items:
 - An `explore` function to help assess any checks that failed or need
   review.
 
-Its rows are grouped into four categories, one per question:
+Its rows are grouped into five categories, one per question:
 
 - **A. Is the dataset valid**
 - **B. Is any individual patient identifiable based on the synthetic
@@ -31,19 +31,24 @@ Its rows are grouped into four categories, one per question:
   source**
 - **D. How much have the covariate and observation distributions
   changed**
+- **E. Did the population model behind the data fit, and does any one
+  patient drive it** (output of
+  [`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md)
+  only)
 
 Every row the card holds has a section of this vignette under the same
 identifier.
 
-**Seven checks can say `FAIL`, and no others.** A1, because the output
+**Eight checks can say `FAIL`, and no others.** A1, because the output
 is not a legal dataset; A3 and A6, because it is not the study that went
-in; and B1a, B1b, B4a and B4b, because each means one real patient’s
-structure was reproduced verbatim. No other row can fail. The rest
-answer `pass` when there is nothing to read and `review` when there is
-something whose meaning depends on the study: a subject dropped for want
-of donors, an arm that changed size, a statistic wandering at a small
-sample size. One row, D1, is `review` however it lands, because no
-threshold on it would be honest.
+in; B1a, B1b, B4a and B4b, because each means one real patient’s
+structure was reproduced verbatim; and E3, because the model the data
+came from describes one patient as much as the cohort. No other row can
+fail. The rest answer `pass` when there is nothing to read and `review`
+when there is something whose meaning depends on the study: a subject
+dropped for want of donors, an arm that changed size, a statistic
+wandering at a small sample size. One row, D1, is `review` however it
+lands, because no threshold on it would be honest.
 
 ### The two datasets used here
 
@@ -1142,7 +1147,7 @@ Both are `review` and never `FAIL`. The numbers may still serve the
 purpose at hand, and that is the reader’s call — but it has to be on the
 card, because the card is where a reader looks.
 
-Both read `attr(synthetic, "pmx_fitted_model")`, which
+Both read `attr(synthetic, "pmx_fitted_model")`, the release
 [`synpmx_model_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_generate.md)
 leaves on its output. Data from
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
@@ -1150,6 +1155,33 @@ or
 [`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
 has no population model to score, so both rows read `not applicable`,
 which is a statement about the generator rather than a gap in the card.
+
+### E3. Does any one patient drive the fitted model
+
+E3 is the privacy reading of the fit. It asks how far any one patient
+moves a released estimate: each PK typical value and between-subject SD,
+each PD baseline and its spread, and each continuous covariate’s
+summary. The move is read at estimation, from the empirical Bayes
+estimates (EBEs) for the population model, from each subject’s own
+baseline for the PD shapes, and by leaving each patient out for the
+covariates, and the release carries its verdict.
+
+- **E3** passes when no estimate moves by 15 or more, in percent for a
+  typical value and in points of the SD on the log scale for a spread.
+  From 15 it is `review`; from 30 it is `FAIL`, and estimation has
+  already warned and named the patient on the console.
+
+A `FAIL` is the one E row that is always a defect: a model that one
+patient moves that far describes that patient, and the usual cause, a
+patient given far more drug than the record shows, is an error in the
+data. A passing release states only that every estimate moved less than
+15, so the one data-dependent thing it carries is the verdict.
+[`model_privacy_checks()`](https://iamstein.github.io/synpmx/reference/model_privacy_checks.md)
+on the fit returns the table behind it, and [Privacy protections in the
+PMX model
+generator](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html)
+works through a patient misdosed a thousandfold. Data from any other
+generator reads `not applicable`.
 
 ### Where to go next
 

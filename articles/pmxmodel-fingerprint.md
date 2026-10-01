@@ -94,16 +94,16 @@ model_report(fit)
 #>   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex
 #> 
 #> Values at the lower limit of what was observed
-#>     cp                 0.3, half the smallest value seen, no assay limit
-#>     pca                4.5, half the smallest value seen, no assay limit
+#>     cp                 0.2, no assay limit: half the lowest value several patients reached, rounded down
+#>     pca                5, no assay limit: half the lowest value several patients reached, rounded down
 #> 
 #> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   pca                exponential
-#>                        plateau          27.34
-#>                        baseline         96.3
-#>                        rate             0.09877
-#>                        between-subject  0.146 (SD on the log baseline)
-#>                        residual         additive 12.4
+#>                        plateau          27
+#>                        baseline         96
+#>                        rate             0.099
+#>                        between-subject  0.15 (SD on the log baseline)
+#>                        residual         additive 12
 #>                        chosen on AIC from constant, linear, exponential
 #> 
 #> PK endpoint for the PopPK model
@@ -122,11 +122,15 @@ model_report(fit)
 #>   structural model   2cmt_oral 
 #>   selected by        two-compartment model passed acceptance checks
 #>   fitted on          all 32 patients with a concentration
-#>   fixed effects      cl 0.1314, v 6.574, q 0.09833, v2 1.562, ka 0.4206 
-#>   between-subject    cl 0.268, v 0.192, ka 0.555, q 0.0746, v2 0.638 (as SD on the log scale)
-#>   residual error     proportional 0.206 
-#>   time to fit        51.8 s
-#>   whole call         52.0 s, against 51.8 s in the fitter
+#>   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 
+#>   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)
+#>   residual error     proportional 0.21 
+#>   time to fit        57.3 s
+#>   whole call         57.5 s, against 57.3 s in the fitter
+#> 
+#> Privacy
+#>   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;
+#>                      `model_privacy_checks()` has every check
 ```
 
 Every section below expands one part of it. The object is a plain list
@@ -144,7 +148,7 @@ names(fit)
 #> [16] "design"               "correlations"         "censoring"           
 #> [19] "quantification_floor" "timing"               "movement"            
 #> [22] "fit_subjects"         "start_param"          "dose_records"        
-#> [25] "pk_models"            "endpoints"
+#> [25] "privacy"              "pk_models"            "endpoints"
 ```
 
 ## The settings that produced it
@@ -196,7 +200,7 @@ fit$structural
 #> [1] "2cmt_oral"
 model_candidates(fit)
 #>       model converged accepted      aic seconds note
-#> 1 2cmt_oral      TRUE     TRUE 922.2948  51.794
+#> 1 2cmt_oral      TRUE     TRUE 922.2948  57.346
 ```
 
 Each row is an attempted fit. The default stops when two compartments
@@ -217,8 +221,8 @@ look most like a result and are least entitled to be read as one.
 ``` r
 
 model_parameters(fit)$fixed
-#>         cl          v          q         v2         ka 
-#> 0.13140202 6.57422812 0.09833005 1.56198488 0.42057604
+#>    cl     v     q    v2    ka 
+#> 0.130 6.600 0.098 1.600 0.420
 ```
 
 ## Between-subject variability
@@ -230,22 +234,24 @@ this matrix.
 ``` r
 
 model_parameters(fit)$omega
-#>            cl          v        ka           q        v2
-#> cl 0.07161216 0.00000000 0.0000000 0.000000000 0.0000000
-#> v  0.00000000 0.03696289 0.0000000 0.000000000 0.0000000
-#> ka 0.00000000 0.00000000 0.3081432 0.000000000 0.0000000
-#> q  0.00000000 0.00000000 0.0000000 0.005565667 0.0000000
-#> v2 0.00000000 0.00000000 0.0000000 0.000000000 0.4071258
+#>       cl     v   ka      q   v2
+#> cl 0.072 0.000 0.00 0.0000 0.00
+#> v  0.000 0.037 0.00 0.0000 0.00
+#> ka 0.000 0.000 0.31 0.0000 0.00
+#> q  0.000 0.000 0.00 0.0056 0.00
+#> v2 0.000 0.000 0.00 0.0000 0.41
 sqrt(diag(model_parameters(fit)$omega))  # as CV on the log scale
-#>        cl         v        ka         q        v2 
-#> 0.2676045 0.1922573 0.5551065 0.0746034 0.6380641
+#>         cl          v         ka          q         v2 
+#> 0.26832816 0.19235384 0.55677644 0.07483315 0.64031242
 ```
 
 **No individual estimates.** Empirical Bayes estimates are per-subject
 quantities, and an object carrying them would be a description of each
-real patient. They are not here. This matrix is what stands in for them,
-and it is a statement about the population rather than about anybody in
-it.
+real patient. They are read for the correlations below and for how far
+one patient moves each estimate, and then dropped. This matrix is what
+stands in for them, and it is a statement about the population rather
+than about anybody in it. Like every estimate in the fingerprint, it is
+rounded to two significant figures.
 
 ## The residual error
 
@@ -256,13 +262,15 @@ model_parameters(fit)$residual
 #> [1] "proportional"
 #> 
 #> $cv
-#> [1] 0.2056582
+#> [1] 0.21
 ```
 
-Additive here rather than proportional, because `warfarin` holds
-concentrations recorded as zero and a proportional error on zero is
-zero. The substitution is recorded on the object rather than being
-silent.
+Proportional, with the kind recorded on the object. `warfarin` reports a
+few concentrations at or below zero, which is what an assay returns near
+its limit rather than evidence that the endpoint reaches zero, so those
+rows are fitted at half the smallest positive value and the error stays
+proportional. An endpoint whose values reach zero in many rows is given
+an additive error instead.
 
 ## What the assay limit cost
 
@@ -331,7 +339,7 @@ the object.
 lapply(fit$pd, function(shape) c(shape = shape$pd, round(shape$typical, 3)))
 #> $pca
 #>         shape       plateau      baseline          rate 
-#> "exponential"      "27.335"      "96.296"       "0.099"
+#> "exponential"          "27"          "96"       "0.099"
 ```
 
 ``` r
@@ -353,6 +361,10 @@ study what separates two arms’ weights is the sampling noise of however
 many patients the arm has, and modelling it per arm reproduces that
 noise as if it were structure.
 
+A continuous covariate is summarized after its highest and lowest 5% of
+patients are set aside, at least one at each end, so no patient at
+either extreme enters the mean or the SD, and no median is stored.
+
 Categorical distributions retain only levels held by at least
 `min_category_patients` patients (default 3), counted once per patient
 after small arms are excluded. The remaining frequencies are
@@ -366,16 +378,14 @@ re-estimated to apply the threshold.
 
 str(fit$covariates, max.level = 2)
 #> List of 3
-#>  $ wt :List of 4
+#>  $ wt :List of 3
 #>   ..$ kind   : chr "lognormal"
 #>   ..$ meanlog: num 4.23
-#>   ..$ sdlog  : num 0.19
-#>   ..$ median : num 71.7
-#>  $ age:List of 4
+#>   ..$ sdlog  : num 0.18
+#>  $ age:List of 3
 #>   ..$ kind   : chr "lognormal"
-#>   ..$ meanlog: num 3.39
-#>   ..$ sdlog  : num 0.304
-#>   ..$ median : num 27.5
+#>   ..$ meanlog: num 3.37
+#>   ..$ sdlog  : num 0.34
 #>  $ sex:List of 3
 #>   ..$ kind       : chr "categorical"
 #>   ..$ levels     : chr [1:2] "female" "male"
@@ -481,7 +491,19 @@ fit$schema$censoring
 
 ## Generating from it
 
-Everything above, and nothing else, is what the next line reads.
+The diagnostics above stay with the fit: the candidate table, the
+correlations and the timings.
+[`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md)
+is the part generation reads, and it is what
+[`synpmx_model_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_generate.md)
+attaches to the data it returns.
+
+``` r
+
+setdiff(names(fit), names(model_release(fit)))
+#> [1] "candidates"   "design"       "correlations" "censoring"    "timing"      
+#> [6] "movement"     "fit_subjects" "start_param"  "dose_records"
+```
 
 ``` r
 
@@ -504,3 +526,7 @@ c(rows = nrow(synthetic),
   apparatus and a completely different description of the profiles.
 - [`vignette("scorecard")`](https://iamstein.github.io/synpmx/articles/scorecard.md)
   — the checks that read a generated dataset against its source.
+- [Privacy protections in the PMX model
+  generator](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html)
+  — what of this fingerprint leaves the study, the protections on it,
+  and the checks that measure them.

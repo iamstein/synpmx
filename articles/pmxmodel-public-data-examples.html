@@ -56,6 +56,7 @@
     <li><a class="dropdown-item" href="../articles/pmxmodel-public-data-examples.html">Evaluation on public data</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/pmxmodel-fingerprint.html">Study fingerprint</a></li>
+    <li><a class="dropdown-item" href="../articles/pmxmodel-privacy.html">Privacy protections and checks</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -308,11 +309,11 @@ model demo uses <code>mad</code>, whose fit passed the checks.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Each non-PK continuous endpoint, fitted as constant, linear, or exponential</span></span>
 <span><span class="co">#&gt;   PD - Continuous    exponential</span></span>
-<span><span class="co">#&gt;                        plateau          149</span></span>
-<span><span class="co">#&gt;                        baseline         52.24</span></span>
-<span><span class="co">#&gt;                        rate             0.04868</span></span>
-<span><span class="co">#&gt;                        between-subject  0.984 (SD on the log baseline)</span></span>
-<span><span class="co">#&gt;                        residual         additive 225</span></span>
+<span><span class="co">#&gt;                        plateau          150</span></span>
+<span><span class="co">#&gt;                        baseline         52</span></span>
+<span><span class="co">#&gt;                        rate             0.049</span></span>
+<span><span class="co">#&gt;                        between-subject  0.98 (SD on the log baseline)</span></span>
+<span><span class="co">#&gt;                        residual         additive 220</span></span>
 <span><span class="co">#&gt;                        chosen on AIC from constant, linear, exponential</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
@@ -341,14 +342,18 @@ model demo uses <code>mad</code>, whose fit passed the checks.</p>
 <span><span class="co">#&gt;                      proportion to the arms under `max_fit_subjects` = 60;</span></span>
 <span><span class="co">#&gt;                      the dosing, visit and covariate models below read the</span></span>
 <span><span class="co">#&gt;                      whole study</span></span>
-<span><span class="co">#&gt;   fixed effects      cl 12.85, v 64.58, q 7.89, v2 152.9, ka 2.038 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.479, v 0.367, ka 0.12, q 0.104, v2 0.103 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   fixed effects      cl 13, v 65, q 7.9, v2 150, ka 2 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.48, v 0.361, ka 0.118, q 0.105, v2 0.105 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   starting values    cl 13, v 65, q 8, v2 150, ka 2 declared through</span></span>
 <span><span class="co">#&gt;                      `start_param`; the rest were read off the cohort's</span></span>
 <span><span class="co">#&gt;                      median profile</span></span>
-<span><span class="co">#&gt;   residual error     proportional 0.311 </span></span>
-<span><span class="co">#&gt;   time to fit        32 min 30 s</span></span>
-<span><span class="co">#&gt;   whole call         32 min 33 s, against 32 min 30 s in the fitter</span></span></code></pre></div>
+<span><span class="co">#&gt;   residual error     proportional 0.31 </span></span>
+<span><span class="co">#&gt;   time to fit        21 min 44 s</span></span>
+<span><span class="co">#&gt;   whole call         21 min 46 s, against 21 min 44 s in the fitter</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Privacy</span></span>
+<span><span class="co">#&gt;   one patient's pull pass: largest: PD - Continuous between-subject SD,</span></span>
+<span><span class="co">#&gt;                      6.44 points; `model_privacy_checks()` has every check</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/case1-plot-pk-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/case1-plot-pd-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
@@ -357,7 +362,7 @@ model demo uses <code>mad</code>, whose fit passed the checks.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">case1</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>13 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","D1"],["Observations per patient","Values landing in the same range"],["both","both"],["30.7 -&gt; 29","sd x1.2 on PK Concentration (furthest of 3)"],["review","review"],["compare_pmx_distributions(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The stored fit uses
+<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","D1"],["Observations per patient","Values landing in the same range"],["both","both"],["30.7 -&gt; 29","sd x1.2 on WEIGHTB (furthest of 3)"],["review","review"],["compare_pmx_distributions(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The stored fit uses
 <code>start_param = c(cl = 13, v = 65, q = 8, v2 = 150, ka = 2)</code>,
 rounded starts from an exploratory fit of this public study. The
 two-compartment fit reports false convergence. That warning remains in
@@ -421,23 +426,23 @@ the discrete ones are a question this generator does not answer.</p>
 <span><span class="co">#&gt;                      WEIGHTB, SEX, TRTACT, DOSE</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
-<span><span class="co">#&gt;     PK Concentration   0.025, half the smallest value seen, no assay limit</span></span>
-<span><span class="co">#&gt;     PD - Continuous    0.0825, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt;     PK Concentration   0.02, no assay limit: half the lowest value several patients reached, rounded down</span></span>
+<span><span class="co">#&gt;     PD - Continuous    0.1, no assay limit: half the lowest value several patients reached, rounded down</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Each non-PK continuous endpoint, fitted as constant, linear, or exponential</span></span>
 <span><span class="co">#&gt;   PD - Continuous    exponential</span></span>
-<span><span class="co">#&gt;                        plateau          31.47</span></span>
-<span><span class="co">#&gt;                        baseline         1.637</span></span>
-<span><span class="co">#&gt;                        rate             0.01344</span></span>
-<span><span class="co">#&gt;                        between-subject  1.33 (SD on the log baseline)</span></span>
-<span><span class="co">#&gt;                        residual         additive 8.13</span></span>
+<span><span class="co">#&gt;                        plateau          31</span></span>
+<span><span class="co">#&gt;                        baseline         1.6</span></span>
+<span><span class="co">#&gt;                        rate             0.013</span></span>
+<span><span class="co">#&gt;                        between-subject  1.3 (SD on the log baseline)</span></span>
+<span><span class="co">#&gt;                        residual         additive 8.1</span></span>
 <span><span class="co">#&gt;                        chosen on AIC from constant, linear, exponential</span></span>
 <span><span class="co">#&gt;   PD - Count         exponential</span></span>
-<span><span class="co">#&gt;                        plateau          2.888</span></span>
-<span><span class="co">#&gt;                        baseline         10.38</span></span>
-<span><span class="co">#&gt;                        rate             0.01484</span></span>
-<span><span class="co">#&gt;                        between-subject  0.248 (SD on the log baseline)</span></span>
-<span><span class="co">#&gt;                        residual         additive 2.78</span></span>
+<span><span class="co">#&gt;                        plateau          2.9</span></span>
+<span><span class="co">#&gt;                        baseline         10</span></span>
+<span><span class="co">#&gt;                        rate             0.015</span></span>
+<span><span class="co">#&gt;                        between-subject  0.25 (SD on the log baseline)</span></span>
+<span><span class="co">#&gt;                        residual         additive 2.8</span></span>
 <span><span class="co">#&gt;                        chosen on AIC from constant, linear, exponential</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
@@ -458,16 +463,20 @@ the discrete ones are a question this generator does not answer.</p>
 <span><span class="co">#&gt;   structural model   2cmt_oral </span></span>
 <span><span class="co">#&gt;   selected by        two-compartment model passed acceptance checks</span></span>
 <span><span class="co">#&gt;   fitted on          all 50 patients with a concentration</span></span>
-<span><span class="co">#&gt;   fixed effects      cl 6.254, v 48.55, q 4.871, v2 147, ka 1.208 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.42, v 0.445, ka 0.372, q 0.534, v2 0.424 (as SD on the log scale)</span></span>
-<span><span class="co">#&gt;   residual error     proportional 0.372 </span></span>
-<span><span class="co">#&gt;   time to fit        5 min 42 s</span></span>
-<span><span class="co">#&gt;   whole call         5 min 43 s, against 5 min 42 s in the fitter</span></span></code></pre></div>
+<span><span class="co">#&gt;   fixed effects      cl 6.3, v 49, q 4.9, v2 150, ka 1.2 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.424, v 0.447, ka 0.374, q 0.539, v2 0.424 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   residual error     proportional 0.37 </span></span>
+<span><span class="co">#&gt;   time to fit        3 min 22 s</span></span>
+<span><span class="co">#&gt;   whole call         3 min 22 s, against 3 min 22 s in the fitter</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Privacy</span></span>
+<span><span class="co">#&gt;   one patient's pull review: largest: PD - Continuous between-subject SD,</span></span>
+<span><span class="co">#&gt;                      23.7 points; `model_privacy_checks()` has every check</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/mad-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">mad_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-e5c8c404fe174e4c81bd" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.78 on PK Concentration (furthest of 6)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails, and A3 reads 5 of 5: every endpoint survives,
+<script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1","E3"],["Values landing in the same range","No single patient moves a fitted estimate far"],["both","fitted model"],["sd x0.77 on PK Concentration (furthest of 6)","largest: PD - Continuous between-subject SD, 23.7 points"],["review","review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")","model_privacy_checks(attr(synthetic, \"pmx_fitted_model\"))"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails, and A3 reads 5 of 5: every endpoint survives,
 including the three discrete ones, which are drawn from the level
 frequencies their arm holds at each visit rather than modelled. D1 is
 the only row to read, and the variable it names is now the
@@ -510,16 +519,16 @@ about this study rather than constructing a grid.</p>
 <span><span class="co">#&gt;   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
-<span><span class="co">#&gt;     cp                 0.3, half the smallest value seen, no assay limit</span></span>
-<span><span class="co">#&gt;     pca                4.5, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt;     cp                 0.2, no assay limit: half the lowest value several patients reached, rounded down</span></span>
+<span><span class="co">#&gt;     pca                5, no assay limit: half the lowest value several patients reached, rounded down</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Each non-PK continuous endpoint, fitted as constant, linear, or exponential</span></span>
 <span><span class="co">#&gt;   pca                exponential</span></span>
-<span><span class="co">#&gt;                        plateau          27.34</span></span>
-<span><span class="co">#&gt;                        baseline         96.3</span></span>
-<span><span class="co">#&gt;                        rate             0.09877</span></span>
-<span><span class="co">#&gt;                        between-subject  0.146 (SD on the log baseline)</span></span>
-<span><span class="co">#&gt;                        residual         additive 12.4</span></span>
+<span><span class="co">#&gt;                        plateau          27</span></span>
+<span><span class="co">#&gt;                        baseline         96</span></span>
+<span><span class="co">#&gt;                        rate             0.099</span></span>
+<span><span class="co">#&gt;                        between-subject  0.15 (SD on the log baseline)</span></span>
+<span><span class="co">#&gt;                        residual         additive 12</span></span>
 <span><span class="co">#&gt;                        chosen on AIC from constant, linear, exponential</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
@@ -538,11 +547,15 @@ about this study rather than constructing a grid.</p>
 <span><span class="co">#&gt;   structural model   2cmt_oral </span></span>
 <span><span class="co">#&gt;   selected by        two-compartment model passed acceptance checks</span></span>
 <span><span class="co">#&gt;   fitted on          all 32 patients with a concentration</span></span>
-<span><span class="co">#&gt;   fixed effects      cl 0.1314, v 6.574, q 0.09833, v2 1.562, ka 0.4206 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.268, v 0.192, ka 0.555, q 0.0746, v2 0.638 (as SD on the log scale)</span></span>
-<span><span class="co">#&gt;   residual error     proportional 0.206 </span></span>
-<span><span class="co">#&gt;   time to fit        51.8 s</span></span>
-<span><span class="co">#&gt;   whole call         52.0 s, against 51.8 s in the fitter</span></span></code></pre></div>
+<span><span class="co">#&gt;   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
+<span><span class="co">#&gt;   time to fit        57.3 s</span></span>
+<span><span class="co">#&gt;   whole call         57.5 s, against 57.3 s in the fitter</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Privacy</span></span>
+<span><span class="co">#&gt;   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;</span></span>
+<span><span class="co">#&gt;                      `model_privacy_checks()` has every check</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/warfarin-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">warfarin_run</span><span class="op">$</span><span class="va">source</span>, <span class="va">warfarin_run</span><span class="op">$</span><span class="va">synthetic</span>,</span>
@@ -551,7 +564,7 @@ about this study rather than constructing a grid.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">warfarin_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-36aa3d2a04d42bbc2145" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x1.2 on cp (furthest of 4)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Read the design line in the report above rather than the parameters.
+<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"caption":"<caption>15 pass, 1 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.81 on wt (furthest of 4)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Read the design line in the report above rather than the parameters.
 It says the median profile peaks at 9 h and that <strong>31% of subjects
 do too</strong> — 22 of the 32 are first sampled at 24 h, well past the
 peak, so most individual profiles only decline. The route was decided
@@ -601,18 +614,22 @@ generator looks for is not here: what is recorded is the response.</p>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, RATE</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
-<span><span class="co">#&gt;     DV                 0.35, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt;     DV                 0.2, no assay limit: half the lowest value several patients reached, rounded down</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Each non-PK continuous endpoint, fitted as constant, linear, or exponential</span></span>
 <span><span class="co">#&gt;   DV                 linear</span></span>
-<span><span class="co">#&gt;                        baseline         6.967</span></span>
-<span><span class="co">#&gt;                        slope            -0.001192</span></span>
-<span><span class="co">#&gt;                        between-subject  0.342 (SD on the log baseline)</span></span>
-<span><span class="co">#&gt;                        residual         additive 3.01</span></span>
+<span><span class="co">#&gt;                        baseline         7</span></span>
+<span><span class="co">#&gt;                        slope            -0.0012</span></span>
+<span><span class="co">#&gt;                        between-subject  0.34 (SD on the log baseline)</span></span>
+<span><span class="co">#&gt;                        residual         additive 3</span></span>
 <span><span class="co">#&gt;                        chosen on AIC from constant, linear</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; PD-only study: no PK model fitted. Responses use study-time shapes or visit frequencies.</span></span>
-<span><span class="co">#&gt;   whole call         0.4 s, against 0.0 s in the fitter</span></span></code></pre></div>
+<span><span class="co">#&gt;   whole call         0.0 s, against 0.0 s in the fitter</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Privacy</span></span>
+<span><span class="co">#&gt;   one patient's pull pass: largest: DV between-subject SD, 2.25 points;</span></span>
+<span><span class="co">#&gt;                      `model_privacy_checks()` has every check</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/wbc-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">wbc_run</span><span class="op">$</span><span class="va">source</span>, <span class="va">wbc_run</span><span class="op">$</span><span class="va">synthetic</span>, <span class="va">wbc_roles</span><span class="op">)</span></span></code></pre></div>
@@ -620,7 +637,7 @@ generator looks for is not here: what is recorded is the response.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">wbc_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-febe03efa1a2d8d52a86" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"caption":"<caption>12 pass, 3 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","A5b","D1"],["Observations per patient","Doses per patient","Values landing in the same range"],["both","both","both"],["3.91 -&gt; 3.29","1.16 -&gt; 1","sd x1 on DV (furthest of 1)"],["review","review","review"],["compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The positive first-dose baseline identifies this as a PD-only study.
+<script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"caption":"<caption>13 pass, 3 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","A5b","D1"],["Observations per patient","Doses per patient","Values landing in the same range"],["both","both","both"],["3.91 -&gt; 3.29","1.16 -&gt; 1","sd x1 on DV (furthest of 1)"],["review","review","review"],["compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The positive first-dose baseline identifies this as a PD-only study.
 No compartment model is attempted. The report shows the response’s
 time-course fit and its residual variation, alongside the infusion and
 visit summaries.</p>
@@ -670,7 +687,7 @@ grid is the one the PCA survey writes down, reused unchanged.</p>
 <span><span class="co">#&gt;                      AGE, SEX, WT, HT, DOSE</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
-<span><span class="co">#&gt;     DV                 1.005, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt;     DV                 1, no assay limit: half the lowest value several patients reached, rounded down</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
 <span><span class="co">#&gt;   DV                 inferred from the following data characteristics:</span></span>
@@ -692,16 +709,20 @@ grid is the one the PCA survey writes down, reused unchanged.</p>
 <span><span class="co">#&gt;                      proportion to the arms under `max_fit_subjects` = 60;</span></span>
 <span><span class="co">#&gt;                      the dosing, visit and covariate models below read the</span></span>
 <span><span class="co">#&gt;                      whole study</span></span>
-<span><span class="co">#&gt;   fixed effects      cl 0.04492, v 0.09593, q 0.04834, v2 0.2407 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.381, v 0.394, q 0.375, v2 0.407 (as SD on the log scale)</span></span>
-<span><span class="co">#&gt;   residual error     proportional 0.339 </span></span>
-<span><span class="co">#&gt;   time to fit        1 min 3 s</span></span>
-<span><span class="co">#&gt;   whole call         1 min 4 s, against 1 min 3 s in the fitter</span></span></code></pre></div>
+<span><span class="co">#&gt;   fixed effects      cl 0.045, v 0.096, q 0.048, v2 0.24 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.374, v 0.4, q 0.374, v2 0.412 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   residual error     proportional 0.34 </span></span>
+<span><span class="co">#&gt;   time to fit        43.7 s</span></span>
+<span><span class="co">#&gt;   whole call         44.0 s, against 43.7 s in the fitter</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Privacy</span></span>
+<span><span class="co">#&gt;   one patient's pull pass: largest: DV: v2 between-subject SD, 1.92 points;</span></span>
+<span><span class="co">#&gt;                      `model_privacy_checks()` has every check</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/mavo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">mavo_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-1fb4450895fe099f74a1" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-1fb4450895fe099f74a1">{"x":{"filter":"none","vertical":false,"caption":"<caption>12 pass, 3 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","A5b","D1"],["Observations per patient","Doses per patient","Values landing in the same range"],["both","both","both"],["20.2 -&gt; 11.3","1.65 -&gt; 1","sd x0.39 on DV (furthest of 5)"],["review","review","review"],["compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Three rows to read, and two findings. A5b reports occasions per
+<script type="application/json" data-for="htmlwidget-1fb4450895fe099f74a1">{"x":{"filter":"none","vertical":false,"caption":"<caption>13 pass, 3 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","A5b","D1"],["Observations per patient","Doses per patient","Values landing in the same range"],["both","both","both"],["20.2 -&gt; 11.3","1.65 -&gt; 1","sd x0.39 on DV (furthest of 5)"],["review","review","review"],["compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Three rows to read, and two findings. A5b reports occasions per
 patient falling from 1.65 to 1 and A5a observations per patient from
 20.2 to 11.3: <code>mavoglurant</code> is one- and two-period, and the
 dosing model carries one planned schedule per arm, so the patients who
@@ -785,7 +806,7 @@ twelve.</p>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
-<span><span class="co">#&gt;     DV                 0.075, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt;     DV                 0.2, no assay limit: half the lowest value several patients reached, rounded down</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
 <span><span class="co">#&gt;   DV                 inferred from the following data characteristics:</span></span>
@@ -807,16 +828,20 @@ twelve.</p>
 <span><span class="co">#&gt;                      confirmed. Check that the synthetic data reasonably</span></span>
 <span><span class="co">#&gt;                      reproduces the source data's patterns and variability.</span></span>
 <span><span class="co">#&gt;   fitted on          all 12 patients with a concentration</span></span>
-<span><span class="co">#&gt;   fixed effects      cl 2.811, v 29.43, q 1.916, v2 4.204, ka 1.233 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.191, v 0.14, ka 0.517, q 0.237, v2 0.274 (as SD on the log scale)</span></span>
-<span><span class="co">#&gt;   residual error     proportional 0.216 </span></span>
-<span><span class="co">#&gt;   time to fit        1 min 18 s</span></span>
-<span><span class="co">#&gt;   whole call         1 min 18 s, against 1 min 18 s in the fitter</span></span></code></pre></div>
+<span><span class="co">#&gt;   fixed effects      cl 2.8, v 29, q 1.9, v2 4.2, ka 1.2 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.19, v 0.141, ka 0.52, q 0.237, v2 0.274 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   residual error     proportional 0.22 </span></span>
+<span><span class="co">#&gt;   time to fit        52.0 s</span></span>
+<span><span class="co">#&gt;   whole call         52.1 s, against 52.0 s in the fitter</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Privacy</span></span>
+<span><span class="co">#&gt;   one patient's pull pass: largest: DV: ka typical value, 9.92 %;</span></span>
+<span><span class="co">#&gt;                      `model_privacy_checks()` has every check</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/theo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">theo_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-10b3b7155e8045a1b2ad" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-10b3b7155e8045a1b2ad">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.9 on WT (furthest of 2)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails, and the card looks like the others. That is the
+<script type="application/json" data-for="htmlwidget-10b3b7155e8045a1b2ad">{"x":{"filter":"none","vertical":false,"caption":"<caption>15 pass, 1 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x1.1 on DV (furthest of 2)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails, and the card looks like the others. That is the
 uncomfortable part: the scorecard cannot see that a covariance matrix
 came from twelve subjects, because the question it asks is whether this
 output copies anybody or changed the study’s shape, and a twelve-subject
@@ -880,7 +905,7 @@ seconds.</p>
 <span><span class="co">#&gt; Summarized from the source, not estimated</span></span>
 <span><span class="co">#&gt;   cohort             12 patients in 1 arm(s)</span></span>
 <span><span class="co">#&gt;                      all (12)</span></span>
-<span><span class="co">#&gt;   dose routes        one route, undeclared; infused over 0.1 to 1 h</span></span>
+<span><span class="co">#&gt;   dose routes        one route, undeclared; infused over 0.2778 to 0.3333 h</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         1 endpoint(s) at 31 nominal time(s), 31 slot(s) in all</span></span>
 <span><span class="co">#&gt;   visit attendance   median 100% of an arm attends a slot (25% to 100%)</span></span>
@@ -891,7 +916,7 @@ seconds.</p>
 <span><span class="co">#&gt;                      BSA, AGE, HGT, DOS</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
-<span><span class="co">#&gt;     DV                 0.1323, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt;     DV                 0.2, no assay limit: half the lowest value several patients reached, rounded down</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
 <span><span class="co">#&gt;   DV                 declared through `endpoint_roles`</span></span>
@@ -906,16 +931,20 @@ seconds.</p>
 <span><span class="co">#&gt;   selected by        two-compartment model passed acceptance checks</span></span>
 <span><span class="co">#&gt;   fit checks         generated/source interquartile-range ratio 3.08</span></span>
 <span><span class="co">#&gt;   fitted on          all 12 patients with a concentration</span></span>
-<span><span class="co">#&gt;   fixed effects      cl 0.06493, v 35.44, q 0.09515, v2 323.4 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.707, v 0.7, q 0.589, v2 0.431 (as SD on the log scale)</span></span>
-<span><span class="co">#&gt;   residual error     proportional 0.421 </span></span>
-<span><span class="co">#&gt;   time to fit        58.0 s</span></span>
-<span><span class="co">#&gt;   whole call         58.2 s, against 58.0 s in the fitter</span></span></code></pre></div>
+<span><span class="co">#&gt;   fixed effects      cl 0.065, v 35, q 0.095, v2 320 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.707, v 0.7, q 0.592, v2 0.436 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   residual error     proportional 0.42 </span></span>
+<span><span class="co">#&gt;   time to fit        37.9 s</span></span>
+<span><span class="co">#&gt;   whole call         37.9 s, against 37.9 s in the fitter</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Privacy</span></span>
+<span><span class="co">#&gt;   one patient's pull pass: largest: DV: v2 between-subject SD, 12.4 points;</span></span>
+<span><span class="co">#&gt;                      `model_privacy_checks()` has every check</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/nimo-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">nimo_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-4018eef1a407a0df6b52" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-4018eef1a407a0df6b52">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x1.5 on DV (furthest of 4)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The generation screen warns that the simulated interquartile range is
+<script type="application/json" data-for="htmlwidget-4018eef1a407a0df6b52">{"x":{"filter":"none","vertical":false,"caption":"<caption>15 pass, 1 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x1.5 on DV (furthest of 4)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The generation screen warns that the simulated interquartile range is
 more than twice the source’s. The fit remains accepted: this is a spread
 warning, not a gross failure that triggers one-compartment fallback. D1
 and the plot show the wider synthetic distribution. With only twelve
@@ -962,8 +991,8 @@ requirements stops this study — and with <code>NTIME</code> set to
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pheno_flat_fit</span> <span class="op">&lt;-</span> <span class="fu">stored_fit</span><span class="op">(</span><span class="st">"pheno-flat-model-fit.rds"</span><span class="op">)</span></span>
 <span><span class="va">pheno_flat_synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">pheno_flat_fit</span>, seed <span class="op">=</span> <span class="fl">707</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: 65% of generated observations (15 of 23) fell below the smallest value the</span></span>
-<span><span class="co">#&gt; study reported and were raised to half of it.</span></span>
+<span><span class="co">#&gt; Warning: 65% of generated observations (15 of 23) fell below the emission floor and</span></span>
+<span><span class="co">#&gt; were raised to it.</span></span>
 <span><span class="co">#&gt;   A floor catching this much is a fitted model that does not describe the</span></span>
 <span><span class="co">#&gt;   low end of the data, not an assay limit.</span></span>
 <span><span class="co">#&gt;   Fix: Read `model_report()` before using this dataset.</span></span>
@@ -984,8 +1013,8 @@ baby’s afternoon, and one clock reading per patient clears that almost
 nowhere. The visit model then has almost no place to put an observation,
 so what comes back is a legal dataset in the source’s shape holding
 almost nothing — and the run says so on the way past, because most of
-what little was drawn landed under the smallest concentration the study
-reports.</p>
+what little was drawn landed under the emission floor, the lowest
+concentration the generator will write.</p>
 <div class="section level3">
 <h3 id="the-grid-this-study-does-have">The grid this study does have<a class="anchor" aria-label="anchor" href="#the-grid-this-study-does-have"></a>
 </h3>
@@ -1022,7 +1051,7 @@ the sample times to the day is that statement, and it is two lines.</p>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, MDV, WT, APGR</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
-<span><span class="co">#&gt;     DV                 3.35, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt;     DV                 5, no assay limit: half the lowest value several patients reached, rounded down</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
 <span><span class="co">#&gt;   DV                 declared through `endpoint_roles`</span></span>
@@ -1037,18 +1066,22 @@ the sample times to the day is that statement, and it is two lines.</p>
 <span><span class="co">#&gt;   selected by        two-compartment model passed acceptance checks; lowest</span></span>
 <span><span class="co">#&gt;                      AIC among accepted routes</span></span>
 <span><span class="co">#&gt;   fitted on          all 59 patients with a concentration</span></span>
-<span><span class="co">#&gt;   fixed effects      cl 0.005689, v 0.7711, q 0.6244, v2 0.6323 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.351, v 0.707, q 0.0979, v2 0.242 (as SD on the log scale)</span></span>
-<span><span class="co">#&gt;   residual error     proportional 0.126 </span></span>
-<span><span class="co">#&gt;   time to fit        3 min 53 s</span></span>
-<span><span class="co">#&gt;                        2cmt_iv                    1 min 33 s</span></span>
-<span><span class="co">#&gt;                        2cmt_oral                  2 min 20 s</span></span>
-<span><span class="co">#&gt;   whole call         3 min 53 s, against 3 min 53 s in the fitter</span></span></code></pre></div>
+<span><span class="co">#&gt;   fixed effects      cl 0.0057, v 0.77, q 0.62, v2 0.63 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.346, v 0.707, q 0.098, v2 0.241 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   residual error     proportional 0.13 </span></span>
+<span><span class="co">#&gt;   time to fit        2 min 58 s</span></span>
+<span><span class="co">#&gt;                        2cmt_iv                    1 min 2 s</span></span>
+<span><span class="co">#&gt;                        2cmt_oral                  1 min 56 s</span></span>
+<span><span class="co">#&gt;   whole call         2 min 58 s, against 2 min 58 s in the fitter</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Privacy</span></span>
+<span><span class="co">#&gt;   one patient's pull pass: largest: DV: cl between-subject SD, 4.55 points;</span></span>
+<span><span class="co">#&gt;                      `model_privacy_checks()` has every check</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/pheno-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">pheno_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-5b1b2f4ad92281566982" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-5b1b2f4ad92281566982">{"x":{"filter":"none","vertical":false,"caption":"<caption>13 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5b","D1"],["Doses per patient","Values landing in the same range"],["both","both"],["9.98 -&gt; 7.32","sd x1.6 on APGR (furthest of 3)"],["review","review"],["pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The fixed effects are the same either way, and that is the point
+<script type="application/json" data-for="htmlwidget-5b1b2f4ad92281566982">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5b","D1"],["Doses per patient","Values landing in the same range"],["both","both"],["9.98 -&gt; 7.32","sd x1.4 on APGR (furthest of 3)"],["review","review"],["pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The fixed effects are the same either way, and that is the point
 worth holding on to: estimation reads the recorded clock and the
 recorded dosing history, so the grid never touches it. What the grid
 decides is the visit model, and the visit model is the whole of what the
@@ -1147,26 +1180,30 @@ reports whether fallback was needed.</p>
 <span><span class="co">#&gt;                      proportion to the arms under `max_fit_subjects` = 60;</span></span>
 <span><span class="co">#&gt;                      the dosing, visit and covariate models below read the</span></span>
 <span><span class="co">#&gt;                      whole study</span></span>
-<span><span class="co">#&gt;   fixed effects      cl 2.445, v 11.49, q 1.546, v2 0.1427, ka 0.5148, f 0.7372 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.318, v 0.267, q 0.31, v2 0.287, ka 0.333 (as SD on the log scale)</span></span>
-<span><span class="co">#&gt;   residual error     proportional 0.291 </span></span>
-<span><span class="co">#&gt;   time to fit        55.1 s</span></span>
-<span><span class="co">#&gt;   whole call         56.0 s, against 55.1 s in the fitter</span></span></code></pre></div>
+<span><span class="co">#&gt;   fixed effects      cl 2.4, v 11, q 1.5, v2 0.14, ka 0.51, f 0.74 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.316, v 0.266, q 0.31, v2 0.286, ka 0.332 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   residual error     proportional 0.29 </span></span>
+<span><span class="co">#&gt;   time to fit        39.5 s</span></span>
+<span><span class="co">#&gt;   whole call         39.6 s, against 39.5 s in the fitter</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Privacy</span></span>
+<span><span class="co">#&gt;   one patient's pull pass: largest: DV: ka between-subject SD, 4.46 points;</span></span>
+<span><span class="co">#&gt;                      `model_privacy_checks()` has every check</span></span></code></pre></div>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">truth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>cl <span class="op">=</span> <span class="fl">2</span>, v <span class="op">=</span> <span class="fl">10</span>, ka <span class="op">=</span> <span class="fl">0.5</span>, f <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span></span>
 <span><span class="va">fitted</span> <span class="op">&lt;-</span> <span class="va">mixroute_run</span><span class="op">$</span><span class="va">fit</span><span class="op">$</span><span class="va">parameters</span><span class="op">$</span><span class="va">fixed</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">truth</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>truth <span class="op">=</span> <span class="va">truth</span>, fitted <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">fitted</span>, <span class="fl">3</span><span class="op">)</span>,</span>
 <span>           ratio <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">fitted</span> <span class="op">/</span> <span class="va">truth</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    truth fitted ratio</span></span>
-<span><span class="co">#&gt; cl   2.0  2.445  1.22</span></span>
-<span><span class="co">#&gt; v   10.0 11.490  1.15</span></span>
-<span><span class="co">#&gt; ka   0.5  0.515  1.03</span></span>
-<span><span class="co">#&gt; f    0.7  0.737  1.05</span></span></code></pre></div>
+<span><span class="co">#&gt; cl   2.0   2.40  1.20</span></span>
+<span><span class="co">#&gt; v   10.0  11.00  1.10</span></span>
+<span><span class="co">#&gt; ka   0.5   0.51  1.02</span></span>
+<span><span class="co">#&gt; f    0.7   0.74  1.06</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/mixroute-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">mixroute_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-25c3e940e6859592f801" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-25c3e940e6859592f801">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 1 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.88 on WT (furthest of 2)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The truth table compares estimated bioavailability with the value
+<script type="application/json" data-for="htmlwidget-25c3e940e6859592f801">{"x":{"filter":"none","vertical":false,"caption":"<caption>15 pass, 1 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.87 on WT (furthest of 2)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The truth table compares estimated bioavailability with the value
 used to simulate this study. That comparison depends on fitting the two
 routes as one study. <code>f</code> is identifiable here
 <em>because</em> the same study doses both ways; on either arm alone it
@@ -1226,14 +1263,14 @@ the curve.</p>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
 <span><span class="co">#&gt;   Reported below the assay limit:</span></span>
 <span><span class="co">#&gt;     Everolimus trough  203 of 1167 (17%) below 1 (the limit)</span></span>
-<span><span class="co">#&gt;     SLD                1.315, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt;     SLD                2, no assay limit: half the lowest value several patients reached, rounded down</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Each non-PK continuous endpoint, fitted as constant, linear, or exponential</span></span>
 <span><span class="co">#&gt;   SLD                linear</span></span>
-<span><span class="co">#&gt;                        baseline         15.9</span></span>
-<span><span class="co">#&gt;                        slope            -0.005006</span></span>
-<span><span class="co">#&gt;                        between-subject  0.328 (SD on the log baseline)</span></span>
-<span><span class="co">#&gt;                        residual         additive 1.46</span></span>
+<span><span class="co">#&gt;                        baseline         16</span></span>
+<span><span class="co">#&gt;                        slope            -0.005</span></span>
+<span><span class="co">#&gt;                        between-subject  0.33 (SD on the log baseline)</span></span>
+<span><span class="co">#&gt;                        residual         additive 1.5</span></span>
 <span><span class="co">#&gt;                        chosen on AIC from constant, linear, exponential</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
@@ -1254,15 +1291,20 @@ the curve.</p>
 <span><span class="co">#&gt;                      proportion to the arms under `max_fit_subjects` = 60;</span></span>
 <span><span class="co">#&gt;                      the dosing, visit and covariate models below read the</span></span>
 <span><span class="co">#&gt;                      whole study</span></span>
-<span><span class="co">#&gt;   fixed effects      cl 0.4235, v 0.5514, q 0.01255, v2 0.4673, ka 3.402 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.405, v 0.0875, ka 0.164, q 0.0616, v2 0.156 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   fixed effects      cl 0.42, v 0.55, q 0.013, v2 0.47, ka 3.4 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.4, v 0.0877, ka 0.164, q 0.0616, v2 0.155 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   starting values    ka 5 declared through `start_param`; the rest were</span></span>
 <span><span class="co">#&gt;                      read off the cohort's median profile</span></span>
-<span><span class="co">#&gt;   residual error     proportional 0.203 </span></span>
-<span><span class="co">#&gt;   time to fit        49 min 33 s</span></span>
-<span><span class="co">#&gt;                        2cmt_iv                    23 min 6 s</span></span>
-<span><span class="co">#&gt;                        2cmt_oral                  26 min 27 s</span></span>
-<span><span class="co">#&gt;   whole call         49 min 44 s, against 49 min 33 s in the fitter</span></span></code></pre></div>
+<span><span class="co">#&gt;   residual error     proportional 0.2 </span></span>
+<span><span class="co">#&gt;   time to fit        43 min 43 s</span></span>
+<span><span class="co">#&gt;                        2cmt_iv                    15 min 20 s</span></span>
+<span><span class="co">#&gt;                        2cmt_oral                  28 min 23 s</span></span>
+<span><span class="co">#&gt;   whole call         43 min 51 s, against 43 min 43 s in the fitter</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Privacy</span></span>
+<span><span class="co">#&gt;   one patient's pull pass: largest: Everolimus trough: ka between-subject</span></span>
+<span><span class="co">#&gt;                      SD, 3.21 points; `model_privacy_checks()` has every</span></span>
+<span><span class="co">#&gt;                      check</span></span></code></pre></div>
 <p>The stored fit above was built with
 <code>endpoint_roles = c(pk = "Everolimus trough")</code> and
 <code>start_param = c(ka = 5)</code>. Tumour size becomes the PD
@@ -1273,14 +1315,14 @@ endpoint and is fitted a time course.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>truth <span class="op">=</span> <span class="va">truth</span>, fitted <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">fitted</span>, <span class="fl">3</span><span class="op">)</span>,</span>
 <span>           ratio <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">fitted</span> <span class="op">/</span> <span class="va">truth</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    truth fitted ratio</span></span>
-<span><span class="co">#&gt; cl  0.47  0.423  0.90</span></span>
-<span><span class="co">#&gt; v   0.85  0.551  0.65</span></span>
-<span><span class="co">#&gt; ka  5.00  3.402  0.68</span></span></code></pre></div>
+<span><span class="co">#&gt; cl  0.47   0.42  0.89</span></span>
+<span><span class="co">#&gt; v   0.85   0.55  0.65</span></span>
+<span><span class="co">#&gt; ka  5.00   3.40  0.68</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/onc-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">onc_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-3f27c09be0c60bb52829" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-3f27c09be0c60bb52829">{"x":{"filter":"none","vertical":false,"caption":"<caption>13 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5b","D1"],["Doses per patient","Values landing in the same range"],["both","both"],["327 -&gt; 281","sd x1.1 on SLD (furthest of 4)"],["review","review"],["pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Read the tumour endpoint against what it is: a PD time course here is
+<script type="application/json" data-for="htmlwidget-3f27c09be0c60bb52829">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5b","D1"],["Doses per patient","Values landing in the same range"],["both","both"],["327 -&gt; 281","sd x1.1 on SLD (furthest of 4)"],["review","review"],["pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Read the tumour endpoint against what it is: a PD time course here is
 a function of time with no exposure term and no dose term, pooled across
 arms unless <code>pd_by_arm = TRUE</code>. The source’s placebo and 10
 mg arms diverge because the dose drives the tumour; the generated ones
@@ -1315,11 +1357,11 @@ whole scientific content.</p>
 <table class="table">
 <caption>What each fit carries out of its study.</caption>
 <colgroup>
-<col width="11%">
-<col width="7%">
 <col width="12%">
-<col width="46%">
-<col width="21%">
+<col width="8%">
+<col width="13%">
+<col width="42%">
+<col width="23%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Dataset</th>
@@ -1333,22 +1375,22 @@ whole scientific content.</p>
 <td align="left">case1_pkpd</td>
 <td align="right">180</td>
 <td align="left">2cmt_oral</td>
-<td align="left">cl 12.9, v 64.6, q 7.89, v2 153, ka 2.04</td>
-<td align="left">proportional 0.311</td>
+<td align="left">cl 13, v 65, q 7.9, v2 150, ka 2</td>
+<td align="left">proportional 0.31</td>
 </tr>
 <tr class="even">
 <td align="left">mad</td>
 <td align="right">60</td>
 <td align="left">2cmt_oral</td>
-<td align="left">cl 6.25, v 48.5, q 4.87, v2 147, ka 1.21</td>
-<td align="left">proportional 0.372</td>
+<td align="left">cl 6.3, v 49, q 4.9, v2 150, ka 1.2</td>
+<td align="left">proportional 0.37</td>
 </tr>
 <tr class="odd">
 <td align="left">warfarin</td>
 <td align="right">32</td>
 <td align="left">2cmt_oral</td>
-<td align="left">cl 0.131, v 6.57, q 0.0983, v2 1.56, ka 0.421</td>
-<td align="left">proportional 0.206</td>
+<td align="left">cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42</td>
+<td align="left">proportional 0.21</td>
 </tr>
 <tr class="even">
 <td align="left">wbcSim</td>
@@ -1361,44 +1403,43 @@ whole scientific content.</p>
 <td align="left">mavoglurant</td>
 <td align="right">120</td>
 <td align="left">2cmt_infusion</td>
-<td align="left">cl 0.0449, v 0.0959, q 0.0483, v2 0.241</td>
-<td align="left">proportional 0.339</td>
+<td align="left">cl 0.045, v 0.096, q 0.048, v2 0.24</td>
+<td align="left">proportional 0.34</td>
 </tr>
 <tr class="even">
 <td align="left">theo_md</td>
 <td align="right">12</td>
 <td align="left">2cmt_oral</td>
-<td align="left">cl 2.81, v 29.4, q 1.92, v2 4.2, ka 1.23</td>
-<td align="left">proportional 0.216</td>
+<td align="left">cl 2.8, v 29, q 1.9, v2 4.2, ka 1.2</td>
+<td align="left">proportional 0.22</td>
 </tr>
 <tr class="odd">
 <td align="left">nimoData</td>
 <td align="right">12</td>
 <td align="left">2cmt_infusion</td>
-<td align="left">cl 0.0649, v 35.4, q 0.0952, v2 323</td>
-<td align="left">proportional 0.421</td>
+<td align="left">cl 0.065, v 35, q 0.095, v2 320</td>
+<td align="left">proportional 0.42</td>
 </tr>
 <tr class="even">
 <td align="left">pheno_sd</td>
 <td align="right">59</td>
 <td align="left">2cmt_iv</td>
-<td align="left">cl 0.00569, v 0.771, q 0.624, v2 0.632</td>
-<td align="left">proportional 0.126</td>
+<td align="left">cl 0.0057, v 0.77, q 0.62, v2 0.63</td>
+<td align="left">proportional 0.13</td>
 </tr>
 <tr class="odd">
 <td align="left">mixroute_sim</td>
 <td align="right">90</td>
 <td align="left">2cmt_mixed</td>
-<td align="left">cl 2.44, v 11.5, q 1.55, v2 0.143, ka 0.515, f
-0.737</td>
-<td align="left">proportional 0.291</td>
+<td align="left">cl 2.4, v 11, q 1.5, v2 0.14, ka 0.51, f 0.74</td>
+<td align="left">proportional 0.29</td>
 </tr>
 <tr class="even">
 <td align="left">onc_sim</td>
 <td align="right">200</td>
 <td align="left">2cmt_oral</td>
-<td align="left">cl 0.423, v 0.551, q 0.0125, v2 0.467, ka 3.4</td>
-<td align="left">proportional 0.203</td>
+<td align="left">cl 0.42, v 0.55, q 0.013, v2 0.47, ka 3.4</td>
+<td align="left">proportional 0.2</td>
 </tr>
 </tbody>
 </table>
@@ -1428,7 +1469,7 @@ whole scientific content.</p>
 <tbody>
 <tr class="odd">
 <td align="left">case1_pkpd</td>
-<td align="right">13</td>
+<td align="right">14</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">5</td>
@@ -1437,14 +1478,14 @@ whole scientific content.</p>
 <tr class="even">
 <td align="left">mad</td>
 <td align="right">14</td>
-<td align="right">1</td>
+<td align="right">2</td>
 <td align="right">0</td>
 <td align="right">5</td>
 <td align="left"></td>
 </tr>
 <tr class="odd">
 <td align="left">warfarin</td>
-<td align="right">14</td>
+<td align="right">15</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">5</td>
@@ -1452,7 +1493,7 @@ whole scientific content.</p>
 </tr>
 <tr class="even">
 <td align="left">wbcSim</td>
-<td align="right">12</td>
+<td align="right">13</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">5</td>
@@ -1460,7 +1501,7 @@ whole scientific content.</p>
 </tr>
 <tr class="odd">
 <td align="left">mavoglurant</td>
-<td align="right">12</td>
+<td align="right">13</td>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">5</td>
@@ -1468,7 +1509,7 @@ whole scientific content.</p>
 </tr>
 <tr class="even">
 <td align="left">theo_md</td>
-<td align="right">14</td>
+<td align="right">15</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">5</td>
@@ -1476,7 +1517,7 @@ whole scientific content.</p>
 </tr>
 <tr class="odd">
 <td align="left">nimoData</td>
-<td align="right">14</td>
+<td align="right">15</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">5</td>
@@ -1484,7 +1525,7 @@ whole scientific content.</p>
 </tr>
 <tr class="even">
 <td align="left">pheno_sd</td>
-<td align="right">13</td>
+<td align="right">14</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">5</td>
@@ -1492,7 +1533,7 @@ whole scientific content.</p>
 </tr>
 <tr class="odd">
 <td align="left">mixroute_sim</td>
-<td align="right">14</td>
+<td align="right">15</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">5</td>
@@ -1500,7 +1541,7 @@ whole scientific content.</p>
 </tr>
 <tr class="even">
 <td align="left">onc_sim</td>
-<td align="right">13</td>
+<td align="right">14</td>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">5</td>

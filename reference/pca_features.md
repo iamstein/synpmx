@@ -52,17 +52,17 @@ roles <- pmx_roles(
 )
 head(pca_features(synpmx_pca_summarize(data, roles)))
 #>    feature          kind endpoint  time covariate level patients    center
-#> 1 dv_cp__1 endpoint_cell       cp  0.25      <NA>  <NA>       60 0.3629025
-#> 2 dv_cp__2 endpoint_cell       cp  1.00      <NA>  <NA>       60 2.1297321
-#> 3 dv_cp__3 endpoint_cell       cp  2.00      <NA>  <NA>       60 1.4877196
-#> 4 dv_cp__4 endpoint_cell       cp  6.00      <NA>  <NA>       60 0.6605288
-#> 5 dv_cp__5 endpoint_cell       cp 12.25      <NA>  <NA>       60 0.4927632
-#> 6 dv_cp__6 endpoint_cell       cp 13.00      <NA>  <NA>       60 2.1872652
+#> 1 dv_cp__1 endpoint_cell       cp  0.25      <NA>  <NA>       60 0.1798121
+#> 2 dv_cp__2 endpoint_cell       cp  1.00      <NA>  <NA>       60 2.1006899
+#> 3 dv_cp__3 endpoint_cell       cp  2.00      <NA>  <NA>       60 1.4318031
+#> 4 dv_cp__4 endpoint_cell       cp  6.00      <NA>  <NA>       60 0.5278136
+#> 5 dv_cp__5 endpoint_cell       cp 12.25      <NA>  <NA>       60 0.3338168
+#> 6 dv_cp__6 endpoint_cell       cp 13.00      <NA>  <NA>       60 2.1598688
 #>        scale  transform
-#> 1 0.05953933 log_offset
-#> 2 0.08140515 log_offset
-#> 3 0.07734409 log_offset
-#> 4 0.06632245 log_offset
-#> 5 0.06274771 log_offset
-#> 6 0.08165741 log_offset
+#> 1 0.07150904 log_offset
+#> 2 0.08380604 log_offset
+#> 3 0.08179566 log_offset
+#> 4 0.07574147 log_offset
+#> 5 0.07356425 log_offset
+#> 6 0.08392740 log_offset
 ```

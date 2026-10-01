@@ -39,6 +39,7 @@
     <li><a class="dropdown-item" href="../articles/pmxmodel-public-data-examples.html">Evaluation on public data</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/pmxmodel-fingerprint.html">Study fingerprint</a></li>
+    <li><a class="dropdown-item" href="../articles/pmxmodel-privacy.html">Privacy protections and checks</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown--avatar" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">2. AVATAR</button>
@@ -240,7 +241,7 @@
       </dl></div><div class="section level2">
       <h2 id="reading-a-fitted-model">Reading a fitted model<a class="anchor" aria-label="anchor" href="#reading-a-fitted-model"></a></h2>
 
-      <div class="section-desc"><p>What <code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code> read out of the source data: the estimated half, the candidates it chose between, and the apparatus it summarized.</p></div>
+      <div class="section-desc"><p>What <code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code> read out of the source data: the estimated half, the candidates it chose between, the apparatus it summarized, the release that generation reads, and the privacy checks on it.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -267,6 +268,20 @@
 
         </dt>
         <dd>The estimated parameters</dd>
+
+        <dt>
+
+          <code><a href="model_release.html">model_release()</a></code>
+
+        </dt>
+        <dd>What leaves the study: the release of a fitted model</dd>
+
+        <dt>
+
+          <code><a href="model_privacy_checks.html">model_privacy_checks()</a></code>
+
+        </dt>
+        <dd>Privacy checks on a fitted model</dd>
       </dl></div><div class="section level2">
       <h2 id="declaring-the-data">Declaring the data<a class="anchor" aria-label="anchor" href="#declaring-the-data"></a></h2>
 

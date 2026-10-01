@@ -121,8 +121,9 @@ own study, and a generic one would be a worse version of that.
 
 `"FAIL"` is reserved for the rows where the answer is always a defect:
 the output is not a legal dataset (A1), it is not the study that went in
-(A3, A6), or it reproduces one real patient's structure verbatim (B1a,
-B1b, B4a, B4b). No other row can `"FAIL"`: the rest answer `"pass"` when
+(A3, A6), it reproduces one real patient's structure verbatim (B1a, B1b,
+B4a, B4b), or the population model it came from is moved that far by one
+patient (E3). No other row can `"FAIL"`: the rest answer `"pass"` when
 there is nothing to read and `"review"` when there is something whose
 meaning depends on the study – a subject dropped for want of donors, a
 cohort statistic at a small sample size, a source a validator objects
@@ -180,13 +181,15 @@ synpmx_scorecard(data, synthetic, roles)
 #>   D1    Values landing in the same range                              both         sd x1.4 on pd (furthest of 3)                 review
 #>   E1    Fitted parameters moved off their starting values             fitted model not applicable: no population model was fitted not applicable
 #>   E2    Between-subject terms were estimated, not left at their start fitted model not applicable: no population model was fitted not applicable
+#>   E3    No single patient moves a fitted estimate far                 fitted model not applicable: no population model was fitted not applicable
 #> 
 #> To explore, with `source`, `synthetic` and `roles` named as you have them:
 #>   D1    compare_pmx_distributions(source, synthetic, roles, output = "tables")
 #>   E1    model_report(attr(synthetic, "pmx_fitted_model"))
 #>   E2    model_parameters(attr(synthetic, "pmx_fitted_model"))$omega
+#>   E3    model_privacy_checks(attr(synthetic, "pmx_fitted_model"))
 #> 
-#> no failures, 1 to review, 2 unanswered.
+#> no failures, 1 to review, 3 unanswered.
 #> `run settings` rows come from the run's own record, `attr(synthetic, "pmx_settings")`, which this table does not carry.
 #> Rows reading `source` or `both` are restricted output.
 ```

@@ -56,7 +56,7 @@ trial_summary
 #>   fitted on    180 patients, 6 arm(s): Placebo / 0 (30), 3 mg / 3 (30), 10 mg / 10 (30), 30 mg / 30 (30), 100 mg / 100 (30), 300 mg / 300 (30) 
 #>   endpoints    PD - Continuous (9 visits modelled), PK Concentration (24 visits modelled) 
 #>   covariates   WEIGHTB 
-#>   components   11 (91% of variance) 
+#>   components   11 (90% of variance) 
 #>   dose term    factor 
 #>   dosing       85 planned cycle(s) per arm | no reductions, interruptions or early stops 
 #> 
@@ -207,8 +207,8 @@ digits3(data.frame(
   row.names = NULL
 ))
 #>           endpoint  transform offset lloq
-#> 1  PD - Continuous   identity  0.000   NA
-#> 2 PK Concentration log_offset  0.025 0.05
+#> 1  PD - Continuous   identity   0.00   NA
+#> 2 PK Concentration log_offset   0.02 0.05
 ```
 
 The offset keeps [`log()`](https://rdrr.io/r/base/Log.html) finite near
@@ -438,8 +438,8 @@ digits3(`rownames<-`(wide, NULL))
 #>   component covariate minus_1sd centre plus_1sd
 #> 1       PC1   WEIGHTB       116    116      115
 #> 2       PC2   WEIGHTB       117    116      115
-#> 3       PC3   WEIGHTB       102    116      130
-#> 4       PC4   WEIGHTB       121    116      111
+#> 3       PC3   WEIGHTB       103    116      129
+#> 4       PC4   WEIGHTB       122    116      110
 ```
 
 The weight barely moves along PC1 or PC2 and swings from 102 to 130 kg
@@ -549,9 +549,9 @@ data.frame(
   reason = vapply(schema$endpoint_specs, function(s) s$reason, character(1)),
   row.names = NULL
 )
-#>           endpoint       type levels                                     reason
-#> 1  PD - Continuous continuous        not every observed value is a whole number
-#> 2 PK Concentration continuous        not every observed value is a whole number
+#>           endpoint       type levels                                    reason
+#> 1  PD - Continuous continuous        continuous values, inferred from the data
+#> 2 PK Concentration continuous        continuous values, inferred from the data
 ```
 
 **Arm constants**: the strata and kept columns, one value per arm,
@@ -573,16 +573,17 @@ digits3(do.call(rbind, lapply(names(schema$arm_values), function(arm) {
 #> 6 300 mg / 300  300 mg  300     1
 ```
 
-Subject identifiers are not in the schema. They are minted at
-generation, and the only thing kept about the source’s identifiers is
-the largest one, so a synthetic identifier cannot collide with a real
-one.
+Subject identifiers are not in the schema, and neither are the levels of
+an identifier the source stored as a factor. They are minted at
+generation, and the only thing kept about a numeric identifier is the
+largest one rounded up to a power of ten, so a synthetic identifier
+cannot collide with a real one and the largest real one is not stored.
 
 ``` r
 
 c(class = schema$id_class, offset = schema$id_offset)
 #>     class    offset 
-#> "integer"     "180"
+#> "integer"    "1000"
 ```
 
 ## Generating from it

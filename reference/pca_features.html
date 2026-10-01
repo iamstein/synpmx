@@ -45,6 +45,7 @@ generated dataset is missing a visit or a covariate."></head><body>
     <li><a class="dropdown-item" href="../articles/pmxmodel-public-data-examples.html">Evaluation on public data</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/pmxmodel-fingerprint.html">Study fingerprint</a></li>
+    <li><a class="dropdown-item" href="../articles/pmxmodel-privacy.html">Privacy protections and checks</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown--avatar" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">2. AVATAR</button>
@@ -143,19 +144,19 @@ dropped rather than modelled, so they do not appear here at all.</p>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">pca_features</span><span class="op">(</span><span class="fu"><a href="synpmx_pca_summarize.html">synpmx_pca_summarize</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">roles</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    feature          kind endpoint  time covariate level patients    center</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 dv_cp__1 endpoint_cell       cp  0.25      &lt;NA&gt;  &lt;NA&gt;       60 0.3629025</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 dv_cp__2 endpoint_cell       cp  1.00      &lt;NA&gt;  &lt;NA&gt;       60 2.1297321</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 dv_cp__3 endpoint_cell       cp  2.00      &lt;NA&gt;  &lt;NA&gt;       60 1.4877196</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 dv_cp__4 endpoint_cell       cp  6.00      &lt;NA&gt;  &lt;NA&gt;       60 0.6605288</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 dv_cp__5 endpoint_cell       cp 12.25      &lt;NA&gt;  &lt;NA&gt;       60 0.4927632</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 dv_cp__6 endpoint_cell       cp 13.00      &lt;NA&gt;  &lt;NA&gt;       60 2.1872652</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 dv_cp__1 endpoint_cell       cp  0.25      &lt;NA&gt;  &lt;NA&gt;       60 0.1798121</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 dv_cp__2 endpoint_cell       cp  1.00      &lt;NA&gt;  &lt;NA&gt;       60 2.1006899</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 dv_cp__3 endpoint_cell       cp  2.00      &lt;NA&gt;  &lt;NA&gt;       60 1.4318031</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 dv_cp__4 endpoint_cell       cp  6.00      &lt;NA&gt;  &lt;NA&gt;       60 0.5278136</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 dv_cp__5 endpoint_cell       cp 12.25      &lt;NA&gt;  &lt;NA&gt;       60 0.3338168</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 dv_cp__6 endpoint_cell       cp 13.00      &lt;NA&gt;  &lt;NA&gt;       60 2.1598688</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>        scale  transform</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 0.05953933 log_offset</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 0.08140515 log_offset</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 0.07734409 log_offset</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 0.06632245 log_offset</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 0.06274771 log_offset</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 0.08165741 log_offset</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 0.07150904 log_offset</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 0.08380604 log_offset</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 0.08179566 log_offset</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 0.07574147 log_offset</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 0.07356425 log_offset</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 0.08392740 log_offset</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -35,10 +35,10 @@ A data frame with one row per component and retained grid cell, carrying
 data <- pmx_simulated_fixture(60)
 head(pca_components(synpmx_pca(data, pmx_generated_roles(), seed = 1)))
 #>    feature          kind endpoint  time covariate patients component    loading
-#> 1 dv_cp__1 endpoint_cell       cp  0.25      <NA>       60       PC1 -0.2672606
-#> 2 dv_cp__2 endpoint_cell       cp  1.00      <NA>       60       PC1 -0.2672596
-#> 3 dv_cp__3 endpoint_cell       cp  2.00      <NA>       60       PC1 -0.2672610
-#> 4 dv_cp__4 endpoint_cell       cp  6.00      <NA>       60       PC1 -0.2672620
-#> 5 dv_cp__5 endpoint_cell       cp 12.25      <NA>       60       PC1 -0.2672614
-#> 6 dv_cp__6 endpoint_cell       cp 13.00      <NA>       60       PC1 -0.2672595
+#> 1 dv_cp__1 endpoint_cell       cp  0.25      <NA>       60       PC1 -0.2672612
+#> 2 dv_cp__2 endpoint_cell       cp  1.00      <NA>       60       PC1 -0.2672607
+#> 3 dv_cp__3 endpoint_cell       cp  2.00      <NA>       60       PC1 -0.2672611
+#> 4 dv_cp__4 endpoint_cell       cp  6.00      <NA>       60       PC1 -0.2672616
+#> 5 dv_cp__5 endpoint_cell       cp 12.25      <NA>       60       PC1 -0.2672615
+#> 6 dv_cp__6 endpoint_cell       cp 13.00      <NA>       60       PC1 -0.2672606
 ```

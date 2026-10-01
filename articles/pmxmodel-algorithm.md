@@ -19,8 +19,10 @@ answer a scientific question, so the fitted parameters are not estimates
 to report, even though the printed object looks exactly like the output
 of a real population analysis.
 
-No formal privacy guarantee is offered, although no patient’s measured
-value reaches the output.
+No formal privacy guarantee is offered. What leaves the study, the
+protections on it and the checks that measure them are set out in
+[Privacy protections in the PMX model
+generator](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html).
 
 ## Three Exported Functions
 
@@ -37,6 +39,12 @@ returns the attempted models and their acceptance results, and
 [`model_parameters()`](https://iamstein.github.io/synpmx/reference/model_parameters.md)
 returns the fixed effects, the between-subject covariance matrix and the
 residual error.
+[`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md)
+returns the part of the fit that generation reads, which is what
+[`synpmx_model_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_generate.md)
+attaches to its output, and
+[`model_privacy_checks()`](https://iamstein.github.io/synpmx/reference/model_privacy_checks.md)
+runs five checks on it (Step 5).
 
 `nlmixr2est` is an imported dependency, used by
 [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md),
@@ -594,7 +602,7 @@ and acceptance checks.
 
 model_candidates(fit)
 #>       model converged accepted      aic seconds note
-#> 1 2cmt_oral      TRUE     TRUE 922.2948  51.794
+#> 1 2cmt_oral      TRUE     TRUE 922.2948  57.346
 ```
 
 ### Covariates
@@ -609,7 +617,10 @@ volume where a weight-like covariate is declared, and fits nothing else.
 The exponents are the standard 0.75 and 1 rather than estimated ones,
 and the effect is **asserted rather than tested**: it is folded into
 each fit, not compared against a model without it. Testing it would
-double the cost of the whole call.
+double the cost of the whole call. The reference weight the scaling is
+centred on is the cohort’s median rounded to one significant figure, 70
+rather than 71.7, because the median of an odd number of patients is one
+patient’s weight and the reference is stored with the fit.
 
 The covariate is recognised by name, `wt`, `weight`, `bw` and the like,
 and must be numeric and positive. There is no way to recognise a body
@@ -686,7 +697,11 @@ candidate is a run whose answer is to name `pk`.
 
 Binary and ordinal endpoints are not fitted at all. They are drawn from
 the level frequencies their arm holds at each nominal time, which is
-what the visit model already does for attendance.
+what the visit model already does for attendance. A level fewer than
+`min_category_patients` patients held at that visit is folded into the
+visit’s most common level first, as a rare categorical covariate level
+is excluded; a visit at which no level is held by that many patients is
+not drawn at all.
 
 ## Step 4: Fit the Dosing Model and the Visit Model
 
@@ -705,7 +720,7 @@ Per arm:
 
 | Model | What it holds | Drawn at generation as |
 |----|----|----|
-| Planned schedule | The nominal dose times enough of the arm reached, and the modal amount at each cycle among patients still on their starting dose | The cycle grid every subject starts from |
+| Planned schedule | The nominal dose times enough of the arm reached, and the modal amount and infusion rate at each cycle among patients still on their starting dose. Where no amount is shared by `min_arm_patients` patients, as on a study dosed per kilogram, the arm’s mean to two significant figures | The cycle grid every subject starts from |
 | Dose ladder | The levels patients dropped to, as ratios to their own starting dose, built from within-patient decreases | The amount multiplier in force at a cycle |
 | Reduction rate | Discrete-time hazard of stepping down a level | Decided before the cycle is dosed |
 | Interruption rate | Discrete-time hazard of skipping a cycle without ending treatment | Decided at the cycle |
@@ -723,14 +738,25 @@ is that patient, and generating from it would put them back.
 
 Baseline covariates are drawn independently from study-wide
 distributions. Each patient’s first row contributes one value, after
-small arms are excluded. For factor, character and logical covariates,
-levels held by fewer than `min_category_patients` patients (default 3)
-are excluded. The remaining counts are renormalized to probabilities,
-and every synthetic subject draws from that distribution. Set
-`min_category_patients = 1` to retain all observed levels. Numeric
-category codes must be supplied as factors; numeric covariates keep
-their continuous distribution models. Discrete observation endpoints are
-unaffected.
+small arms are excluded.
+
+A continuous covariate is summarized by a mean and an SD: of its
+logarithm where every value is positive, of the value otherwise. Both
+are taken after the highest and lowest 5% of patients are set aside, at
+least one at each end, so the most extreme patient on either side never
+enters the summary and no single patient can move it far. The SD of the
+patients that remain understates the spread of the whole, since the
+tails are what was removed, so it is divided by the SD a standard normal
+keeps under the same trimming. A cohort too small to leave three values
+after trimming is summarized whole. No median is stored.
+
+For factor, character and logical covariates, levels held by fewer than
+`min_category_patients` patients (default 3) are excluded. The remaining
+counts are renormalized to probabilities, and every synthetic subject
+draws from that distribution. Set `min_category_patients = 1` to retain
+all observed levels. Numeric category codes must be supplied as factors;
+numeric covariates keep their continuous distribution models. Discrete
+observation endpoints are unaffected.
 
 If no categorical level remains, generation keeps the column with
 missing values and estimation warns. Excluded factor labels are also
@@ -751,22 +777,60 @@ Not estimated: the per-arm dosing model and its three rates, the visit
 model, arm sizes, the covariate distributions, the censoring boundary,
 the schema and the roles.
 
-**Everything on the object is an input to Step 6, so printing it reports
-all of them** — the dose reduction, skipped cycle and early stop rates
-per arm, the attendance frequency behind a missed observation, how each
-covariate is drawn, which cells are drawn from recorded values rather
-than simulated, the assay limit and how many observations sit below it,
-the floor nothing is emitted below, and the columns the generated table
-will carry.
+**Printing the object reports every input to Step 6** — the dose
+reduction, skipped cycle and early stop rates per arm, the attendance
+frequency behind a missed observation, how each covariate is drawn,
+which cells are drawn from recorded values rather than simulated, the
+assay limit and how many observations sit below it, the floor nothing is
+emitted below, and the columns the generated table will carry — and the
+diagnostics beside them.
 [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
 returns the same account as a list.
 
-**No individual estimates.** Empirical Bayes estimates are per-subject
-quantities, and a fitted model that carried them would be writing out a
-description of each real patient. They are not stored on the object.
-Generation draws random effects from the covariance matrix instead, and
-the correlation report above computes from them and keeps only the
-correlation.
+**Only the release leaves the study.** The fit also carries diagnostics
+for whoever ran it: the AIC of every candidate, the starting values, the
+correlations between covariates and the individual random effects, the
+design notes and the timings. Generation reads none of them.
+[`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md)
+builds the part generation reads from an allowlist, the fields Step 6
+uses and nothing else, and
+[`synpmx_model_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_generate.md)
+attaches that to its output rather than the fit. An allowlist, so that a
+field added to the fit later stays behind unless someone adds it to the
+list.
+
+**Every released estimate is rounded to two significant figures**: the
+PK fixed effects, the between-subject variances, the residual error, the
+PD shape parameters and the covariate summaries. The acceptance checks
+of Step 3 run on the fit as estimated, before the rounding. Leaving out
+a typical patient moves a typical value by less than one rounding step;
+an outlier moves a variance by more, which is what the next reading is
+for.
+
+**How far one patient moves each estimate is read before the random
+effects are dropped.** A typical value on the log scale sits close to
+the mean of the patients’ individual log parameters, so leaving out
+patient $`i`$ moves it by about $`\eta_i/(n-1)`$; the between-subject
+variance sits close to the mean of the squared random effects, so
+leaving out patient $`i`$ scales it by
+$`\frac{(S-\eta_i^2)/(n-1)}{S/n}`$, with $`S=\sum_j \eta_j^2`$. The PD
+baselines and the covariate summaries are recomputed with each patient
+left out, which needs no approximation. The largest move over all
+patients is kept per estimate, in percent for a typical value and in
+points of the between-subject SD on the log scale for a spread. A move
+of 15 asks for a review, and a move of 30 fails and warns at estimation,
+naming the patient on the console. Shrinkage pulls every random effect
+toward zero and makes the reading understate the move, so it is reported
+beside it.
+[`model_privacy_checks()`](https://iamstein.github.io/synpmx/reference/model_privacy_checks.md)
+returns the reading and four structural checks on the release.
+
+**No individual estimates.** Empirical Bayes estimates (EBEs) are
+per-subject quantities, and a fitted model that carried them would be
+writing out a description of each real patient. They are read for the
+covariate correlations and the reading above and then dropped, from
+every concentration endpoint’s model. Generation draws random effects
+from the covariance matrix instead.
 
 ``` r
 
@@ -783,16 +847,16 @@ model_report(fit)
 #>   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex
 #> 
 #> Values at the lower limit of what was observed
-#>     cp                 0.3, half the smallest value seen, no assay limit
-#>     pca                4.5, half the smallest value seen, no assay limit
+#>     cp                 0.2, no assay limit: half the lowest value several patients reached, rounded down
+#>     pca                5, no assay limit: half the lowest value several patients reached, rounded down
 #> 
 #> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   pca                exponential
-#>                        plateau          27.34
-#>                        baseline         96.3
-#>                        rate             0.09877
-#>                        between-subject  0.146 (SD on the log baseline)
-#>                        residual         additive 12.4
+#>                        plateau          27
+#>                        baseline         96
+#>                        rate             0.099
+#>                        between-subject  0.15 (SD on the log baseline)
+#>                        residual         additive 12
 #>                        chosen on AIC from constant, linear, exponential
 #> 
 #> PK endpoint for the PopPK model
@@ -811,11 +875,15 @@ model_report(fit)
 #>   structural model   2cmt_oral 
 #>   selected by        two-compartment model passed acceptance checks
 #>   fitted on          all 32 patients with a concentration
-#>   fixed effects      cl 0.1314, v 6.574, q 0.09833, v2 1.562, ka 0.4206 
-#>   between-subject    cl 0.268, v 0.192, ka 0.555, q 0.0746, v2 0.638 (as SD on the log scale)
-#>   residual error     proportional 0.206 
-#>   time to fit        51.8 s
-#>   whole call         52.0 s, against 51.8 s in the fitter
+#>   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 
+#>   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)
+#>   residual error     proportional 0.21 
+#>   time to fit        57.3 s
+#>   whole call         57.5 s, against 57.3 s in the fitter
+#> 
+#> Privacy
+#>   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;
+#>                      `model_privacy_checks()` has every check
 ```
 
 ## Step 6: Generate New Subjects
@@ -850,15 +918,20 @@ scatter of zeros on the floor of a log axis.
 and a median of one, so the spread the fit estimated is preserved and no
 draw reaches zero.
 
-**A value is floored at the smallest one the study reported, halved.**
-The residual is not the only thing that can put a synthetic value below
+**A value is floored near the smallest the study reported.** The
+residual is not the only thing that can put a synthetic value below
 anything the assay could return: a one-compartment profile evaluated
 late in a long dose interval underflows on its own. A study that
 declares a censoring column says where its assay stopped, and that
 boundary is put back. A study that declares none still had an assay, and
-its smallest reported value is the only evidence of where the limit sat,
-so half that value becomes a floor. An endpoint that reports a zero is
-given no floor, since a zero is a value a floor would contradict.
+its lowest values are the only evidence of where the limit sat. The
+floor is half the lowest value that at least `min_arm_patients` patients
+reached, each patient’s own smallest value taken first, rounded down to
+1, 2 or 5 times a power of ten, the way assay limits are written. It is
+emitted wherever a draw falls below it, so it is not half the single
+smallest value, which is one patient’s measurement. An endpoint that
+reports a zero is given no floor, since a zero is a value a floor would
+contradict.
 [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
 carries the floor per endpoint.
 
@@ -883,6 +956,8 @@ fit badly is fitted, and told about.
 | Arm size | 3 patients | Warns and drops those patients before anything is fitted, so the arm is absent from the model and from the data generated from it. Inherited from the dosing and visit models, which are summaries of an arm: an arm of one or two has no rates to pool. |
 | `nominal_time` undeclared | — | Errors. The grid is a statement about the protocol only the caller can make. |
 | Rare categorical level | `min_category_patients` = 3 | Exclude levels held by fewer distinct patients; renormalize remaining counts. If none remain, warn and generate missing values. Set to 1 to retain all observed levels. |
+| Rare discrete-endpoint level | `min_category_patients` = 3 per visit | Fold the level into the visit’s most common level. A visit at which no level is held by that many patients is not drawn. |
+| Single-patient influence | a move of 15 (review) or 30 (fail), in % or points | Recorded with the fit and read by [`model_privacy_checks()`](https://iamstein.github.io/synpmx/reference/model_privacy_checks.md) and scorecard row E3. From 30, warns at estimation and names the patient on the console; nothing per patient is stored. |
 | No grid cell shared | `min_arm_patients` | The cell is dropped. A nominal time one patient attended is that patient. |
 | Administration column | `adm` and `routes` together | Errors on either alone. What an administration id means is a convention of the dataset, and reading it wrong routes every dose to the wrong compartment silently. |
 | PD shape candidacy | 1 residual degree of freedom | The shape is dropped from the comparison, not the endpoint from the study. Below every candidate the endpoint is generated as a constant at its mean. A shape fitted exactly through its own points has `AIC` `-Inf` and would win any comparison it entered. |

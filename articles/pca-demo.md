@@ -75,7 +75,7 @@ trial_summary
 #>   fitted on    180 patients, 6 arm(s): Placebo / 0 (30), 3 mg / 3 (30), 10 mg / 10 (30), 30 mg / 30 (30), 100 mg / 100 (30), 300 mg / 300 (30) 
 #>   endpoints    PD - Continuous (9 visits modelled), PK Concentration (24 visits modelled) 
 #>   covariates   WEIGHTB 
-#>   components   11 (91% of variance) 
+#>   components   11 (90% of variance) 
 #>   dose term    factor 
 #>   dosing       85 planned cycle(s) per arm | no reductions, interruptions or early stops 
 #> 

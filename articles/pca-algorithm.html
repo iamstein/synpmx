@@ -56,6 +56,7 @@
     <li><a class="dropdown-item" href="../articles/pmxmodel-public-data-examples.html">Evaluation on public data</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/pmxmodel-fingerprint.html">Study fingerprint</a></li>
+    <li><a class="dropdown-item" href="../articles/pmxmodel-privacy.html">Privacy protections and checks</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -505,9 +506,11 @@ source value. <strong>A categorical covariate’s levels</strong> are
 likewise the ones the source held, which is what the B5 row of
 <code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> measures — a level held by one patient
 is a level that identifies them.</p>
-<p>Subject identifiers are minted rather than derived. The only thing
-the model keeps about the source’s identifiers is the largest one, so
-that a synthetic ID cannot collide with a real one.</p>
+<p>Subject identifiers are minted rather than derived. No source label
+is kept, including the levels of an identifier stored as a factor. The
+only thing kept about a numeric identifier is the largest one rounded up
+to a power of ten, so that a synthetic ID cannot collide with a real one
+and the largest real ID is not stored.</p>
 </div>
 <div class="section level2">
 <h2 id="step-7-place-the-values">Step 7: Place the Values<a class="anchor" aria-label="anchor" href="#step-7-place-the-values"></a>
@@ -532,16 +535,17 @@ flagged, as the source reports it.</p>
 region <strong>before</strong> the basis is fitted, back in Step 3. The
 <strong>log transform’s offset is read from the reported values rather
 than from those draws</strong>, and that distinction is load-bearing
-rather than a detail. The offset is half the smallest positive value and
-exists to keep <code><a href="https://rdrr.io/r/base/Log.html" class="external-link">log()</a></code> finite near zero;
-<code>.impute_censored()</code> draws uniformly on the raw scale, so a
-value censored at a limit of 0.05 can land three orders of magnitude
-below it and take the offset with it. Every censored observation then
-occupies several log units of what is purely uniform noise, the per-arm
-residual covariance is fitted on that inflated spread, and
-exponentiating a wide Gaussian has a heavy upper tail — so an arm that
-is entirely below quantification comes back with detectable
-concentrations that rise with time.</p>
+rather than a detail. The offset is half the smallest positive value,
+rounded down to 1, 2 or 5 times a power of ten so that the summary does
+not carry one patient’s measurement, and exists to keep
+<code><a href="https://rdrr.io/r/base/Log.html" class="external-link">log()</a></code> finite near zero; <code>.impute_censored()</code>
+draws uniformly on the raw scale, so a value censored at a limit of 0.05
+can land three orders of magnitude below it and take the offset with it.
+Every censored observation then occupies several log units of what is
+purely uniform noise, the per-arm residual covariance is fitted on that
+inflated spread, and exponentiating a wide Gaussian has a heavy upper
+tail — so an arm that is entirely below quantification comes back with
+detectable concentrations that rise with time.</p>
 <p><strong>Not imputing at all is worse, and was measured.</strong> With
 every censored value sitting exactly at the limit, the arm’s mean score
 is the boundary itself and a symmetric residual puts half the draws
@@ -624,8 +628,11 @@ default <code>dose_term</code>. <code>"log"</code> extrapolates;
 <li>
 <strong>Amounts that vary continuously between patients.</strong>
 Body-weight or body-surface-area dosing gives every patient their own
-milligrams; the planned amount here is the arm’s modal one, so that
-variation is lost even though reductions relative to it are kept.</li>
+milligrams; the planned amount here is the arm’s modal one, or, where no
+amount is shared by <code>min_arm_patients</code> patients, the arm’s
+mean to two significant figures, so that variation is lost even though
+reductions relative to it are kept. The mode of amounts each held by one
+patient would be one patient’s dose.</li>
 <li>
 <strong>Within-subject dose escalation.</strong> A subject’s total
 dose is one number and an arm’s schedule is one schedule, so a study

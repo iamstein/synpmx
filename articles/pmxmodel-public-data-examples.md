@@ -185,11 +185,11 @@ if (inherits(case1_fit, "pmx_example_rejection")) {
 #> 
 #> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   PD - Continuous    exponential
-#>                        plateau          149
-#>                        baseline         52.24
-#>                        rate             0.04868
-#>                        between-subject  0.984 (SD on the log baseline)
-#>                        residual         additive 225
+#>                        plateau          150
+#>                        baseline         52
+#>                        rate             0.049
+#>                        between-subject  0.98 (SD on the log baseline)
+#>                        residual         additive 220
 #>                        chosen on AIC from constant, linear, exponential
 #> 
 #> PK endpoint for the PopPK model
@@ -218,14 +218,18 @@ if (inherits(case1_fit, "pmx_example_rejection")) {
 #>                      proportion to the arms under `max_fit_subjects` = 60;
 #>                      the dosing, visit and covariate models below read the
 #>                      whole study
-#>   fixed effects      cl 12.85, v 64.58, q 7.89, v2 152.9, ka 2.038 
-#>   between-subject    cl 0.479, v 0.367, ka 0.12, q 0.104, v2 0.103 (as SD on the log scale)
+#>   fixed effects      cl 13, v 65, q 7.9, v2 150, ka 2 
+#>   between-subject    cl 0.48, v 0.361, ka 0.118, q 0.105, v2 0.105 (as SD on the log scale)
 #>   starting values    cl 13, v 65, q 8, v2 150, ka 2 declared through
 #>                      `start_param`; the rest were read off the cohort's
 #>                      median profile
-#>   residual error     proportional 0.311 
-#>   time to fit        32 min 30 s
-#>   whole call         32 min 33 s, against 32 min 30 s in the fitter
+#>   residual error     proportional 0.31 
+#>   time to fit        21 min 44 s
+#>   whole call         21 min 46 s, against 21 min 44 s in the fitter
+#> 
+#> Privacy
+#>   one patient's pull pass: largest: PD - Continuous between-subject SD,
+#>                      6.44 points; `model_privacy_checks()` has every check
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/case1-plot-pk-1.png)
@@ -310,23 +314,23 @@ mad_run$fit
 #>                      WEIGHTB, SEX, TRTACT, DOSE
 #> 
 #> Values at the lower limit of what was observed
-#>     PK Concentration   0.025, half the smallest value seen, no assay limit
-#>     PD - Continuous    0.0825, half the smallest value seen, no assay limit
+#>     PK Concentration   0.02, no assay limit: half the lowest value several patients reached, rounded down
+#>     PD - Continuous    0.1, no assay limit: half the lowest value several patients reached, rounded down
 #> 
 #> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   PD - Continuous    exponential
-#>                        plateau          31.47
-#>                        baseline         1.637
-#>                        rate             0.01344
-#>                        between-subject  1.33 (SD on the log baseline)
-#>                        residual         additive 8.13
+#>                        plateau          31
+#>                        baseline         1.6
+#>                        rate             0.013
+#>                        between-subject  1.3 (SD on the log baseline)
+#>                        residual         additive 8.1
 #>                        chosen on AIC from constant, linear, exponential
 #>   PD - Count         exponential
-#>                        plateau          2.888
-#>                        baseline         10.38
-#>                        rate             0.01484
-#>                        between-subject  0.248 (SD on the log baseline)
-#>                        residual         additive 2.78
+#>                        plateau          2.9
+#>                        baseline         10
+#>                        rate             0.015
+#>                        between-subject  0.25 (SD on the log baseline)
+#>                        residual         additive 2.8
 #>                        chosen on AIC from constant, linear, exponential
 #> 
 #> PK endpoint for the PopPK model
@@ -347,11 +351,15 @@ mad_run$fit
 #>   structural model   2cmt_oral 
 #>   selected by        two-compartment model passed acceptance checks
 #>   fitted on          all 50 patients with a concentration
-#>   fixed effects      cl 6.254, v 48.55, q 4.871, v2 147, ka 1.208 
-#>   between-subject    cl 0.42, v 0.445, ka 0.372, q 0.534, v2 0.424 (as SD on the log scale)
-#>   residual error     proportional 0.372 
-#>   time to fit        5 min 42 s
-#>   whole call         5 min 43 s, against 5 min 42 s in the fitter
+#>   fixed effects      cl 6.3, v 49, q 4.9, v2 150, ka 1.2 
+#>   between-subject    cl 0.424, v 0.447, ka 0.374, q 0.539, v2 0.424 (as SD on the log scale)
+#>   residual error     proportional 0.37 
+#>   time to fit        3 min 22 s
+#>   whole call         3 min 22 s, against 3 min 22 s in the fitter
+#> 
+#> Privacy
+#>   one patient's pull review: largest: PD - Continuous between-subject SD,
+#>                      23.7 points; `model_privacy_checks()` has every check
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/mad-plot-1.png)
@@ -403,16 +411,16 @@ model_report(warfarin_run$fit)
 #>   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex
 #> 
 #> Values at the lower limit of what was observed
-#>     cp                 0.3, half the smallest value seen, no assay limit
-#>     pca                4.5, half the smallest value seen, no assay limit
+#>     cp                 0.2, no assay limit: half the lowest value several patients reached, rounded down
+#>     pca                5, no assay limit: half the lowest value several patients reached, rounded down
 #> 
 #> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   pca                exponential
-#>                        plateau          27.34
-#>                        baseline         96.3
-#>                        rate             0.09877
-#>                        between-subject  0.146 (SD on the log baseline)
-#>                        residual         additive 12.4
+#>                        plateau          27
+#>                        baseline         96
+#>                        rate             0.099
+#>                        between-subject  0.15 (SD on the log baseline)
+#>                        residual         additive 12
 #>                        chosen on AIC from constant, linear, exponential
 #> 
 #> PK endpoint for the PopPK model
@@ -431,11 +439,15 @@ model_report(warfarin_run$fit)
 #>   structural model   2cmt_oral 
 #>   selected by        two-compartment model passed acceptance checks
 #>   fitted on          all 32 patients with a concentration
-#>   fixed effects      cl 0.1314, v 6.574, q 0.09833, v2 1.562, ka 0.4206 
-#>   between-subject    cl 0.268, v 0.192, ka 0.555, q 0.0746, v2 0.638 (as SD on the log scale)
-#>   residual error     proportional 0.206 
-#>   time to fit        51.8 s
-#>   whole call         52.0 s, against 51.8 s in the fitter
+#>   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 
+#>   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)
+#>   residual error     proportional 0.21 
+#>   time to fit        57.3 s
+#>   whole call         57.5 s, against 57.3 s in the fitter
+#> 
+#> Privacy
+#>   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;
+#>                      `model_privacy_checks()` has every check
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/warfarin-plot-1.png)
@@ -504,18 +516,22 @@ print(model_report(wbc_run$fit))
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, RATE
 #> 
 #> Values at the lower limit of what was observed
-#>     DV                 0.35, half the smallest value seen, no assay limit
+#>     DV                 0.2, no assay limit: half the lowest value several patients reached, rounded down
 #> 
 #> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   DV                 linear
-#>                        baseline         6.967
-#>                        slope            -0.001192
-#>                        between-subject  0.342 (SD on the log baseline)
-#>                        residual         additive 3.01
+#>                        baseline         7
+#>                        slope            -0.0012
+#>                        between-subject  0.34 (SD on the log baseline)
+#>                        residual         additive 3
 #>                        chosen on AIC from constant, linear
 #> 
 #> PD-only study: no PK model fitted. Responses use study-time shapes or visit frequencies.
-#>   whole call         0.4 s, against 0.0 s in the fitter
+#>   whole call         0.0 s, against 0.0 s in the fitter
+#> 
+#> Privacy
+#>   one patient's pull pass: largest: DV between-subject SD, 2.25 points;
+#>                      `model_privacy_checks()` has every check
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/wbc-plot-1.png)
@@ -583,7 +599,7 @@ mavo_run$fit
 #>                      AGE, SEX, WT, HT, DOSE
 #> 
 #> Values at the lower limit of what was observed
-#>     DV                 1.005, half the smallest value seen, no assay limit
+#>     DV                 1, no assay limit: half the lowest value several patients reached, rounded down
 #> 
 #> PK endpoint for the PopPK model
 #>   DV                 inferred from the following data characteristics:
@@ -605,11 +621,15 @@ mavo_run$fit
 #>                      proportion to the arms under `max_fit_subjects` = 60;
 #>                      the dosing, visit and covariate models below read the
 #>                      whole study
-#>   fixed effects      cl 0.04492, v 0.09593, q 0.04834, v2 0.2407 
-#>   between-subject    cl 0.381, v 0.394, q 0.375, v2 0.407 (as SD on the log scale)
-#>   residual error     proportional 0.339 
-#>   time to fit        1 min 3 s
-#>   whole call         1 min 4 s, against 1 min 3 s in the fitter
+#>   fixed effects      cl 0.045, v 0.096, q 0.048, v2 0.24 
+#>   between-subject    cl 0.374, v 0.4, q 0.374, v2 0.412 (as SD on the log scale)
+#>   residual error     proportional 0.34 
+#>   time to fit        43.7 s
+#>   whole call         44.0 s, against 43.7 s in the fitter
+#> 
+#> Privacy
+#>   one patient's pull pass: largest: DV: v2 between-subject SD, 1.92 points;
+#>                      `model_privacy_checks()` has every check
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/mavo-plot-1.png)
@@ -707,7 +727,7 @@ theo_run$fit
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT
 #> 
 #> Values at the lower limit of what was observed
-#>     DV                 0.075, half the smallest value seen, no assay limit
+#>     DV                 0.2, no assay limit: half the lowest value several patients reached, rounded down
 #> 
 #> PK endpoint for the PopPK model
 #>   DV                 inferred from the following data characteristics:
@@ -729,11 +749,15 @@ theo_run$fit
 #>                      confirmed. Check that the synthetic data reasonably
 #>                      reproduces the source data's patterns and variability.
 #>   fitted on          all 12 patients with a concentration
-#>   fixed effects      cl 2.811, v 29.43, q 1.916, v2 4.204, ka 1.233 
-#>   between-subject    cl 0.191, v 0.14, ka 0.517, q 0.237, v2 0.274 (as SD on the log scale)
-#>   residual error     proportional 0.216 
-#>   time to fit        1 min 18 s
-#>   whole call         1 min 18 s, against 1 min 18 s in the fitter
+#>   fixed effects      cl 2.8, v 29, q 1.9, v2 4.2, ka 1.2 
+#>   between-subject    cl 0.19, v 0.141, ka 0.52, q 0.237, v2 0.274 (as SD on the log scale)
+#>   residual error     proportional 0.22 
+#>   time to fit        52.0 s
+#>   whole call         52.1 s, against 52.0 s in the fitter
+#> 
+#> Privacy
+#>   one patient's pull pass: largest: DV: ka typical value, 9.92 %;
+#>                      `model_privacy_checks()` has every check
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/theo-plot-1.png)
@@ -814,7 +838,7 @@ nimo_run$fit
 #> Summarized from the source, not estimated
 #>   cohort             12 patients in 1 arm(s)
 #>                      all (12)
-#>   dose routes        one route, undeclared; infused over 0.1 to 1 h
+#>   dose routes        one route, undeclared; infused over 0.2778 to 0.3333 h
 #>   dose changes       none
 #>   visit grid         1 endpoint(s) at 31 nominal time(s), 31 slot(s) in all
 #>   visit attendance   median 100% of an arm attends a slot (25% to 100%)
@@ -825,7 +849,7 @@ nimo_run$fit
 #>                      BSA, AGE, HGT, DOS
 #> 
 #> Values at the lower limit of what was observed
-#>     DV                 0.1323, half the smallest value seen, no assay limit
+#>     DV                 0.2, no assay limit: half the lowest value several patients reached, rounded down
 #> 
 #> PK endpoint for the PopPK model
 #>   DV                 declared through `endpoint_roles`
@@ -840,11 +864,15 @@ nimo_run$fit
 #>   selected by        two-compartment model passed acceptance checks
 #>   fit checks         generated/source interquartile-range ratio 3.08
 #>   fitted on          all 12 patients with a concentration
-#>   fixed effects      cl 0.06493, v 35.44, q 0.09515, v2 323.4 
-#>   between-subject    cl 0.707, v 0.7, q 0.589, v2 0.431 (as SD on the log scale)
-#>   residual error     proportional 0.421 
-#>   time to fit        58.0 s
-#>   whole call         58.2 s, against 58.0 s in the fitter
+#>   fixed effects      cl 0.065, v 35, q 0.095, v2 320 
+#>   between-subject    cl 0.707, v 0.7, q 0.592, v2 0.436 (as SD on the log scale)
+#>   residual error     proportional 0.42 
+#>   time to fit        37.9 s
+#>   whole call         37.9 s, against 37.9 s in the fitter
+#> 
+#> Privacy
+#>   one patient's pull pass: largest: DV: v2 between-subject SD, 12.4 points;
+#>                      `model_privacy_checks()` has every check
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/nimo-plot-1.png)
@@ -906,8 +934,8 @@ output is still nearly empty.**
 
 pheno_flat_fit <- stored_fit("pheno-flat-model-fit.rds")
 pheno_flat_synthetic <- synpmx_model_generate(pheno_flat_fit, seed = 707)
-#> Warning: 65% of generated observations (15 of 23) fell below the smallest value the
-#> study reported and were raised to half of it.
+#> Warning: 65% of generated observations (15 of 23) fell below the emission floor and
+#> were raised to it.
 #>   A floor catching this much is a fitted model that does not describe the
 #>   low end of the data, not an assay limit.
 #>   Fix: Read `model_report()` before using this dataset.
@@ -930,8 +958,8 @@ afternoon, and one clock reading per patient clears that almost nowhere.
 The visit model then has almost no place to put an observation, so what
 comes back is a legal dataset in the source’s shape holding almost
 nothing — and the run says so on the way past, because most of what
-little was drawn landed under the smallest concentration the study
-reports.
+little was drawn landed under the emission floor, the lowest
+concentration the generator will write.
 
 ### The grid this study does have
 
@@ -973,7 +1001,7 @@ pheno_run$fit
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, MDV, WT, APGR
 #> 
 #> Values at the lower limit of what was observed
-#>     DV                 3.35, half the smallest value seen, no assay limit
+#>     DV                 5, no assay limit: half the lowest value several patients reached, rounded down
 #> 
 #> PK endpoint for the PopPK model
 #>   DV                 declared through `endpoint_roles`
@@ -988,13 +1016,17 @@ pheno_run$fit
 #>   selected by        two-compartment model passed acceptance checks; lowest
 #>                      AIC among accepted routes
 #>   fitted on          all 59 patients with a concentration
-#>   fixed effects      cl 0.005689, v 0.7711, q 0.6244, v2 0.6323 
-#>   between-subject    cl 0.351, v 0.707, q 0.0979, v2 0.242 (as SD on the log scale)
-#>   residual error     proportional 0.126 
-#>   time to fit        3 min 53 s
-#>                        2cmt_iv                    1 min 33 s
-#>                        2cmt_oral                  2 min 20 s
-#>   whole call         3 min 53 s, against 3 min 53 s in the fitter
+#>   fixed effects      cl 0.0057, v 0.77, q 0.62, v2 0.63 
+#>   between-subject    cl 0.346, v 0.707, q 0.098, v2 0.241 (as SD on the log scale)
+#>   residual error     proportional 0.13 
+#>   time to fit        2 min 58 s
+#>                        2cmt_iv                    1 min 2 s
+#>                        2cmt_oral                  1 min 56 s
+#>   whole call         2 min 58 s, against 2 min 58 s in the fitter
+#> 
+#> Privacy
+#>   one patient's pull pass: largest: DV: cl between-subject SD, 4.55 points;
+#>                      `model_privacy_checks()` has every check
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/pheno-plot-1.png)
@@ -1109,11 +1141,15 @@ mixroute_run$fit
 #>                      proportion to the arms under `max_fit_subjects` = 60;
 #>                      the dosing, visit and covariate models below read the
 #>                      whole study
-#>   fixed effects      cl 2.445, v 11.49, q 1.546, v2 0.1427, ka 0.5148, f 0.7372 
-#>   between-subject    cl 0.318, v 0.267, q 0.31, v2 0.287, ka 0.333 (as SD on the log scale)
-#>   residual error     proportional 0.291 
-#>   time to fit        55.1 s
-#>   whole call         56.0 s, against 55.1 s in the fitter
+#>   fixed effects      cl 2.4, v 11, q 1.5, v2 0.14, ka 0.51, f 0.74 
+#>   between-subject    cl 0.316, v 0.266, q 0.31, v2 0.286, ka 0.332 (as SD on the log scale)
+#>   residual error     proportional 0.29 
+#>   time to fit        39.5 s
+#>   whole call         39.6 s, against 39.5 s in the fitter
+#> 
+#> Privacy
+#>   one patient's pull pass: largest: DV: ka between-subject SD, 4.46 points;
+#>                      `model_privacy_checks()` has every check
 ```
 
 ``` r
@@ -1123,10 +1159,10 @@ fitted <- mixroute_run$fit$parameters$fixed[names(truth)]
 data.frame(truth = truth, fitted = round(fitted, 3),
            ratio = round(fitted / truth, 2))
 #>    truth fitted ratio
-#> cl   2.0  2.445  1.22
-#> v   10.0 11.490  1.15
-#> ka   0.5  0.515  1.03
-#> f    0.7  0.737  1.05
+#> cl   2.0   2.40  1.20
+#> v   10.0  11.00  1.10
+#> ka   0.5   0.51  1.02
+#> f    0.7   0.74  1.06
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/mixroute-plot-1.png)
@@ -1197,14 +1233,14 @@ onc_run$fit
 #> Values at the lower limit of what was observed
 #>   Reported below the assay limit:
 #>     Everolimus trough  203 of 1167 (17%) below 1 (the limit)
-#>     SLD                1.315, half the smallest value seen, no assay limit
+#>     SLD                2, no assay limit: half the lowest value several patients reached, rounded down
 #> 
 #> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   SLD                linear
-#>                        baseline         15.9
-#>                        slope            -0.005006
-#>                        between-subject  0.328 (SD on the log baseline)
-#>                        residual         additive 1.46
+#>                        baseline         16
+#>                        slope            -0.005
+#>                        between-subject  0.33 (SD on the log baseline)
+#>                        residual         additive 1.5
 #>                        chosen on AIC from constant, linear, exponential
 #> 
 #> PK endpoint for the PopPK model
@@ -1225,15 +1261,20 @@ onc_run$fit
 #>                      proportion to the arms under `max_fit_subjects` = 60;
 #>                      the dosing, visit and covariate models below read the
 #>                      whole study
-#>   fixed effects      cl 0.4235, v 0.5514, q 0.01255, v2 0.4673, ka 3.402 
-#>   between-subject    cl 0.405, v 0.0875, ka 0.164, q 0.0616, v2 0.156 (as SD on the log scale)
+#>   fixed effects      cl 0.42, v 0.55, q 0.013, v2 0.47, ka 3.4 
+#>   between-subject    cl 0.4, v 0.0877, ka 0.164, q 0.0616, v2 0.155 (as SD on the log scale)
 #>   starting values    ka 5 declared through `start_param`; the rest were
 #>                      read off the cohort's median profile
-#>   residual error     proportional 0.203 
-#>   time to fit        49 min 33 s
-#>                        2cmt_iv                    23 min 6 s
-#>                        2cmt_oral                  26 min 27 s
-#>   whole call         49 min 44 s, against 49 min 33 s in the fitter
+#>   residual error     proportional 0.2 
+#>   time to fit        43 min 43 s
+#>                        2cmt_iv                    15 min 20 s
+#>                        2cmt_oral                  28 min 23 s
+#>   whole call         43 min 51 s, against 43 min 43 s in the fitter
+#> 
+#> Privacy
+#>   one patient's pull pass: largest: Everolimus trough: ka between-subject
+#>                      SD, 3.21 points; `model_privacy_checks()` has every
+#>                      check
 ```
 
 The stored fit above was built with
@@ -1248,9 +1289,9 @@ fitted <- onc_run$fit$parameters$fixed[names(truth)]
 data.frame(truth = truth, fitted = round(fitted, 3),
            ratio = round(fitted / truth, 2))
 #>    truth fitted ratio
-#> cl  0.47  0.423  0.90
-#> v   0.85  0.551  0.65
-#> ka  5.00  3.402  0.68
+#> cl  0.47   0.42  0.89
+#> v   0.85   0.55  0.65
+#> ka  5.00   3.40  0.68
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/onc-plot-1.png)
@@ -1296,16 +1337,16 @@ knitr::kable(inventory, row.names = FALSE,
 
 | Dataset | Patients | Model | Fixed effects | Residual |
 |:---|---:|:---|:---|:---|
-| case1_pkpd | 180 | 2cmt_oral | cl 12.9, v 64.6, q 7.89, v2 153, ka 2.04 | proportional 0.311 |
-| mad | 60 | 2cmt_oral | cl 6.25, v 48.5, q 4.87, v2 147, ka 1.21 | proportional 0.372 |
-| warfarin | 32 | 2cmt_oral | cl 0.131, v 6.57, q 0.0983, v2 1.56, ka 0.421 | proportional 0.206 |
+| case1_pkpd | 180 | 2cmt_oral | cl 13, v 65, q 7.9, v2 150, ka 2 | proportional 0.31 |
+| mad | 60 | 2cmt_oral | cl 6.3, v 49, q 4.9, v2 150, ka 1.2 | proportional 0.37 |
+| warfarin | 32 | 2cmt_oral | cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 | proportional 0.21 |
 | wbcSim | 45 | PD only | PD parameters shown above | PD residuals shown above |
-| mavoglurant | 120 | 2cmt_infusion | cl 0.0449, v 0.0959, q 0.0483, v2 0.241 | proportional 0.339 |
-| theo_md | 12 | 2cmt_oral | cl 2.81, v 29.4, q 1.92, v2 4.2, ka 1.23 | proportional 0.216 |
-| nimoData | 12 | 2cmt_infusion | cl 0.0649, v 35.4, q 0.0952, v2 323 | proportional 0.421 |
-| pheno_sd | 59 | 2cmt_iv | cl 0.00569, v 0.771, q 0.624, v2 0.632 | proportional 0.126 |
-| mixroute_sim | 90 | 2cmt_mixed | cl 2.44, v 11.5, q 1.55, v2 0.143, ka 0.515, f 0.737 | proportional 0.291 |
-| onc_sim | 200 | 2cmt_oral | cl 0.423, v 0.551, q 0.0125, v2 0.467, ka 3.4 | proportional 0.203 |
+| mavoglurant | 120 | 2cmt_infusion | cl 0.045, v 0.096, q 0.048, v2 0.24 | proportional 0.34 |
+| theo_md | 12 | 2cmt_oral | cl 2.8, v 29, q 1.9, v2 4.2, ka 1.2 | proportional 0.22 |
+| nimoData | 12 | 2cmt_infusion | cl 0.065, v 35, q 0.095, v2 320 | proportional 0.42 |
+| pheno_sd | 59 | 2cmt_iv | cl 0.0057, v 0.77, q 0.62, v2 0.63 | proportional 0.13 |
+| mixroute_sim | 90 | 2cmt_mixed | cl 2.4, v 11, q 1.5, v2 0.14, ka 0.51, f 0.74 | proportional 0.29 |
+| onc_sim | 200 | 2cmt_oral | cl 0.42, v 0.55, q 0.013, v2 0.47, ka 3.4 | proportional 0.2 |
 
 What each fit carries out of its study. {.table}
 
@@ -1327,16 +1368,16 @@ knitr::kable(verdicts, row.names = FALSE,
 
 | Dataset      | pass | review | FAIL | not applicable | Failing |
 |:-------------|-----:|-------:|-----:|---------------:|:--------|
-| case1_pkpd   |   13 |      2 |    0 |              5 |         |
-| mad          |   14 |      1 |    0 |              5 |         |
-| warfarin     |   14 |      1 |    0 |              5 |         |
-| wbcSim       |   12 |      3 |    0 |              5 |         |
-| mavoglurant  |   12 |      3 |    0 |              5 |         |
-| theo_md      |   14 |      1 |    0 |              5 |         |
-| nimoData     |   14 |      1 |    0 |              5 |         |
-| pheno_sd     |   13 |      2 |    0 |              5 |         |
-| mixroute_sim |   14 |      1 |    0 |              5 |         |
-| onc_sim      |   13 |      2 |    0 |              5 |         |
+| case1_pkpd   |   14 |      2 |    0 |              5 |         |
+| mad          |   14 |      2 |    0 |              5 |         |
+| warfarin     |   15 |      1 |    0 |              5 |         |
+| wbcSim       |   13 |      3 |    0 |              5 |         |
+| mavoglurant  |   13 |      3 |    0 |              5 |         |
+| theo_md      |   15 |      1 |    0 |              5 |         |
+| nimoData     |   15 |      1 |    0 |              5 |         |
+| pheno_sd     |   14 |      2 |    0 |              5 |         |
+| mixroute_sim |   15 |      1 |    0 |              5 |         |
+| onc_sim      |   14 |      2 |    0 |              5 |         |
 
 Scorecard verdicts across the accepted runs. {.table}
 

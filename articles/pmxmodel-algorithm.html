@@ -56,6 +56,7 @@
     <li><a class="dropdown-item" href="../articles/pmxmodel-public-data-examples.html">Evaluation on public data</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/pmxmodel-fingerprint.html">Study fingerprint</a></li>
+    <li><a class="dropdown-item" href="../articles/pmxmodel-privacy.html">Privacy protections and checks</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -141,8 +142,9 @@ package’s linear models and the covariate model is allometric scaling or
 nothing, which is too little to answer a scientific question, so the
 fitted parameters are not estimates to report, even though the printed
 object looks exactly like the output of a real population analysis.</p>
-<p>No formal privacy guarantee is offered, although no patient’s
-measured value reaches the output.</p>
+<p>No formal privacy guarantee is offered. What leaves the study, the
+protections on it and the checks that measure them are set out in <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html">Privacy
+protections in the PMX model generator</a>.</p>
 <div class="section level2">
 <h2 id="three-exported-functions">Three Exported Functions<a class="anchor" aria-label="anchor" href="#three-exported-functions"></a>
 </h2>
@@ -185,7 +187,10 @@ measured value reaches the output.</p>
 carries, <code><a href="../reference/model_candidates.html">model_candidates()</a></code> returns the attempted models
 and their acceptance results, and <code><a href="../reference/model_parameters.html">model_parameters()</a></code>
 returns the fixed effects, the between-subject covariance matrix and the
-residual error.</p>
+residual error. <code><a href="../reference/model_release.html">model_release()</a></code> returns the part of the fit
+that generation reads, which is what
+<code><a href="../reference/synpmx_model_generate.html">synpmx_model_generate()</a></code> attaches to its output, and
+<code><a href="../reference/model_privacy_checks.html">model_privacy_checks()</a></code> runs five checks on it (Step 5).</p>
 <p><code>nlmixr2est</code> is an imported dependency, used by
 <code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code>, and the candidate set is exactly
 the models the generator can evaluate in closed form. A candidate the
@@ -800,7 +805,7 @@ checks.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged accepted      aic seconds note</span></span>
-<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  51.794</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  57.346</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="covariates">Covariates<a class="anchor" aria-label="anchor" href="#covariates"></a>
@@ -814,8 +819,11 @@ clearance and volume where a weight-like covariate is declared, and fits
 nothing else. The exponents are the standard 0.75 and 1 rather than
 estimated ones, and the effect is <strong>asserted rather than
 tested</strong>: it is folded into each fit, not compared against a
-model without it. Testing it would double the cost of the whole
-call.</p>
+model without it. Testing it would double the cost of the whole call.
+The reference weight the scaling is centred on is the cohort’s median
+rounded to one significant figure, 70 rather than 71.7, because the
+median of an odd number of patients is one patient’s weight and the
+reference is stored with the fit.</p>
 <p>The covariate is recognised by name, <code>wt</code>,
 <code>weight</code>, <code>bw</code> and the like, and must be numeric
 and positive. There is no way to recognise a body weight from its values
@@ -887,7 +895,11 @@ nine of its ten minutes in a second candidate is a run whose answer is
 to name <code>pk</code>.</p>
 <p>Binary and ordinal endpoints are not fitted at all. They are drawn
 from the level frequencies their arm holds at each nominal time, which
-is what the visit model already does for attendance.</p>
+is what the visit model already does for attendance. A level fewer than
+<code>min_category_patients</code> patients held at that visit is folded
+into the visit’s most common level first, as a rare categorical
+covariate level is excluded; a visit at which no level is held by that
+many patients is not drawn at all.</p>
 </div>
 </div>
 <div class="section level2">
@@ -918,7 +930,10 @@ writes its own over the nominal times the source holds.</p>
 <tr class="odd">
 <td>Planned schedule</td>
 <td>The nominal dose times enough of the arm reached, and the modal
-amount at each cycle among patients still on their starting dose</td>
+amount and infusion rate at each cycle among patients still on their
+starting dose. Where no amount is shared by
+<code>min_arm_patients</code> patients, as on a study dosed per
+kilogram, the arm’s mean to two significant figures</td>
 <td>The cycle grid every subject starts from</td>
 </tr>
 <tr class="even">
@@ -961,14 +976,24 @@ attended is that patient, and generating from it would put them
 back.</p>
 <p>Baseline covariates are drawn independently from study-wide
 distributions. Each patient’s first row contributes one value, after
-small arms are excluded. For factor, character and logical covariates,
-levels held by fewer than <code>min_category_patients</code> patients
-(default 3) are excluded. The remaining counts are renormalized to
-probabilities, and every synthetic subject draws from that distribution.
-Set <code>min_category_patients = 1</code> to retain all observed
-levels. Numeric category codes must be supplied as factors; numeric
-covariates keep their continuous distribution models. Discrete
-observation endpoints are unaffected.</p>
+small arms are excluded.</p>
+<p>A continuous covariate is summarized by a mean and an SD: of its
+logarithm where every value is positive, of the value otherwise. Both
+are taken after the highest and lowest 5% of patients are set aside, at
+least one at each end, so the most extreme patient on either side never
+enters the summary and no single patient can move it far. The SD of the
+patients that remain understates the spread of the whole, since the
+tails are what was removed, so it is divided by the SD a standard normal
+keeps under the same trimming. A cohort too small to leave three values
+after trimming is summarized whole. No median is stored.</p>
+<p>For factor, character and logical covariates, levels held by fewer
+than <code>min_category_patients</code> patients (default 3) are
+excluded. The remaining counts are renormalized to probabilities, and
+every synthetic subject draws from that distribution. Set
+<code>min_category_patients = 1</code> to retain all observed levels.
+Numeric category codes must be supplied as factors; numeric covariates
+keep their continuous distribution models. Discrete observation
+endpoints are unaffected.</p>
 <p>If no categorical level remains, generation keeps the column with
 missing values and estimation warns. Excluded factor labels are also
 removed from the stored schema. This changes the category proportions
@@ -987,20 +1012,59 @@ fitting and the whole call took.</p>
 <p>Not estimated: the per-arm dosing model and its three rates, the
 visit model, arm sizes, the covariate distributions, the censoring
 boundary, the schema and the roles.</p>
-<p><strong>Everything on the object is an input to Step 6, so printing
-it reports all of them</strong> — the dose reduction, skipped cycle and
-early stop rates per arm, the attendance frequency behind a missed
-observation, how each covariate is drawn, which cells are drawn from
-recorded values rather than simulated, the assay limit and how many
-observations sit below it, the floor nothing is emitted below, and the
-columns the generated table will carry. <code><a href="../reference/model_report.html">model_report()</a></code>
-returns the same account as a list.</p>
+<p><strong>Printing the object reports every input to Step 6</strong> —
+the dose reduction, skipped cycle and early stop rates per arm, the
+attendance frequency behind a missed observation, how each covariate is
+drawn, which cells are drawn from recorded values rather than simulated,
+the assay limit and how many observations sit below it, the floor
+nothing is emitted below, and the columns the generated table will carry
+— and the diagnostics beside them. <code><a href="../reference/model_report.html">model_report()</a></code> returns
+the same account as a list.</p>
+<p><strong>Only the release leaves the study.</strong> The fit also
+carries diagnostics for whoever ran it: the AIC of every candidate, the
+starting values, the correlations between covariates and the individual
+random effects, the design notes and the timings. Generation reads none
+of them. <code><a href="../reference/model_release.html">model_release()</a></code> builds the part generation reads
+from an allowlist, the fields Step 6 uses and nothing else, and
+<code><a href="../reference/synpmx_model_generate.html">synpmx_model_generate()</a></code> attaches that to its output rather
+than the fit. An allowlist, so that a field added to the fit later stays
+behind unless someone adds it to the list.</p>
+<p><strong>Every released estimate is rounded to two significant
+figures</strong>: the PK fixed effects, the between-subject variances,
+the residual error, the PD shape parameters and the covariate summaries.
+The acceptance checks of Step 3 run on the fit as estimated, before the
+rounding. Leaving out a typical patient moves a typical value by less
+than one rounding step; an outlier moves a variance by more, which is
+what the next reading is for.</p>
+<p><strong>How far one patient moves each estimate is read before the
+random effects are dropped.</strong> A typical value on the log scale
+sits close to the mean of the patients’ individual log parameters, so
+leaving out patient
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>
+moves it by about
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>i</mi></msub><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mi>n</mi><mo>−</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\eta_i/(n-1)</annotation></semantics></math>;
+the between-subject variance sits close to the mean of the squared
+random effects, so leaving out patient
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>
+scales it by
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mfrac><mrow><mo stretchy="false" form="prefix">(</mo><mi>S</mi><mo>−</mo><msubsup><mi>η</mi><mi>i</mi><mn>2</mn></msubsup><mo stretchy="false" form="postfix">)</mo><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mi>n</mi><mo>−</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow><mrow><mi>S</mi><mi>/</mi><mi>n</mi></mrow></mfrac><annotation encoding="application/x-tex">\frac{(S-\eta_i^2)/(n-1)}{S/n}</annotation></semantics></math>,
+with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo>=</mo><msub><mo>∑</mo><mi>j</mi></msub><msubsup><mi>η</mi><mi>j</mi><mn>2</mn></msubsup></mrow><annotation encoding="application/x-tex">S=\sum_j \eta_j^2</annotation></semantics></math>.
+The PD baselines and the covariate summaries are recomputed with each
+patient left out, which needs no approximation. The largest move over
+all patients is kept per estimate, in percent for a typical value and in
+points of the between-subject SD on the log scale for a spread. A move
+of 15 asks for a review, and a move of 30 fails and warns at estimation,
+naming the patient on the console. Shrinkage pulls every random effect
+toward zero and makes the reading understate the move, so it is reported
+beside it. <code><a href="../reference/model_privacy_checks.html">model_privacy_checks()</a></code> returns the reading and
+four structural checks on the release.</p>
 <p><strong>No individual estimates.</strong> Empirical Bayes estimates
-are per-subject quantities, and a fitted model that carried them would
-be writing out a description of each real patient. They are not stored
-on the object. Generation draws random effects from the covariance
-matrix instead, and the correlation report above computes from them and
-keeps only the correlation.</p>
+(EBEs) are per-subject quantities, and a fitted model that carried them
+would be writing out a description of each real patient. They are read
+for the covariate correlations and the reading above and then dropped,
+from every concentration endpoint’s model. Generation draws random
+effects from the covariance matrix instead.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_report.html">model_report</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Summarized from the source, not estimated</span></span>
@@ -1015,16 +1079,16 @@ keeps only the correlation.</p>
 <span><span class="co">#&gt;   columns emitted    id, time, ntime, dv, amt, evid, dvid, wt, age, sex</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
-<span><span class="co">#&gt;     cp                 0.3, half the smallest value seen, no assay limit</span></span>
-<span><span class="co">#&gt;     pca                4.5, half the smallest value seen, no assay limit</span></span>
+<span><span class="co">#&gt;     cp                 0.2, no assay limit: half the lowest value several patients reached, rounded down</span></span>
+<span><span class="co">#&gt;     pca                5, no assay limit: half the lowest value several patients reached, rounded down</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Each non-PK continuous endpoint, fitted as constant, linear, or exponential</span></span>
 <span><span class="co">#&gt;   pca                exponential</span></span>
-<span><span class="co">#&gt;                        plateau          27.34</span></span>
-<span><span class="co">#&gt;                        baseline         96.3</span></span>
-<span><span class="co">#&gt;                        rate             0.09877</span></span>
-<span><span class="co">#&gt;                        between-subject  0.146 (SD on the log baseline)</span></span>
-<span><span class="co">#&gt;                        residual         additive 12.4</span></span>
+<span><span class="co">#&gt;                        plateau          27</span></span>
+<span><span class="co">#&gt;                        baseline         96</span></span>
+<span><span class="co">#&gt;                        rate             0.099</span></span>
+<span><span class="co">#&gt;                        between-subject  0.15 (SD on the log baseline)</span></span>
+<span><span class="co">#&gt;                        residual         additive 12</span></span>
 <span><span class="co">#&gt;                        chosen on AIC from constant, linear, exponential</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
@@ -1043,11 +1107,15 @@ keeps only the correlation.</p>
 <span><span class="co">#&gt;   structural model   2cmt_oral </span></span>
 <span><span class="co">#&gt;   selected by        two-compartment model passed acceptance checks</span></span>
 <span><span class="co">#&gt;   fitted on          all 32 patients with a concentration</span></span>
-<span><span class="co">#&gt;   fixed effects      cl 0.1314, v 6.574, q 0.09833, v2 1.562, ka 0.4206 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.268, v 0.192, ka 0.555, q 0.0746, v2 0.638 (as SD on the log scale)</span></span>
-<span><span class="co">#&gt;   residual error     proportional 0.206 </span></span>
-<span><span class="co">#&gt;   time to fit        51.8 s</span></span>
-<span><span class="co">#&gt;   whole call         52.0 s, against 51.8 s in the fitter</span></span></code></pre></div>
+<span><span class="co">#&gt;   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
+<span><span class="co">#&gt;   time to fit        57.3 s</span></span>
+<span><span class="co">#&gt;   whole call         57.5 s, against 57.3 s in the fitter</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Privacy</span></span>
+<span><span class="co">#&gt;   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;</span></span>
+<span><span class="co">#&gt;                      `model_privacy_checks()` has every check</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="step-6-generate-new-subjects">Step 6: Generate New Subjects<a class="anchor" aria-label="anchor" href="#step-6-generate-new-subjects"></a>
@@ -1077,17 +1145,21 @@ the output as a wide band rather than as a scatter of zeros on the floor
 of a log axis. <code>exp(N(0, sqrt(log(1 + cv^2))))</code> has the same
 coefficient of variation and a median of one, so the spread the fit
 estimated is preserved and no draw reaches zero.</p>
-<p><strong>A value is floored at the smallest one the study reported,
-halved.</strong> The residual is not the only thing that can put a
+<p><strong>A value is floored near the smallest the study
+reported.</strong> The residual is not the only thing that can put a
 synthetic value below anything the assay could return: a one-compartment
 profile evaluated late in a long dose interval underflows on its own. A
 study that declares a censoring column says where its assay stopped, and
 that boundary is put back. A study that declares none still had an
-assay, and its smallest reported value is the only evidence of where the
-limit sat, so half that value becomes a floor. An endpoint that reports
-a zero is given no floor, since a zero is a value a floor would
-contradict. <code><a href="../reference/model_report.html">model_report()</a></code> carries the floor per
-endpoint.</p>
+assay, and its lowest values are the only evidence of where the limit
+sat. The floor is half the lowest value that at least
+<code>min_arm_patients</code> patients reached, each patient’s own
+smallest value taken first, rounded down to 1, 2 or 5 times a power of
+ten, the way assay limits are written. It is emitted wherever a draw
+falls below it, so it is not half the single smallest value, which is
+one patient’s measurement. An endpoint that reports a zero is given no
+floor, since a zero is a value a floor would contradict.
+<code><a href="../reference/model_report.html">model_report()</a></code> carries the floor per endpoint.</p>
 <p><strong>A floor that catches a large share of the output is a
 warning, not a repair.</strong> Raising a value is still changing it,
 and a floor doing that to much of a dataset is hiding a fitted model
@@ -1168,6 +1240,21 @@ can make.</td>
 <td>Exclude levels held by fewer distinct patients; renormalize
 remaining counts. If none remain, warn and generate missing values. Set
 to 1 to retain all observed levels.</td>
+</tr>
+<tr class="even">
+<td>Rare discrete-endpoint level</td>
+<td>
+<code>min_category_patients</code> = 3 per visit</td>
+<td>Fold the level into the visit’s most common level. A visit at which
+no level is held by that many patients is not drawn.</td>
+</tr>
+<tr class="odd">
+<td>Single-patient influence</td>
+<td>a move of 15 (review) or 30 (fail), in % or points</td>
+<td>Recorded with the fit and read by
+<code><a href="../reference/model_privacy_checks.html">model_privacy_checks()</a></code> and scorecard row E3. From 30, warns
+at estimation and names the patient on the console; nothing per patient
+is stored.</td>
 </tr>
 <tr class="even">
 <td>No grid cell shared</td>

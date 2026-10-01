@@ -4,8 +4,12 @@ A single call for
 [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md)
 followed by
 [`synpmx_model_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_generate.md).
-Use the two separately to look at the fit before generating from it; it
-is on the result either way, as the `pmx_fitted_model` attribute.
+Use the two separately to look at the fit before generating from it. The
+result carries the fit's
+[`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md)
+as its `pmx_fitted_model` attribute, which is what generation read; the
+candidate table, the starting values and the other diagnostics are only
+on the fit itself.
 
 ## Usage
 
@@ -42,8 +46,8 @@ synpmx_model(data, roles, n_subjects = NULL, seed = NULL, ...)
 
 ## Value
 
-A data frame in the source's shape, carrying the fitted model as an
-attribute.
+A data frame in the source's shape, carrying the fitted model's release
+as an attribute.
 
 ## See also
 

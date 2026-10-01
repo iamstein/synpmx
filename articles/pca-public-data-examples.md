@@ -271,10 +271,10 @@ knitr::kable(
 
 | arm    | source_pct_blq | synthetic_pct_blq |
 |:-------|---------------:|------------------:|
-| 10 mg  |             70 |                66 |
+| 10 mg  |             70 |                67 |
 | 100 mg |             11 |                11 |
-| 3 mg   |             95 |                91 |
-| 30 mg  |             50 |                39 |
+| 3 mg   |             95 |                92 |
+| 30 mg  |             50 |                40 |
 | 300 mg |              6 |                 4 |
 
 Percentage of PK observations below the limit of quantification.
@@ -350,7 +350,7 @@ knitr::kable(
 | endpoint     | source                     | synthetic                  |
 |:-------------|:---------------------------|:---------------------------|
 | PD - Binary  | 2 distinct, 0.00 to 1.00   | 2 distinct, 0.00 to 1.00   |
-| PD - Count   | 20 distinct, 0.00 to 19.00 | 25 distinct, 0.00 to 43.00 |
+| PD - Count   | 20 distinct, 0.00 to 19.00 | 25 distinct, 0.00 to 42.00 |
 | PD - Ordinal | 3 distinct, 1.00 to 3.00   | 3 distinct, 1.00 to 3.00   |
 
 Values taken by the three discrete endpoints. {.table}
@@ -914,15 +914,15 @@ knitr::kable(verdicts, row.names = FALSE,
 
 | Dataset      | pass | review | FAIL | not applicable | Failing |
 |:-------------|-----:|-------:|-----:|---------------:|:--------|
-| case1_pkpd   |   11 |      2 |    0 |              7 |         |
-| mad          |   12 |      1 |    0 |              7 |         |
-| warfarin     |   12 |      1 |    0 |              7 |         |
-| wbcSim       |   10 |      3 |    0 |              7 |         |
-| theo_md      |   12 |      1 |    0 |              7 |         |
-| nimoData     |   12 |      1 |    0 |              7 |         |
-| mavoglurant  |   10 |      3 |    0 |              7 |         |
-| mixroute_sim |   12 |      1 |    0 |              7 |         |
-| onc_sim      |   11 |      2 |    0 |              7 |         |
+| case1_pkpd   |   11 |      2 |    0 |              8 |         |
+| mad          |   12 |      1 |    0 |              8 |         |
+| warfarin     |   12 |      1 |    0 |              8 |         |
+| wbcSim       |   10 |      3 |    0 |              8 |         |
+| theo_md      |   12 |      1 |    0 |              8 |         |
+| nimoData     |   12 |      1 |    0 |              8 |         |
+| mavoglurant  |   10 |      3 |    0 |              8 |         |
+| mixroute_sim |   12 |      1 |    0 |              8 |         |
+| onc_sim      |   11 |      2 |    0 |              8 |         |
 
 Scorecard verdicts across the nine runs. {.table}
 
