@@ -70,6 +70,8 @@ navbar:
       - text: -------
       - text: Study fingerprint
         href: articles/pmxmodel-fingerprint.html
+      - text: Privacy protections and checks
+        href: articles/pmxmodel-privacy.html
     avatar:
       text: 2. AVATAR
       menu:
@@ -163,11 +165,14 @@ reference:
 - title: Reading a fitted model
   desc: >
     What `synpmx_model_estimate()` read out of the source data: the estimated
-    half, the candidates it chose between, and the apparatus it summarized.
+    half, the candidates it chose between, the apparatus it summarized, the
+    release that generation reads, and the privacy checks on it.
   contents:
   - model_report
   - model_candidates
   - model_parameters
+  - model_release
+  - model_privacy_checks
 
 - title: Declaring the data
   desc: Roles, endpoints, schema, and bounds that describe an event table.

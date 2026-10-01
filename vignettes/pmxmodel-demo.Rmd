@@ -312,7 +312,9 @@ criterion is.
 ## One call
 
 `synpmx_model()` is the two stages together, for when you do not need to look at
-the fit first. It is on the result either way, as an attribute.
+the fit first. The result carries the fit's release as an attribute, which is
+what generation read; the candidate table and the other diagnostics are only on
+the fit itself.
 
 ```{r one-call, eval=FALSE}
 synthetic <- synpmx_model(raw, roles, seed = SEED)
@@ -330,3 +332,5 @@ attr(synthetic, "pmx_fitted_model")
   generator.
 - `vignette("avatar-demo")` — a worked study through blending.
 - `vignette("scorecard")` — the checks above, in detail.
+- [Privacy protections in the PMX model generator](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html)
+  — what leaves the study, and the checks on it.

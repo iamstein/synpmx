@@ -99,8 +99,9 @@ would be a worse version of that.
 
 \code{"FAIL"} is reserved for the rows where the answer is always a defect: the
 output is not a legal dataset (A1), it is not the study that went in (A3,
-A6), or it reproduces one real patient's structure verbatim (B1a, B1b, B4a,
-B4b). No other row can \code{"FAIL"}: the rest answer \code{"pass"} when there is
+A6), it reproduces one real patient's structure verbatim (B1a, B1b, B4a,
+B4b), or the population model it came from is moved that far by one patient
+(E3). No other row can \code{"FAIL"}: the rest answer \code{"pass"} when there is
 nothing to read and \code{"review"} when there is something whose meaning depends
 on the study -- a subject dropped for want of donors, a cohort statistic at a
 small sample size, a source a validator objects to. D1 is \code{"review"} whatever

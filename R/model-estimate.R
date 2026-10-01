@@ -917,11 +917,16 @@
     } else {
       list(kind = "additive", sd = residual_value)
     },
-    # `$eta` carries the subject identifier in its first column. Only the
-    # random effects themselves are read, and only to report a correlation.
+    # `$eta` carries the subject identifier in its first column. It becomes the
+    # row names, so that a warning about one patient can say which -- on the
+    # console, in the environment that holds the study, and nowhere else: the
+    # estimates are read for the covariate correlations and the influence
+    # reading and then dropped (REV-056).
     etas = {
       frame <- as.data.frame(fit$eta)
-      frame[, grepl("^eta\\.", names(frame)), drop = FALSE]
+      out <- frame[, grepl("^eta\\.", names(frame)), drop = FALSE]
+      if (ncol(frame)) rownames(out) <- make.unique(as.character(frame[[1L]]))
+      out
     }
   )
 }
@@ -1128,6 +1133,10 @@
   positive <- levels$baseline[is.finite(levels$baseline) &
                                 levels$baseline > 0]
   chosen$baseline_cv <- if (length(positive) > 1L) stats::sd(log(positive)) else 0
+  # How far one subject moves the baseline and its spread, read here because
+  # the subject baselines exist only here (SIM-056). A summary over subjects,
+  # not a subject's value; the release does not carry it.
+  chosen$influence <- .pd_influence(levels$baseline)
   # `sd()` of one number is `NA`, and an `NA` residual reaches generation as an
   # `NA` observation. One observation shows no scatter, which is a measurement
   # this study cannot make rather than a claim that the endpoint is noiseless.
@@ -1200,7 +1209,12 @@
     # is the safe direction: `HEIGHT` and `AGE` must not match.
     if (grepl("^(b|base|baseline)?_?(wt|wgt|weight|bw|bodywt|body_?weight)_?(b|bl|base|baseline|0)?$",
               covariate, ignore.case = TRUE)) {
-      return(list(covariate = covariate, reference = stats::median(values)))
+      # The reference weight the scaling is centred on is stored and used at
+      # generation, so it is the cohort median rounded to one significant
+      # figure -- 70 rather than 71.7 -- and not the median itself, which for
+      # an odd count is one patient's weight (REV-060).
+      return(list(covariate = covariate,
+                  reference = signif(stats::median(values), 1L)))
     }
   }
   NULL
@@ -1243,9 +1257,12 @@
 # concentration orders of magnitude below anything the study could have
 # measured, which on a log axis is the whole of what makes a figure look wrong.
 #
-# Half the smallest positive value reported, which is where a below-the-limit
-# value is conventionally substituted, and which cannot sit above anything the
-# study actually reported.
+# `.model_assay_floor()` answers two questions inside estimation and releases
+# neither: whether an endpoint lives on a positive scale, and what a
+# non-positive reading is substituted at in the fit table -- half the smallest
+# positive value reported, which is where a below-the-limit value is
+# conventionally substituted. The floor that is released, and emitted, is
+# `.model_quantification_floor()` below, which is not one patient's value.
 #
 # Only for an endpoint that lives on a positive scale, because an endpoint
 # recording a zero is recording something a floor would contradict and a PD
@@ -1272,10 +1289,20 @@
 # about while changing nothing. A `cens` column is per-endpoint evidence, not
 # per-study: `case1_pkpd` declares one and sets it on the concentration only, so
 # its PD endpoint is a study that declared no limit and does get a floor.
-.model_quantification_floor <- function(source, roles, endpoints) {
+#
+# pmxmodel-algorithm.Rmd, Step 6 (REV-059). The floor is emitted wherever a
+# draw falls below it, so it is a released number, and half the smallest value
+# the study reports is one patient's measurement. It is half the lowest value
+# that at least `min_patients` patients reached instead -- each patient's own
+# smallest positive value, sorted, and the `min_patients`-th of them -- rounded
+# down to the 1-2-5 series assay limits are written in. A study with fewer
+# patients than that holding a positive value gets no floor.
+.model_quantification_floor <- function(source, roles, endpoints,
+                                        min_patients = 3L) {
   observed <- .observation_rows(source, roles, require_present = TRUE)
   endpoint <- .endpoint(source, roles)
   dv <- suppressWarnings(as.numeric(source[[roles$dv]]))
+  id <- as.character(source[[roles$id]])
   censored <- if (is.null(roles$cens)) rep(FALSE, nrow(source)) else {
     flag <- suppressWarnings(as.numeric(as.character(source[[roles$cens]])))
     is.finite(flag) & flag != 0
@@ -1283,11 +1310,26 @@
   floors <- lapply(endpoints, function(name) {
     at <- observed & endpoint == name
     if (any(at & censored)) return(NULL)
-    .model_assay_floor(dv[at])
+    # The same positive-scale test as the error model: an endpoint whose
+    # values reach zero in many rows has no floor at all.
+    if (is.null(.model_assay_floor(dv[at]))) return(NULL)
+    positive <- at & is.finite(dv) & dv > 0
+    lowest <- sort(vapply(split(dv[positive], id[positive]), min, numeric(1)))
+    if (length(lowest) < min_patients) return(NULL)
+    .round_down_125(lowest[[min_patients]] / 2)
   })
   names(floors) <- endpoints
   floors <- floors[!vapply(floors, is.null, logical(1))]
   if (!length(floors)) NULL else floors
+}
+
+# The largest of 1, 2 or 5 times a power of ten that is no greater than `x`:
+# 0.3 becomes 0.2, 4.5 becomes 2, 7 becomes 5.
+.round_down_125 <- function(x) {
+  if (!is.finite(x) || x <= 0) return(NA_real_)
+  decade <- 10^floor(log10(x))
+  steps <- c(1, 2, 5, 10) * decade
+  max(steps[steps <= x * (1 + 1e-9)])
 }
 
 .model_censoring_summary <- function(source, roles, endpoints) {
@@ -1754,6 +1796,16 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
                        names(.model_allometric_exponents))))
     }), classified$pk)
 
+    # The individual random effects leave every PK model here (REV-056). They
+    # are read twice below -- for the covariate correlations and for how far
+    # one patient moves each estimate -- and then dropped, because one row per
+    # patient is a description of each patient. Removing them from the
+    # top-level `parameters` alone left a copy inside each of these.
+    etas_by_endpoint <- lapply(pk_models, function(model) model$parameters$etas)
+    pk_models <- lapply(pk_models, function(model) {
+      model$parameters$etas <- NULL
+      model
+    })
     primary <- pk_models[[1L]]
     selected <- primary$structural
     parameters <- primary$parameters
@@ -1762,6 +1814,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     fit_seconds <- sum(vapply(pk_models, function(m) m$seconds, numeric(1)))
   } else {
     pk_models <- list()
+    etas_by_endpoint <- list()
     primary <- list(candidates = data.frame(model = character(),
       converged = logical(), accepted = logical(), aic = numeric(),
       seconds = numeric(), note = character()))
@@ -1817,11 +1870,29 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     in_fit <- as.character(source[[roles$id]]) %in% fitted_ids
     correlations <- .model_covariate_correlations(
       source[in_fit, , drop = FALSE], roles,
-      subject_group[as.character(subjects) %in% fitted_ids], parameters$etas)
-    parameters$etas <- NULL
+      subject_group[as.character(subjects) %in% fitted_ids],
+      etas_by_endpoint[[1L]])
   }
 
   covariates <- .covariate_model(source, roles, min_category_patients)
+
+  # Two significant figures on every released estimate (REV-063), applied once
+  # the acceptance checks have run on the full-precision fit.
+  pk_models <- lapply(pk_models, function(model) {
+    model$parameters <- .round_parameters(model$parameters)
+    model
+  })
+  if (length(pk_models)) parameters <- pk_models[[1L]]$parameters
+  pd_fits <- lapply(pd_fits, .round_shape)
+  covariates <- lapply(covariates, .round_covariate)
+
+  # How far any one patient moves each of those estimates (SIM-056), read while
+  # the random effects still exist and recorded as a summary per estimate.
+  influence <- .model_influence(pk_models, etas_by_endpoint, pd_fits, source,
+                                roles, covariates)
+  rm(etas_by_endpoint)
+  .model_announce_influence(influence, quiet)
+  attr(influence, "who") <- NULL
   schema <- .model_covariate_schema(
     .source_schema(censoring_source, roles, fittable, subject_group), covariates)
 
@@ -1853,11 +1924,14 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     # failed to fit falls through to a per-visit marginal, so it belongs here.
     discrete = .discrete_model(source, roles, cells, subject_group,
                                setdiff(unique(cells$endpoint),
-                                       c(classified$pk, names(pd_fits)))),
+                                       c(classified$pk, names(pd_fits))),
+                               min_category_patients),
     design = design, correlations = correlations,
+    privacy = list(influence = influence),
     censoring = .model_censoring_summary(censoring_source, roles, fittable),
     quantification_floor = .model_quantification_floor(censoring_source, roles,
-                                                       fittable),
+                                                       fittable,
+                                                       min_arm_patients),
     # Reported with the fit because it is the number a caller weighs a rerun
     # against: `fit` is what the fitter took, `total` what the call took.
     # Broken down rather than totalled. A fit is the slow thing this package
@@ -1933,8 +2007,10 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
 #'
 #' A single call for [synpmx_model_estimate()] followed by
 #' [synpmx_model_generate()]. Use the two separately to look at the fit before
-#' generating from it; it is on the result either way, as the `pmx_fitted_model`
-#' attribute.
+#' generating from it. The result carries the fit's [model_release()] as its
+#' `pmx_fitted_model` attribute, which is what generation read; the candidate
+#' table, the starting values and the other diagnostics are only on the fit
+#' itself.
 #'
 #' @param data Source PMX event data.
 #' @param roles Explicit column roles from [pmx_roles()], including
@@ -1945,8 +2021,8 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
 #'   `min_category_patients` (default 3). Set it to 1 to retain all observed
 #'   categorical baseline levels.
 #'
-#' @return A data frame in the source's shape, carrying the fitted model as an
-#'   attribute.
+#' @return A data frame in the source's shape, carrying the fitted model's
+#'   release as an attribute.
 #' @seealso [synpmx_model_estimate()], [synpmx_model_generate()],
 #'   [synpmx_pca()], [synpmx_avatar()].
 #' @export

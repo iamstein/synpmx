@@ -7,15 +7,17 @@
 synpmx_model_generate(fitted_model, n_subjects = NULL, seed = NULL)
 }
 \arguments{
-\item{fitted_model}{A \code{pmx_fitted_model} from \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}}.}
+\item{fitted_model}{A \code{pmx_fitted_model} from \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}}, or
+its \code{\link[=model_release]{model_release()}}.}
 
 \item{n_subjects}{Number of synthetic subjects. Defaults to the source count.}
 
 \item{seed}{Generation seed.}
 }
 \value{
-A data frame in the source's shape, carrying the fitted model as a
-\code{pmx_fitted_model} attribute.
+A data frame in the source's shape, carrying \code{\link[=model_release]{model_release()}} of
+the fitted model as its \code{pmx_fitted_model} attribute: what generation read,
+without the diagnostics the full fit holds.
 }
 \description{
 Draws new subjects from a \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}} fit. This stage reads no

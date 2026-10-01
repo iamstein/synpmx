@@ -331,7 +331,7 @@
                               quantification_floor = NULL, timing = NULL,
                               movement = NULL, fit_subjects = NULL,
                               start_param = NULL, pk_models = NULL,
-                              dose_records = NULL) {
+                              dose_records = NULL, privacy = NULL) {
   # SIM-088: a PD-only object has no PK parameters or selected structure.
   if (!length(endpoints$pk)) {
     if (!is.null(structural) || !is.null(parameters) || length(pk_models) ||
@@ -409,6 +409,9 @@
     # shares one administration between them or has to tell two drugs' doses
     # apart, and the count is where a reader sees which happened.
     dose_records = dose_records,
+    # How far one patient moves each released estimate, as one row per
+    # estimate (SIM-056). A diagnostic: `model_release()` keeps its verdict.
+    privacy = privacy,
     # One entry per concentration endpoint. `structural` and `parameters` above
     # are the first of them, which is every study that fits one concentration.
     # A model assembled without the list -- a hand-built fixture, or a fit
@@ -446,8 +449,11 @@ print.pmx_fitted_model <- function(x, ...) {
 #' An inventory of everything in a `pmx_fitted_model`, in two halves: what
 #' the PK and PD fits estimated, and the dosing, visit and covariate models that are
 #' summaries of the source rather than estimates. Nothing here is per-subject.
+#' On a [model_release()] the diagnostics are absent and their sections are
+#' not printed.
 #'
-#' @param fitted_model A `pmx_fitted_model` from [synpmx_model_estimate()].
+#' @param fitted_model A `pmx_fitted_model` from [synpmx_model_estimate()], or
+#'   a release from [model_release()].
 #'
 #' @return A `pmx_model_report` list, printed as sections.
 #' @seealso [model_candidates()], [model_parameters()],
@@ -480,7 +486,8 @@ model_report <- function(fitted_model) {
     covariates = fitted_model$covariates,
     discrete = fitted_model$discrete,
     schema = fitted_model$schema,
-    settings = fitted_model$settings
+    settings = fitted_model$settings,
+    privacy = fitted_model$privacy
   ), class = "pmx_model_report")
 }
 
@@ -649,7 +656,8 @@ print.pmx_model_report <- function(x, ...) {
   # kind of fact about the same kind of number, and reading the second one
   # meant reading a wrapped preamble first to find out which it was.
   floors <- unlist(x$quantification_floor)
-  cat(sprintf("    %-18s %.4g, half the smallest value seen, no assay limit\n",
+  cat(sprintf(paste0("    %-18s %.4g, no assay limit: half the lowest value ",
+                     "several patients reached, rounded down\n"),
               names(floors), floors), sep = "")
 
   # The shape name alone is not the fit: the generator draws every one of these
@@ -690,6 +698,10 @@ print.pmx_model_report <- function(x, ...) {
     if (identical(x$endpoints$decided_by, "declared")) {
       field(endpoint, "declared through `endpoint_roles`")
     } else {
+      if (is.null(x$endpoints$signals)) {
+        field(endpoint, "inferred from the data")
+        next
+      }
       field(endpoint, "inferred from the following data characteristics:")
       for (reason in .model_endpoint_reason(x$endpoints$signals, endpoint)) {
         cat(.wrap_plain(reason, strrep(" ", 23L), strrep(" ", 25L)), "\n",
@@ -822,10 +834,17 @@ print.pmx_model_report <- function(x, ...) {
                     effect$reference, effect$exponent)
           }, character(1)), collapse = ", "))
   }
-  # Which endpoint carries the structural model, and on what grounds. The four
-  # signals behind an inferred answer are on the object at
-  # `fit$endpoints$signals`; as a grid of bare logicals they read as a puzzle,
-  # so what prints here is the decision in words.
+  # One line, because the checks have their own function and their own table.
+  # The influence verdict is the one a reader has to act on.
+  if (!is.null(x$privacy)) {
+    summary <- if (is.data.frame(x$privacy$influence) ||
+                   is.null(x$privacy$influence)) {
+      .influence_summary(x$privacy$influence)
+    } else x$privacy$influence
+    cat("\nPrivacy\n")
+    field("one patient's pull", summary$verdict, ": ", summary$result,
+          "; `model_privacy_checks()` has every check")
+  }
   invisible(x)
 }
 
@@ -846,6 +865,13 @@ print.pmx_model_report <- function(x, ...) {
 #' @export
 model_candidates <- function(fitted_model) {
   stopifnot(inherits(fitted_model, "pmx_fitted_model"))
+  if (inherits(fitted_model, "pmx_model_release")) {
+    stop(.condition_text(
+      "A model release carries no candidate table.",
+      why = paste("The release holds only what generation reads; the",
+                  "candidates and their AIC are diagnostics on the fit.")),
+      call. = FALSE)
+  }
   fitted_model$candidates
 }
 

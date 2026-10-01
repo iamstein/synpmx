@@ -21,14 +21,16 @@ synpmx_model(data, roles, n_subjects = NULL, seed = NULL, ...)
 categorical baseline levels.}
 }
 \value{
-A data frame in the source's shape, carrying the fitted model as an
-attribute.
+A data frame in the source's shape, carrying the fitted model's
+release as an attribute.
 }
 \description{
 A single call for \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}} followed by
 \code{\link[=synpmx_model_generate]{synpmx_model_generate()}}. Use the two separately to look at the fit before
-generating from it; it is on the result either way, as the \code{pmx_fitted_model}
-attribute.
+generating from it. The result carries the fit's \code{\link[=model_release]{model_release()}} as its
+\code{pmx_fitted_model} attribute, which is what generation read; the candidate
+table, the starting values and the other diagnostics are only on the fit
+itself.
 }
 \seealso{
 \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}}, \code{\link[=synpmx_model_generate]{synpmx_model_generate()}},

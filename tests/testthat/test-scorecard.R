@@ -307,9 +307,9 @@ test_that("a table with no run record is scored, not refused", {
   expect_identical(card$verdict[!card$check %in% recorded],
                    full$verdict[!full$check %in% recorded])
   # `not applicable` is not `pass`: the count line has to say so. Three rows
-  # need the run's record and two more need a fitted model, which an avatar
+  # need the run's record and three more need a fitted model, which an avatar
   # table stripped of its attributes has neither of.
-  expect_output(print(card), "5 unanswered")
+  expect_output(print(card), "6 unanswered")
   # REV-043: printed guidance points to the generator-independent vignette.
   expect_output(print(card), 'vignette("scorecard")', fixed = TRUE)
 })

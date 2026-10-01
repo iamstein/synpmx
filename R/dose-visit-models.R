@@ -11,6 +11,17 @@
 # Documented in `pca-algorithm.Rmd`, Step 6. A second generator's algorithm
 # document describes the same functions from its own side.
 
+# The planned value at a cycle: the most common one, where at least `floor`
+# patients share it. Where none is shared -- a study dosed per kilogram gives
+# every patient their own amount, and a fixed infusion time then gives each their
+# own rate -- the mode of values held once is one patient's dose (REV-060), so the
+# arm's mean is used instead, rounded to two significant figures.
+.shared_mode <- function(values, floor) {
+  counts <- table(sprintf("%.10g", values))
+  if (max(counts) >= floor) return(as.numeric(names(counts)[which.max(counts)]))
+  signif(mean(values), 2L)
+}
+
 # The dosing model: a planned schedule per arm, plus three rates that say how
 # patients departed from it.
 #
@@ -114,8 +125,7 @@
       values <- values[is.finite(values)]
     }
     if (!length(values)) return(0)
-    counts <- table(sprintf("%.10g", values))
-    as.numeric(names(counts)[which.max(counts)])
+    .shared_mode(values, floor)
   }, numeric(1))
   # How each planned dose is given, alongside how much. The route and the rate
   # are properties of the administration rather than of the patient, so each is
@@ -140,8 +150,9 @@
   planned_route <- vapply(at_cycle("route"),
                           function(v) as.character(modal(v)), character(1))
   planned_rate <- vapply(at_cycle("rate"), function(v) {
-    value <- modal(v)
-    if (is.na(value)) 0 else as.numeric(value)
+    v <- suppressWarnings(as.numeric(v))
+    v <- v[is.finite(v)]
+    if (!length(v)) 0 else .shared_mode(v, floor)
   }, numeric(1))
   planned_adm <- vapply(at_cycle("adm"),
                         function(v) as.character(modal(v)), character(1))
@@ -469,23 +480,51 @@
     .source_censoring(source, roles, ep)
   }), endpoints)
 
+  # No source identifier is kept (REV-058). A zero-length factor still carries
+  # its levels, so the ID column's prototype is stored without them: a study
+  # whose IDs are a factor otherwise wrote every patient's label into the
+  # schema. A numeric ID keeps only an offset, the largest ID rounded up to a
+  # power of ten, so that a synthetic ID cannot collide with a real one and
+  # the largest real ID is not stored.
   identifiers <- source[[roles$id]]
+  prototypes <- lapply(stats::setNames(names(source), names(source)),
+                       function(column) source[[column]][0L])
+  if (is.factor(prototypes[[roles$id]])) {
+    prototypes[[roles$id]] <- factor(character())
+  }
   list(
     censoring = censoring,
     columns = names(source),
-    prototypes = lapply(stats::setNames(names(source), names(source)),
-                        function(column) source[[column]][0L]),
+    prototypes = prototypes,
     id_class = class(identifiers)[[1L]],
-    id_offset = if (is.numeric(identifiers) && any(!is.na(identifiers))) {
-      max(identifiers, na.rm = TRUE)
-    } else 0,
-    id_levels = if (is.factor(identifiers)) levels(identifiers) else NULL,
+    id_offset = .id_offset(identifiers),
     cmt_dose = cmt_dose, cmt_dose_route = cmt_dose_route,
     cmt_dose_adm = cmt_dose_adm,
     adm_class = adm_class, cmt_obs = cmt_obs,
     carried = carried, arm_values = arm_values,
-    endpoint_specs = .endpoint_value_types(source, roles)
+    # The value types without their reason text (REV-060). An inferred reason
+    # quotes the observed range -- "53 whole-number levels, from 9 to 100" --
+    # and a minimum and a maximum are each one patient's value. Generation reads
+    # the type, the levels and the sign.
+    endpoint_specs = lapply(.endpoint_value_types(source, roles), function(spec) {
+      spec$reason <- if (isTRUE(spec$declared)) {
+        "declared in `pmx_roles(endpoint_types = )`"
+      } else {
+        paste(spec$type, "values, inferred from the data")
+      }
+      spec
+    })
   )
+}
+
+# The offset synthetic numeric IDs count up from: the largest source ID rounded
+# up to a power of ten, so no synthetic ID equals a real one and the largest
+# real ID itself is not stored (REV-058). A non-numeric ID needs none.
+.id_offset <- function(identifiers) {
+  if (!is.numeric(identifiers) || !any(is.finite(identifiers))) return(0)
+  largest <- max(identifiers[is.finite(identifiers)])
+  if (largest < 1) return(0)
+  10^ceiling(log10(largest + 1))
 }
 
 .assign_arms <- function(arms, sizes, n_subjects) {

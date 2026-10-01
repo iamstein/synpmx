@@ -38,11 +38,20 @@
   # residual on that scale, and exponentiating a wide Gaussian has a heavy upper
   # tail, so a low-dose arm that is entirely below quantification comes back with
   # detectable concentrations that rise with time.
+  #
+  # The offset is stored in the summary that leaves the study, and half the
+  # smallest positive value is half one patient's measurement, so it is rounded
+  # down to 1, 2 or 5 times a power of ten first (REV-064). It still keeps
+  # `log()` finite, which is all it is for.
   basis_for_transform <- transform_source %||% source
   transforms <- stats::setNames(lapply(endpoints, function(ep) {
-    .choose_transform(suppressWarnings(as.numeric(
+    transform <- .choose_transform(suppressWarnings(as.numeric(
       basis_for_transform[[roles$dv]][observed & endpoint == ep]
     )))
+    if (identical(transform$method, "log_offset")) {
+      transform$offset <- .round_down_125(transform$offset)
+    }
+    transform
   }), endpoints)
 
   # The whole nominal grid, with no cap on its width. AVATAR caps at fifteen
@@ -275,8 +284,9 @@
 # read once, here, so that generation touches no patient row.
 #
 # The column prototypes are zero-length vectors: they carry class and factor
-# levels and no values. `id_offset` is one number, the largest source ID, so a
-# synthetic ID cannot collide with a real one.
+# levels and no values, and the ID column's carries no levels either.
+# `id_offset` is one number, the largest source ID rounded up to a power of ten,
+# so a synthetic ID cannot collide with a real one (REV-058).
 #
 # Documented in `pca-algorithm.Rmd`, Step 8.
 

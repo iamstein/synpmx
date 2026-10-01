@@ -432,8 +432,12 @@ test_that("a per-visit marginal is built only where generation reads one", {
   expect_true(all(vapply(unlist(none, recursive = FALSE), is.null,
                          logical(1))))
 
+  # Every value in this fixture is held by one patient, so the rare-level fold
+  # (REV-062) would leave nothing to draw; this test is about which cells are
+  # built at all, so the fold is switched off.
   one <- unique(cells$endpoint)[[1L]]
-  some <- .discrete_model(data, roles, cells, group, drawn = one)
+  some <- .discrete_model(data, roles, cells, group, drawn = one,
+                          min_category_patients = 1L)
   kept <- cells$endpoint[!vapply(some[[1L]], is.null, logical(1))]
   expect_true(length(kept) > 0L)
   expect_equal(unique(kept), one)
@@ -456,7 +460,7 @@ test_that("a floor catching a large share of the output warns", {
   fit$quantification_floor <- .model_quantification_floor(data, roles, "cp")
   expect_warning(synthetic <- synpmx_model_generate(fit, n_subjects = 40,
                                                     seed = 4),
-                 "fell below the smallest value")
+                 "fell below the emission floor")
   caught <- attr(synthetic, "pmx_floored")
   expect_true(caught[["raised"]] > 0 && caught[["raised"]] <= caught[["seen"]])
 })

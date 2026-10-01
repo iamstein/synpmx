@@ -607,8 +607,8 @@ reached by enough patients to be a visit rather than one baby's afternoon, and
 one clock reading per patient clears that almost nowhere. The visit model then
 has almost no place to put an observation, so what comes back is a legal
 dataset in the source's shape holding almost nothing — and the run says so on
-the way past, because most of what little was drawn landed under the smallest
-concentration the study reports.
+the way past, because most of what little was drawn landed under the emission
+floor, the lowest concentration the generator will write.
 
 ### The grid this study does have
 

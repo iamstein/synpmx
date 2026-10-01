@@ -315,9 +315,11 @@ levels** are likewise the ones the source held, which is what the B5 row of
 `synpmx_scorecard()` measures — a level held by one patient is a level that
 identifies them.
 
-Subject identifiers are minted rather than derived. The only thing the model
-keeps about the source's identifiers is the largest one, so that a synthetic ID
-cannot collide with a real one.
+Subject identifiers are minted rather than derived. No source label is kept,
+including the levels of an identifier stored as a factor. The only thing kept
+about a numeric identifier is the largest one rounded up to a power of ten, so
+that a synthetic ID cannot collide with a real one and the largest real ID is
+not stored.
 
 ## Step 7: Place the Values
 
@@ -343,7 +345,9 @@ Censored source values are replaced by a draw inside the censoring region
 **before** the basis is fitted, back in Step 3. The **log transform's offset is
 read from the reported values rather than from those draws**, and that
 distinction is load-bearing rather than a detail. The offset is half the
-smallest positive value and exists to keep `log()` finite near zero;
+smallest positive value, rounded down to 1, 2 or 5 times a power of ten so that
+the summary does not carry one patient's measurement, and exists to keep
+`log()` finite near zero;
 `.impute_censored()` draws uniformly on the raw scale, so a value censored at a
 limit of 0.05 can land three orders of magnitude below it and take the offset
 with it. Every censored observation then occupies several log units of what is
@@ -417,8 +421,10 @@ card says nothing about it. `pca_dosing()` reports the same quantity as
   `"log"` extrapolates; `"factor"` does not.
 - **Amounts that vary continuously between patients.** Body-weight or
   body-surface-area dosing gives every patient their own milligrams; the planned
-  amount here is the arm's modal one, so that variation is lost even though
-  reductions relative to it are kept.
+  amount here is the arm's modal one, or, where no amount is shared by
+  `min_arm_patients` patients, the arm's mean to two significant figures, so
+  that variation is lost even though reductions relative to it are kept. The
+  mode of amounts each held by one patient would be one patient's dose.
 - **Within-subject dose escalation.** A subject's total dose is one number and
   an arm's schedule is one schedule, so a study escalating within a patient is
   represented by its arms rather than by the escalation.

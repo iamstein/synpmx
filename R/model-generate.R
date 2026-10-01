@@ -72,28 +72,28 @@
 # design -- a pediatric cohort, a renal-impairment arm -- where the arms now
 # share one distribution.
 # pmxmodel-algorithm.Rmd, Step 4: exclude sparsely supported baseline levels
-# before constructing the sampling distribution (REV-054).
+# before constructing the sampling distribution (REV-054), and summarize a
+# continuous covariate without its extremes (REV-061).
+#
+# No median is stored (REV-060). Generation never read it, and the median of an
+# odd number of patients is one patient's value.
 .covariate_model <- function(source, roles, min_category_patients = 3L) {
   min_category_patients <- .positive_integer(min_category_patients,
                                               "min_category_patients")
-  subjects <- .unique_in_order(source[[roles$id]])
-  first_row <- vapply(subjects, function(subject) {
-    which(!is.na(source[[roles$id]]) & source[[roles$id]] == subject)[1L]
-  }, integer(1))
-  lapply(stats::setNames(roles$covariates, roles$covariates), function(column) {
-    values <- source[[column]][first_row]
+  baseline <- .baseline_covariates(source, roles)
+  lapply(stats::setNames(names(baseline), names(baseline)), function(column) {
+    values <- baseline[[column]]
     values <- values[!is.na(values)]
     if (!length(values)) return(list(kind = "missing"))
     if (is.numeric(values) && !is.factor(values)) {
       if (all(values > 0)) {
-        logged <- log(values)
-        return(list(kind = "lognormal", meanlog = mean(logged),
-                    sdlog = stats::sd(logged) %|na|% 0,
-                    median = stats::median(values)))
+        moments <- .trimmed_moments(log(values))
+        return(list(kind = "lognormal", meanlog = moments[["mean"]],
+                    sdlog = moments[["sd"]]))
       }
-      return(list(kind = "normal", mean = mean(values),
-                  sd = stats::sd(values) %|na|% 0,
-                  median = stats::median(values)))
+      moments <- .trimmed_moments(values)
+      return(list(kind = "normal", mean = moments[["mean"]],
+                  sd = moments[["sd"]]))
     }
     counts <- table(as.character(values))
     counts <- counts[counts >= min_category_patients]
@@ -106,6 +106,49 @@
     list(kind = "categorical", levels = names(counts),
          probability = as.numeric(counts) / sum(counts))
   })
+}
+
+# Each patient's baseline value of every declared covariate: the first row the
+# patient has, after small arms are excluded. One value per patient, in source
+# order, named by covariate.
+.baseline_covariates <- function(source, roles) {
+  subjects <- .unique_in_order(source[[roles$id]])
+  first_row <- vapply(subjects, function(subject) {
+    which(!is.na(source[[roles$id]]) & source[[roles$id]] == subject)[1L]
+  }, integer(1))
+  lapply(stats::setNames(roles$covariates, roles$covariates),
+         function(column) source[[column]][first_row])
+}
+
+# The share of a continuous covariate left out at each end before its mean and
+# SD are taken, and the fewest patients that share may round to.
+.covariate_trim <- 0.05
+
+# A mean and SD that no one patient can move far (REV-061).
+#
+# The highest and lowest 5% are left out, and at least one patient at each end,
+# so the most extreme patient on either side never enters the summary. The SD
+# of what remains understates the spread of the whole -- the tails are exactly
+# what was removed -- so it is divided by the SD a standard normal has once the
+# same share is cut from each end. A sample too small to trim to at least three
+# values is summarized whole.
+#
+# This is the trimmed mean of robust statistics (Tukey; Huber), and trimming is
+# also how differentially private mean estimators bound one person's influence
+# (Bun and Steinke 2019).
+.trimmed_moments <- function(x) {
+  x <- sort(x[is.finite(x)])
+  n <- length(x)
+  if (!n) return(c(mean = NA_real_, sd = 0))
+  k <- max(1L, as.integer(round(.covariate_trim * n)))
+  if (n - 2L * k < 3L) {
+    return(c(mean = mean(x), sd = if (n > 1L) stats::sd(x) else 0))
+  }
+  kept <- x[(k + 1L):(n - k)]
+  alpha <- k / n
+  z <- stats::qnorm(1 - alpha)
+  shrink <- sqrt(1 - 2 * z * stats::dnorm(z) / (1 - 2 * alpha))
+  c(mean = mean(kept), sd = stats::sd(kept) / shrink)
 }
 
 # pmxmodel-algorithm.Rmd, Step 5: the schema carries only eligible factor
@@ -154,7 +197,14 @@
 # nothing could ever read -- 5219 of them on `case1_pkpd` (`SIM-083`). The
 # entry stays `NULL` at its own index rather than being dropped, because
 # generation indexes this list by cell.
-.discrete_model <- function(source, roles, cells, subject_group, drawn) {
+#
+# pmxmodel-algorithm.Rmd, Step 4 (REV-062): a level fewer than
+# `min_category_patients` patients held at that visit is folded into the
+# visit's most common level before the frequencies are taken, as a categorical
+# covariate's rare level is excluded. A level one patient held is that patient,
+# and drawing from it would put them back.
+.discrete_model <- function(source, roles, cells, subject_group, drawn,
+                            min_category_patients = 3L) {
   nominal <- suppressWarnings(as.numeric(source[[roles$nominal_time]]))
   planned <- source
   planned[[roles$time]] <- nominal
@@ -164,6 +214,7 @@
   subjects <- .unique_in_order(source[[roles$id]])
   arm_of <- stats::setNames(subject_group, as.character(subjects))
   row_arm <- arm_of[as.character(source[[roles$id]])]
+  ids <- as.character(source[[roles$id]])
 
   out <- list()
   for (arm in unique(subject_group)) {
@@ -172,14 +223,33 @@
       at <- observed & row_arm == arm & endpoint == cells$endpoint[i] &
         abs(aligned - cells$time[i]) < sqrt(.Machine$double.eps)
       values <- source[[roles$dv]][at]
+      holders <- ids[at][!is.na(values)]
       values <- values[!is.na(values)]
       if (!length(values)) return(NULL)
-      counts <- table(as.character(values))
-      list(levels = as.numeric(names(counts)),
-           probability = as.numeric(counts) / sum(counts))
+      .fold_rare_levels(values, holders, min_category_patients)
     })
   }
   out
+}
+
+# Level frequencies with every level held by fewer than `minimum` distinct
+# patients added to the most common level. Where no level is held by that many,
+# nothing is drawn at that visit, as a categorical covariate with no eligible
+# level is generated missing.
+.fold_rare_levels <- function(values, holders, minimum) {
+  key <- as.character(values)
+  patients <- tapply(holders, key, function(h) length(unique(h)))
+  counts <- table(key)[names(patients)]
+  rare <- names(patients)[patients < minimum]
+  if (length(rare) == length(counts)) return(NULL)
+  if (length(rare)) {
+    common <- names(counts)[!names(counts) %in% rare]
+    modal <- common[which.max(counts[common])]
+    counts[[modal]] <- counts[[modal]] + sum(counts[rare])
+    counts <- counts[common]
+  }
+  list(levels = as.numeric(names(counts)),
+       probability = as.numeric(counts) / sum(counts))
 }
 
 # Between-subject random effects. Drawn from the covariance matrix rather than
@@ -264,12 +334,14 @@
 #' study-time shapes or visit frequencies, while any declared dosing records
 #' are still generated.
 #'
-#' @param fitted_model A `pmx_fitted_model` from [synpmx_model_estimate()].
+#' @param fitted_model A `pmx_fitted_model` from [synpmx_model_estimate()], or
+#'   its [model_release()].
 #' @param n_subjects Number of synthetic subjects. Defaults to the source count.
 #' @param seed Generation seed.
 #'
-#' @return A data frame in the source's shape, carrying the fitted model as a
-#'   `pmx_fitted_model` attribute.
+#' @return A data frame in the source's shape, carrying [model_release()] of
+#'   the fitted model as its `pmx_fitted_model` attribute: what generation read,
+#'   without the diagnostics the full fit holds.
 #' @seealso [synpmx_model_estimate()], [synpmx_model()], [model_report()].
 #' @export
 synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
@@ -288,7 +360,9 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
     .with_local_seed(seed, .model_generate(fitted_model, n_subjects))
   }
   out <- pmx_compress_doses(out, fitted_model$roles)
-  attr(out, "pmx_fitted_model") <- fitted_model
+  # The release, never the fit (REV-057). Whatever travels with the data is what
+  # leaves with it, and the fit carries diagnostics generation never read.
+  attr(out, "pmx_fitted_model") <- model_release(fitted_model)
   attr(out, "pmx_source") <- "model"
   out
 }
@@ -401,10 +475,10 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
                                     prob = marginal$probability)]]
       }
       if (!is.finite(value)) next
-      # The floor the study's own smallest reported value implies, where it
-      # declared no censoring column of its own. A value below it is one the
-      # assay could not have returned, so it is reported at the floor rather
-      # than at whatever the residual draw produced.
+      # The floor, where the study declared no censoring column of its own: a
+      # value below it is one the assay could not have returned, so it is
+      # reported at the floor rather than at whatever the residual draw
+      # produced.
       floor_value <- fit$quantification_floor[[endpoint_name]]
       if (!is.null(floor_value)) {
         floored$seen <- floored$seen + 1L
@@ -592,8 +666,7 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
     if (share > 0.05) {
       warning(.condition_text(
         sprintf(paste0("%.0f%% of generated observations (%d of %d) fell ",
-                       "below the smallest value the study reported and were ",
-                       "raised to half of it."),
+                       "below the emission floor and were raised to it."),
                 100 * share, floored$raised, floored$seen),
         why = paste("A floor catching this much is a fitted model that does",
                     "not describe the low end of the data, not an assay",

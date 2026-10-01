@@ -387,14 +387,25 @@ test_that("starting values come from the data where NCA cannot be read", {
 
 # SIM-061. The floor is half the smallest value the study reported, and only
 # for an endpoint that lives on a positive scale.
-test_that("the quantification floor is half the smallest reported value", {
+# REV-059. Half the lowest value at least three patients reached, rounded down
+# to the 1-2-5 series, rather than half the single smallest value, which is one
+# patient's measurement and is emitted wherever a draw falls below it.
+.expected_floor <- function(data, endpoint, k = 3L) {
+  at <- data$EVID == 0L & !is.na(data$DV) & data$DVID == endpoint & data$DV > 0
+  lowest <- sort(vapply(split(data$DV[at], data$ID[at]), min, numeric(1)))
+  .round_down_125(lowest[[k]] / 2)
+}
+
+test_that("the quantification floor is half the lowest value three patients reached", {
   data <- .oral_study()
   roles <- .estimate_roles()
   observed <- data$EVID == 0L & !is.na(data$DV)
   endpoint <- unique(as.character(data$DVID[observed]))[1L]
   floor_value <- .model_quantification_floor(data, roles, endpoint)
-  expect_equal(floor_value[[endpoint]],
-               min(data$DV[observed & data$DVID == endpoint]) / 2)
+  expect_equal(floor_value[[endpoint]], .expected_floor(data, endpoint))
+  expect_false(isTRUE(all.equal(
+    floor_value[[endpoint]],
+    min(data$DV[observed & data$DVID == endpoint]) / 2)))
 })
 
 # SIM-064. One non-positive reading is what an assay returns near its limit,
@@ -404,10 +415,10 @@ test_that("a lone non-positive value leaves the floor in place", {
   roles <- .estimate_roles()
   observed <- which(data$EVID == 0L & !is.na(data$DV))
   endpoint <- as.character(data$DVID[observed[1L]])
-  smallest <- min(data$DV[observed])
   data$DV[observed[1L]] <- -0.01
   floor_value <- .model_quantification_floor(data, roles, endpoint)
-  expect_equal(floor_value[[endpoint]], smallest / 2)
+  expect_false(is.null(floor_value[[endpoint]]))
+  expect_equal(floor_value[[endpoint]], .expected_floor(data, endpoint))
 })
 
 # SIM-074. A study dosed both ways is one study, and the route is a property of

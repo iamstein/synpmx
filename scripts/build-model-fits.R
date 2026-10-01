@@ -35,6 +35,40 @@ saveRDS(warfarin_fit, "inst/extdata/warfarin-model-fit.rds", version = 2)
 message("wrote inst/extdata/warfarin-model-fit.rds")
 print(model_report(warfarin_fit))
 
+# Two constructed studies for the privacy article, both `warfarin` with one
+# patient changed, so the article can show each protection against a case
+# built to need it. Neither is a real study, and the article says so.
+#
+# Misdosed: one patient received a thousand times the recorded dose, which a
+# linear model sees as concentrations a thousand times higher than the record
+# implies. Estimation warns, naming the patient on the console only, and the
+# influence check fails.
+misdosed <- warfarin
+misdosed_patient <- sort(unique(misdosed$id))[[5L]]
+on_cp <- misdosed$id == misdosed_patient & misdosed$evid == 0 &
+  misdosed$dvid == "cp"
+misdosed$dv[on_cp] <- misdosed$dv[on_cp] * 1000
+misdosed_fit <- synpmx_model_estimate(misdosed, warfarin_roles, seed = 1)
+saveRDS(misdosed_fit, "inst/extdata/warfarin-misdosed-model-fit.rds",
+        version = 2)
+message("wrote inst/extdata/warfarin-misdosed-model-fit.rds")
+print(model_privacy_checks(misdosed_fit))
+
+# Extreme and rare covariates: one patient weighing 250 kg, one aged 95, and
+# one whose sex is recorded as a level nobody else holds.
+extreme <- warfarin
+patients <- sort(unique(extreme$id))
+extreme$wt[extreme$id == patients[[3L]]] <- 250
+extreme$age[extreme$id == patients[[8L]]] <- 95
+extreme$sex <- as.character(extreme$sex)
+extreme$sex[extreme$id == patients[[12L]]] <- "not recorded"
+extreme$sex <- factor(extreme$sex)
+extreme_fit <- synpmx_model_estimate(extreme, warfarin_roles, seed = 1)
+saveRDS(extreme_fit, "inst/extdata/warfarin-extreme-model-fit.rds",
+        version = 2)
+message("wrote inst/extdata/warfarin-extreme-model-fit.rds")
+print(model_privacy_checks(extreme_fit))
+
 # The methods survey runs all six generators on `theo_md`, which has twelve
 # subjects -- below the floor `synpmx_model_estimate()` sets for itself. The
 # floor is lowered here deliberately, and the article says so where it reads

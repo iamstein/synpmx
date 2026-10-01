@@ -192,8 +192,11 @@ sqrt(diag(model_parameters(fit)$omega))  # as CV on the log scale
 
 **No individual estimates.** Empirical Bayes estimates are per-subject
 quantities, and an object carrying them would be a description of each real
-patient. They are not here. This matrix is what stands in for them, and it is a
-statement about the population rather than about anybody in it.
+patient. They are read for the correlations below and for how far one patient
+moves each estimate, and then dropped. This matrix is what stands in for them,
+and it is a statement about the population rather than about anybody in it.
+Like every estimate in the fingerprint, it is rounded to two significant
+figures.
 
 ## The residual error
 
@@ -201,9 +204,11 @@ statement about the population rather than about anybody in it.
 model_parameters(fit)$residual
 ```
 
-Additive here rather than proportional, because `warfarin` holds concentrations
-recorded as zero and a proportional error on zero is zero. The substitution is
-recorded on the object rather than being silent.
+Proportional, with the kind recorded on the object. `warfarin` reports a few
+concentrations at or below zero, which is what an assay returns near its limit
+rather than evidence that the endpoint reaches zero, so those rows are fitted at
+half the smallest positive value and the error stays proportional. An endpoint
+whose values reach zero in many rows is given an additive error instead.
 
 ## What the assay limit cost
 
@@ -274,6 +279,10 @@ covariate is recorded before the first dose: in a randomized study what
 separates two arms' weights is the sampling noise of however many patients the
 arm has, and modelling it per arm reproduces that noise as if it were
 structure.
+
+A continuous covariate is summarized after its highest and lowest 5% of
+patients are set aside, at least one at each end, so no patient at either
+extreme enters the mean or the SD, and no median is stored.
 
 Categorical distributions retain only levels held by at least
 `min_category_patients` patients (default 3), counted once per patient after
@@ -361,7 +370,13 @@ fit$schema$censoring
 
 ## Generating from it
 
-Everything above, and nothing else, is what the next line reads.
+The diagnostics above stay with the fit: the candidate table, the correlations
+and the timings. `model_release()` is the part generation reads, and it is what
+`synpmx_model_generate()` attaches to the data it returns.
+
+```{r release, eval=run}
+setdiff(names(fit), names(model_release(fit)))
+```
 
 ```{r generate, eval=run}
 synthetic <- synpmx_model_generate(fit, n_subjects = 32, seed = 7)
@@ -379,3 +394,6 @@ c(rows = nrow(synthetic),
   profiles.
 - `vignette("scorecard")` — the checks that read a generated dataset
   against its source.
+- [Privacy protections in the PMX model generator](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html)
+  — what of this fingerprint leaves the study, the protections on it, and the
+  checks that measure them.

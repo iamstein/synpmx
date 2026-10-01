@@ -304,8 +304,9 @@
 #'
 #' `"FAIL"` is reserved for the rows where the answer is always a defect: the
 #' output is not a legal dataset (A1), it is not the study that went in (A3,
-#' A6), or it reproduces one real patient's structure verbatim (B1a, B1b, B4a,
-#' B4b). No other row can `"FAIL"`: the rest answer `"pass"` when there is
+#' A6), it reproduces one real patient's structure verbatim (B1a, B1b, B4a,
+#' B4b), or the population model it came from is moved that far by one patient
+#' (E3). No other row can `"FAIL"`: the rest answer `"pass"` when there is
 #' nothing to read and `"review"` when there is something whose meaning depends
 #' on the study -- a subject dropped for want of donors, a cohort statistic at a
 #' small sample size, a source a validator objects to. D1 is `"review"` whatever
@@ -776,6 +777,34 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
                       paste(omega_still, collapse = ", ")),
           "model_parameters(attr(synthetic, \"pmx_fitted_model\"))$omega",
           if (!length(omega_still)) TRUE else NA)
+  ))
+
+  # E3 is the privacy reading of the fit (SIM-056): how far any one patient
+  # moves a released estimate, read at estimation from the individual random
+  # effects, the PD subject baselines and the covariate summaries, and carried
+  # on the release as a verdict. It is the one E row that can `FAIL`, because a
+  # release whose estimates rest on one patient describes that patient, and the
+  # usual cause -- a patient given far more drug than the record says -- is a
+  # defect in the data rather than a reading about the cohort. A PD-only fit has
+  # PD and covariate estimates to read and so is scored too.
+  e3_row <- function(result, verdict) {
+    .scorecard_row("E3", "No single patient moves a fitted estimate far",
+                   "fitted model", result,
+                   'model_privacy_checks(attr(synthetic, "pmx_fitted_model"))',
+                   verdict = verdict)
+  }
+  record <- if (is.null(fitted)) NULL else
+    model_release(fitted)$privacy$influence
+  rows <- c(rows, list(
+    if (is.null(fitted)) {
+      e3_row("not applicable: no population model was fitted",
+             "not applicable")
+    } else if (is.null(record)) {
+      e3_row("no influence record: re-estimate with this version",
+             "not applicable")
+    } else {
+      e3_row(record$result, record$verdict)
+    }
   ))
 
   out <- do.call(rbind, rows)

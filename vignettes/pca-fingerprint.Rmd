@@ -517,9 +517,11 @@ digits3(do.call(rbind, lapply(names(schema$arm_values), function(arm) {
 })))
 ```
 
-Subject identifiers are not in the schema. They are minted at generation, and
-the only thing kept about the source's identifiers is the largest one, so a
-synthetic identifier cannot collide with a real one.
+Subject identifiers are not in the schema, and neither are the levels of an
+identifier the source stored as a factor. They are minted at generation, and
+the only thing kept about a numeric identifier is the largest one rounded up to
+a power of ten, so a synthetic identifier cannot collide with a real one and
+the largest real one is not stored.
 
 ```{r ids, eval=run}
 c(class = schema$id_class, offset = schema$id_offset)
