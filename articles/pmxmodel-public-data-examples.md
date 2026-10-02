@@ -224,8 +224,8 @@ if (inherits(case1_fit, "pmx_example_rejection")) {
 #>                      `start_param`; the rest were read off the cohort's
 #>                      median profile
 #>   residual error     proportional 0.31 
-#>   time to fit        21 min 49 s
-#>   whole call         21 min 52 s, against 21 min 49 s in the fitter
+#>   time to fit        22 min 12 s
+#>   whole call         22 min 14 s, against 22 min 12 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: PD - Continuous between-subject SD,
@@ -354,8 +354,8 @@ mad_run$fit
 #>   fixed effects      cl 6.3, v 49, q 5, v2 150, ka 1.2 
 #>   between-subject    cl 0.424, v 0.447, ka 0.387, q 0.529, v2 0.424 (as SD on the log scale)
 #>   residual error     proportional 0.37 
-#>   time to fit        3 min 15 s
-#>   whole call         3 min 16 s, against 3 min 15 s in the fitter
+#>   time to fit        3 min 12 s
+#>   whole call         3 min 13 s, against 3 min 12 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: PD - Continuous between-subject SD,
@@ -446,8 +446,8 @@ model_report(warfarin_run$fit)
 #>   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 
 #>   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)
 #>   residual error     proportional 0.21 
-#>   time to fit        59.7 s
-#>   whole call         59.9 s, against 59.7 s in the fitter
+#>   time to fit        59.0 s
+#>   whole call         59.2 s, against 59.0 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;
@@ -628,8 +628,8 @@ mavo_run$fit
 #>   fixed effects      cl 0.045, v 0.096, q 0.048, v2 0.24 
 #>   between-subject    cl 0.374, v 0.4, q 0.374, v2 0.412 (as SD on the log scale)
 #>   residual error     proportional 0.34 
-#>   time to fit        42.6 s
-#>   whole call         42.8 s, against 42.6 s in the fitter
+#>   time to fit        42.9 s
+#>   whole call         43.1 s, against 42.9 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: DV: v2 between-subject SD, 1.92 points;
@@ -756,8 +756,8 @@ theo_run$fit
 #>   fixed effects      cl 2.8, v 29, q 1.9, v2 4.2, ka 1.2 
 #>   between-subject    cl 0.19, v 0.141, ka 0.52, q 0.237, v2 0.274 (as SD on the log scale)
 #>   residual error     proportional 0.22 
-#>   time to fit        53.7 s
-#>   whole call         53.7 s, against 53.7 s in the fitter
+#>   time to fit        55.8 s
+#>   whole call         55.8 s, against 55.8 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: DV: ka typical value, 9.92 %;
@@ -871,8 +871,8 @@ nimo_run$fit
 #>   fixed effects      cl 0.065, v 35, q 0.095, v2 320 
 #>   between-subject    cl 0.707, v 0.7, q 0.592, v2 0.436 (as SD on the log scale)
 #>   residual error     proportional 0.42 
-#>   time to fit        35.9 s
-#>   whole call         36.0 s, against 35.9 s in the fitter
+#>   time to fit        36.6 s
+#>   whole call         36.7 s, against 36.6 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: DV: v2 between-subject SD, 12.4 points;
@@ -1023,10 +1023,10 @@ pheno_run$fit
 #>   fixed effects      cl 0.0057, v 0.77, q 0.62, v2 0.63 
 #>   between-subject    cl 0.346, v 0.707, q 0.098, v2 0.241 (as SD on the log scale)
 #>   residual error     proportional 0.13 
-#>   time to fit        2 min 54 s
-#>                        2cmt_iv                    1 min 1 s
-#>                        2cmt_oral                  1 min 53 s
-#>   whole call         2 min 54 s, against 2 min 54 s in the fitter
+#>   time to fit        2 min 51 s
+#>                        2cmt_iv                    59.7 s
+#>                        2cmt_oral                  1 min 51 s
+#>   whole call         2 min 51 s, against 2 min 51 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: DV: cl between-subject SD, 4.55 points;
@@ -1148,8 +1148,8 @@ mixroute_run$fit
 #>   fixed effects      cl 2.4, v 11, q 1.5, v2 0.14, ka 0.51, f 0.74 
 #>   between-subject    cl 0.316, v 0.266, q 0.31, v2 0.286, ka 0.332 (as SD on the log scale)
 #>   residual error     proportional 0.29 
-#>   time to fit        37.6 s
-#>   whole call         37.7 s, against 37.6 s in the fitter
+#>   time to fit        36.5 s
+#>   whole call         36.7 s, against 36.5 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: DV: ka between-subject SD, 4.46 points;
@@ -1270,10 +1270,10 @@ onc_run$fit
 #>   starting values    ka 5 declared through `start_param`; the rest were
 #>                      read off the cohort's median profile
 #>   residual error     proportional 0.2 
-#>   time to fit        43 min 26 s
-#>                        2cmt_iv                    15 min 59 s
-#>                        2cmt_oral                  27 min 28 s
-#>   whole call         43 min 35 s, against 43 min 26 s in the fitter
+#>   time to fit        41 min 41 s
+#>                        2cmt_iv                    14 min 23 s
+#>                        2cmt_oral                  27 min 18 s
+#>   whole call         41 min 48 s, against 41 min 41 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: Everolimus trough: ka between-subject

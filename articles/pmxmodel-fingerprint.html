@@ -57,6 +57,7 @@
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/pmxmodel-fingerprint.html">Study fingerprint</a></li>
     <li><a class="dropdown-item" href="../articles/pmxmodel-privacy.html">Privacy protections and checks</a></li>
+    <li><a class="dropdown-item" href="../articles/pmxmodel-privacy-simulation.html">Membership inference, by simulation</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -242,8 +243,8 @@ it is an input to the generation step.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
-<span><span class="co">#&gt;   time to fit        59.7 s</span></span>
-<span><span class="co">#&gt;   whole call         59.9 s, against 59.7 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        59.0 s</span></span>
+<span><span class="co">#&gt;   whole call         59.2 s, against 59.0 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;</span></span>
@@ -307,7 +308,7 @@ the object telling you how little evidence it had, and
 <span><span class="co">#&gt; [1] "2cmt_oral"</span></span>
 <span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged accepted      aic seconds note</span></span>
-<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  59.715</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  58.963</span></span></code></pre></div>
 <p>Each row is an attempted fit. The default stops when two compartments
 pass the acceptance checks; a rejected fit is followed by one
 compartment. <code>pk</code> names a particular model, or several to

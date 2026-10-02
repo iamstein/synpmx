@@ -56,6 +56,9 @@
 - [The PMX model study
   fingerprint](https://iamstein.github.io/synpmx/articles/pmxmodel-fingerprint.md):
 
+- [Membership Inference Against the PMX Model
+  Release](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy-simulation.md):
+
 - [Privacy Protections in the PMX Model
   Generator](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.md):
 

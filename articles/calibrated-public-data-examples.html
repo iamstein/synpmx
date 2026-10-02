@@ -57,6 +57,7 @@
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/pmxmodel-fingerprint.html">Study fingerprint</a></li>
     <li><a class="dropdown-item" href="../articles/pmxmodel-privacy.html">Privacy protections and checks</a></li>
+    <li><a class="dropdown-item" href="../articles/pmxmodel-privacy-simulation.html">Membership inference, by simulation</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -391,11 +392,11 @@ finding rather than a problem.</p>
 <span>        q25 <span class="op">=</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">theo_01</span><span class="op">$</span><span class="va">correction</span>, <span class="fl">0.25</span>, names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
 <span>        q75 <span class="op">=</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">theo_01</span><span class="op">$</span><span class="va">correction</span>, <span class="fl">0.75</span>, names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt; noiseless_correction               median                  q25 </span></span>
-<span><span class="co">#&gt;                0.669                0.725                0.250 </span></span>
+<span><span class="co">#&gt;                0.669                0.640                0.250 </span></span>
 <span><span class="co">#&gt;                  q75 </span></span>
 <span><span class="co">#&gt;                4.000</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">theo_01</span><span class="op">$</span><span class="va">at_boundary</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0.695</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 0.79</span></span></code></pre></div>
 <p>The interquartile range is the whole prior. Not the tails — the
 middle half of releases runs from one end of the assumed range to the
 other, because most of them are clipped to an end. The proportion pinned
@@ -406,7 +407,7 @@ subjects:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">theo_01</span><span class="op">$</span><span class="va">released_n</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.5</span>, <span class="fl">0.95</span><span class="op">)</span>, names <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>, <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   5%  50%  95% </span></span>
-<span><span class="co">#&gt;  1.0 11.8 45.8</span></span></code></pre></div>
+<span><span class="co">#&gt;  1.0 10.1 53.8</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="a-worthless-release-is-worse-than-no-release">A worthless release is worse than no release<a class="anchor" aria-label="anchor" href="#a-worthless-release-is-worse-than-no-release"></a>
 </h3>
@@ -451,13 +452,13 @@ misses the study’s.</p>
 </tr>
 <tr class="even">
 <td align="left">calibrated, epsilon = 0.1</td>
-<td align="right">3.81</td>
-<td align="right">2.64</td>
+<td align="right">4.19</td>
+<td align="right">2.69</td>
 </tr>
 <tr class="odd">
 <td align="left">calibrated, epsilon = 1</td>
-<td align="right">4.22</td>
-<td align="right">1.61</td>
+<td align="right">4.31</td>
+<td align="right">1.58</td>
 </tr>
 </tbody>
 </table>
@@ -469,7 +470,7 @@ by whichever end of the prior the noise fell against.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">theo_01</span><span class="op">$</span><span class="va">median_dv</span> <span class="op">/</span> <span class="va">source_level</span><span class="op">)</span><span class="op">)</span> <span class="op">&gt;</span></span>
 <span>       <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/median.html" class="external-link">median</a></span><span class="op">(</span><span class="va">prior_only</span><span class="op">)</span> <span class="op">/</span> <span class="va">source_level</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0.465</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 0.48</span></span></code></pre></div>
 <p>That fraction of draws is worse than not having asked.</p>
 <p>Note the trap in the middle column. The <em>median</em> level at
 <code>epsilon = 0.1</code> looks closer to the study than prior-only
@@ -537,11 +538,11 @@ rather than a guess and nothing here is confounded by a bad prior.</p>
 <span>        q25 <span class="op">=</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">mixroute_01</span><span class="op">$</span><span class="va">correction</span>, <span class="fl">0.25</span>, names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
 <span>        q75 <span class="op">=</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">mixroute_01</span><span class="op">$</span><span class="va">correction</span>, <span class="fl">0.75</span>, names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt; noiseless_correction               median                  q25 </span></span>
-<span><span class="co">#&gt;                1.166                1.131                0.671 </span></span>
+<span><span class="co">#&gt;                1.166                1.132                0.679 </span></span>
 <span><span class="co">#&gt;                  q75 </span></span>
-<span><span class="co">#&gt;                1.879</span></span>
+<span><span class="co">#&gt;                1.962</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">mixroute_01</span><span class="op">$</span><span class="va">at_boundary</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0.21</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 0.17</span></span></code></pre></div>
 <p>The median release is close to the noiseless one and the
 interquartile range is a real interval rather than the prior’s two ends.
 Most draws are not censored. The release is doing something.</p>
@@ -551,7 +552,7 @@ no way to tell from the release itself which kind of draw you have.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">mixroute_01</span><span class="op">$</span><span class="va">released_n</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.5</span>, <span class="fl">0.95</span><span class="op">)</span><span class="op">)</span>, <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    5%   50%   95% </span></span>
-<span><span class="co">#&gt;  47.5  88.9 151.7</span></span></code></pre></div>
+<span><span class="co">#&gt;  42.1  89.0 138.4</span></span></code></pre></div>
 <p>Ninety subjects, released as a range that wide. Anything downstream
 that reads the cohort size — a power calculation, a per-arm summary — is
 reading noise.</p>
@@ -597,7 +598,7 @@ the draws above.</p>
 <td align="left">mixroute_sim</td>
 <td align="right">90</td>
 <td align="right">1.85</td>
-<td align="right">1.69</td>
+<td align="right">1.70</td>
 </tr>
 </tbody>
 </table>

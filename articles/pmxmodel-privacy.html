@@ -57,6 +57,7 @@
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/pmxmodel-fingerprint.html">Study fingerprint</a></li>
     <li><a class="dropdown-item" href="../articles/pmxmodel-privacy.html">Privacy protections and checks</a></li>
+    <li><a class="dropdown-item" href="../articles/pmxmodel-privacy-simulation.html">Membership inference, by simulation</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -129,142 +130,360 @@ Stein</h4>
     
 <p>The pharmacometric (PMX) model generator,
 <code><a href="../reference/synpmx_model.html">synpmx_model()</a></code>, fits a population pharmacokinetic (PK) and
-pharmacodynamic (PD) model to a study inside the environment that holds
-it, and generates synthetic patients from the fit. This article sets out
-what of the study leaves that environment, how each released number is
-protected, and five checks that measure the protections, run on public
-studies and on three cases built to need them.</p>
+pharmacodynamic (PD) model to a clinical study inside the environment
+that holds the study’s data, and generates synthetic patients from the
+fit. This article sets out what of the study leaves that environment,
+how each number that leaves is protected, how the protections are
+checked, and what risk remains. The first section summarizes all four
+for a privacy reviewer, and the sections after it give the evidence
+behind each statement in it.</p>
 <p><strong>No formal privacy guarantee is made.</strong> Nothing here
-bounds what an adversary can learn in the sense of differential privacy
+bounds what an attacker can learn in the sense of differential privacy
 (DP), a property of a release procedure that limits how much any one
-person’s data can change what is released. The protections below reduce
-what is released and measure how much one patient moves it. A release
-that has to survive a determined adversary needs a DP mechanism, and the
-last section says what one would take for this generator.</p>
+person’s data can change what is released [1]. The protections below
+reduce what is released and measure how much one patient moves it. A
+release that has to withstand a determined attacker needs a DP
+mechanism, and the last section says what one would take for this
+generator.</p>
 <div class="section level2">
-<h2 id="why-releasing-only-parameters-is-not-enough">Why Releasing Only Parameters Is Not Enough<a class="anchor" aria-label="anchor" href="#why-releasing-only-parameters-is-not-enough"></a>
+<h2 id="summary-for-a-privacy-reviewer">Summary for a Privacy Reviewer<a class="anchor" aria-label="anchor" href="#summary-for-a-privacy-reviewer"></a>
+</h2>
+<div class="section level3">
+<h3 id="what-the-generator-releases">What the Generator Releases<a class="anchor" aria-label="anchor" href="#what-the-generator-releases"></a>
+</h3>
+<p>A population PK/PD model describes how the concentration of a drug in
+the blood, and a response to the drug, change over time across a
+population of patients. It is a short list of numbers: a <strong>typical
+value</strong> for each parameter, such as how fast the body clears the
+drug; a <strong>between-subject variance</strong> for each, which says
+how far patients spread around the typical value; and a <strong>residual
+error</strong>, the scatter of single measurements around a patient’s
+own curve. <code><a href="../reference/synpmx_model.html">synpmx_model()</a></code> estimates these from the study’s
+patients with <code>nlmixr2</code>, an R package for fitting population
+models.</p>
+<p>The generator also summarizes the study’s design as it was carried
+out: the number of patients in each treatment group
+(<strong>arm</strong>), the dose schedule and how often doses were
+reduced, skipped or stopped, the share of each arm measured at each
+scheduled visit, the distribution of each baseline covariate such as
+body weight, age or sex, and, for an endpoint recorded in levels such as
+a yes/no response or a toxicity grade, how often each level was recorded
+at each visit.</p>
+<p>What leaves the environment that holds the study is the
+<strong>release</strong>: these numbers, assembled by
+<code><a href="../reference/model_release.html">model_release()</a></code> from a list of permitted fields, together
+with a description of the table to generate. Synthetic data is simulated
+from the release and from random numbers alone, so it discloses nothing
+the release does not, and the release travels with the synthetic data as
+an attribute. A reviewer can read every number in a release with
+<code>str(unclass(release))</code>.</p>
+</div>
+<div class="section level3">
+<h3 id="what-is-protected-and-what-is-not">What Is Protected, and What Is Not<a class="anchor" aria-label="anchor" href="#what-is-protected-and-what-is-not"></a>
+</h3>
+<p><strong>✅ No patient record, identifier or per-patient estimate
+leaves the study.</strong> The release holds numbers about the
+population and about arms. Synthetic subject identifiers are new. Each
+patient’s own estimated deviation from the typical values is used during
+estimation and then discarded.</p>
+<p><strong>✅ No released number is one patient’s value, and every
+released frequency rests on at least three patients on each
+side.</strong> Minima, maxima, medians and modes are replaced by
+quantities no one patient decides. A frequency, a category level, or a
+value copied onto every patient of an arm is released only where the
+patients on each side of it number zero or at least three.</p>
+<p><strong>✅ A patient who moves a released estimate by 15% or more is
+left out of the estimates.</strong> Estimation reads how far each
+patient moves each estimate, leaves out anyone who moves one by 15% or
+more (for a between-subject spread, by 0.15 in its standard deviation
+(SD) on the log scale), and estimates again, up to a tenth of the
+cohort. A patient left out still counts in the arm sizes, the dosing and
+the visit attendance. The reading is approximate and does not cover
+every estimate; its limits are among the outstanding risks.</p>
+<p><strong>⚠️ Membership inference remains possible for an attacker who
+holds a candidate’s own trial data.</strong> In simulation, an attacker
+with a candidate’s own measurements and exact reference values for the
+population ranks a study member above a non-member with probability 0.74
+when the population model is fitted to 12 patients and 0.61 when it is
+fitted to 60. This probability is the area under the curve (AUC), where
+0.5 is chance and 1 is certainty. A reference off by 20% brings the two
+to 0.62 and 0.52. Per-visit frequency tables are more exposed: 0.83 for
+20 visits in an arm of 10 patients. Rounding moves these numbers by at
+most 0.002 and the three-patient floor by at most 0.02; cohort size, arm
+size and the number of released frequencies decide them. <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-privacy-simulation.html">Membership
+inference against the PMX model release</a> shows how each number is
+computed.</p>
+<p><strong>❌ No formal guarantee.</strong> Nothing bounds what an
+attacker who knows every other patient learns about the remaining one.
+That attacker is the one DP is defined against, and no DP mechanism is
+implemented for this generator.</p>
+</div>
+<div class="section level3">
+<h3 id="how-to-share-a-release">How to Share a Release<a class="anchor" aria-label="anchor" href="#how-to-share-a-release"></a>
+</h3>
+<p><strong>Share the release or the synthetic data, never the
+fit.</strong> The object <code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code> returns
+also holds diagnostics: the comparison of candidate models, the starting
+values, and the correlations between covariates and each patient’s
+random effects. Save <code>model_release(fit)</code>.</p>
+<p><strong>Keep the estimation’s console output and rendered reports
+inside the study environment.</strong> A patient left out of the
+estimates, or one who moves an estimate far, is named there by their
+study identifier.</p>
+<p><strong>Use a method with a formal guarantee where membership in the
+study is itself sensitive</strong> and a recipient could hold a
+candidate’s measurements of the kind the study made: a site holding the
+patient’s records, a partner holding a related study, or routine care
+that measures the same quantities, such as drug-level monitoring. <a href="https://iamstein.github.io/synpmx/articles/synpmx-privacy.html">What
+differential privacy does and does not guarantee</a> sets out that
+choice.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="how-summary-statistics-disclose-patients">How Summary Statistics Disclose Patients<a class="anchor" aria-label="anchor" href="#how-summary-statistics-disclose-patients"></a>
 </h2>
 <p>A fitted model holds no patient rows, but the DP literature shows
 that statistics computed from patients can still disclose them. Four
-mechanisms matter here.</p>
+mechanisms apply here.</p>
 <p><strong>Membership inference</strong> decides whether a given person
-was in the study. The adversary holds that person’s data and the
-release, and asks whether the release fits them better than it would fit
-someone who was not in the study. Homer and colleagues did this from
-published allele frequencies alone [1], after which public access to
-that kind of aggregate genetic data was withdrawn. The power of the
-attack grows with the number of released statistics, with their
-precision, and as the number of people behind them falls [2, 3].</p>
+was in the study. The attacker holds that person’s data and the release,
+and asks whether the release fits them better than it would fit someone
+who was not in the study. Homer and colleagues did this from published
+allele frequencies alone [2], after which public access to that kind of
+aggregate genetic data was withdrawn. The power of the attack grows with
+the number of released statistics and with their precision, and falls as
+the number of people behind each statistic grows [3, 4].</p>
 <p><strong>Model inversion</strong> infers a hidden attribute from an
 estimated relationship. Fredrikson and colleagues took a published
 warfarin dosing regression, a patient’s demographics and that patient’s
 stable dose, and inferred the patient’s genotype nearly as well as a
-model built to predict genotype [4].</p>
+model built to predict genotype [5].</p>
 <p><strong>Reconstruction</strong> recovers individual records from
 enough accurate aggregate answers: answering too many questions too
-precisely gives the dataset away [5].</p>
+precisely gives the dataset away [6].</p>
 <p><strong>A single patient’s value</strong> is the simplest case. A
 minimum, a maximum, the median of an odd number of patients, and the
 most common value where every value is held once are each one patient’s
 value, whatever the summary is called. Releasing one releases that
 patient’s value.</p>
+<p>What an attacker already holds decides which of these succeed:</p>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th>Attacker</th>
+<th>Holds</th>
+<th>What the release gives them</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>An outsider</td>
+<td>a candidate’s demographics: age, sex, body weight</td>
+<td>the covariates as trimmed, rounded means and SDs, and as level
+frequencies held by at least three patients: the kind of summary a
+trial’s table of baseline characteristics reports</td>
+</tr>
+<tr class="even">
+<td>An attacker with trial data</td>
+<td>a candidate’s own measurements of the kind the study made, and
+reference values for the population</td>
+<td>an advantage at membership inference, measured under <a href="#membership-inference-against-the-release">Membership Inference
+Against the Release</a>
+</td>
+</tr>
+<tr class="odd">
+<td>An attacker who knows every other patient</td>
+<td>the whole study except one patient</td>
+<td>that patient’s contribution to every released number, which only a
+DP mechanism hides</td>
+</tr>
+</tbody>
+</table>
 <p>Three properties of a summary lower all four risks: fewer released
 numbers, coarser released numbers, and numbers no single patient can
 move far. Each protection below is one of these.</p>
 </div>
 <div class="section level2">
-<h2 id="what-leaves-the-study">What Leaves the Study<a class="anchor" aria-label="anchor" href="#what-leaves-the-study"></a>
+<h2 id="the-release-field-by-field">The Release, Field by Field<a class="anchor" aria-label="anchor" href="#the-release-field-by-field"></a>
 </h2>
-<p>A fit carries two kinds of content. Generation reads one of them. The
-other is diagnostics for whoever ran the fit, and stays with it.
-<code><a href="../reference/model_release.html">model_release()</a></code> builds the part generation reads from an
-allowlist, and <code><a href="../reference/synpmx_model_generate.html">synpmx_model_generate()</a></code> attaches that part,
-never the fit, to the data it returns. The worked example is
-<code><a href="https://nlmixr2.github.io/nlmixr2data/reference/warfarin.html" class="external-link">nlmixr2data::warfarin</a></code>: 32 patients, one oral dose, a
-concentration and a prothrombin activity.</p>
+<p>A fitted model carries two kinds of content. Generation reads one of
+them. The other is diagnostics for whoever ran the fit, and stays with
+it. <code><a href="../reference/model_release.html">model_release()</a></code> builds the part generation reads, and
+<code><a href="../reference/synpmx_model_generate.html">synpmx_model_generate()</a></code> attaches that part, never the fit,
+to the data it returns. Generating from a fit and from its release gives
+the same data. The worked example is <code><a href="https://nlmixr2.github.io/nlmixr2data/reference/warfarin.html" class="external-link">nlmixr2data::warfarin</a></code>:
+32 patients, one oral dose, a warfarin concentration and a prothrombin
+activity.</p>
+<p>The diagnostics that stay with the fit:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">release</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_release.html">model_release</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">release</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  [1] "structural"           "parameters"           "pk_models"           </span></span>
-<span><span class="co">#&gt;  [4] "pd"                   "arms"                 "dosing"              </span></span>
-<span><span class="co">#&gt;  [7] "visits"               "cells"                "discrete"            </span></span>
-<span><span class="co">#&gt; [10] "covariates"           "covariate_effects"    "schema"              </span></span>
-<span><span class="co">#&gt; [13] "roles"                "endpoints"            "quantification_floor"</span></span>
-<span><span class="co">#&gt; [16] "n_source"             "settings"             "privacy"</span></span>
 <span><span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">setdiff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">release</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "candidates"   "design"       "correlations" "censoring"    "timing"      </span></span>
 <span><span class="co">#&gt; [6] "movement"     "fit_subjects" "start_param"  "dose_records"</span></span></code></pre></div>
-<p>How many numbers each released field holds. Membership inference
-gains power with this count, and most of it is the visit and dosing
-apparatus rather than the population model, which is in
-<code>pk_models</code> and <code>pd</code>. The top-level
-<code>parameters</code> repeat the first PK model’s and are left out of
-the count.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">count_numbers</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/is.function.html" class="external-link">is.function</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">is.environment</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fl">0L</span><span class="op">)</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">is.data.frame</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">x</span>, <span class="kw">function</span><span class="op">(</span><span class="va">column</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">is.numeric</a></span><span class="op">(</span><span class="va">column</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/is.finite.html" class="external-link">is.finite</a></span><span class="op">(</span><span class="va">column</span><span class="op">)</span><span class="op">)</span> <span class="kw">else</span> <span class="fl">0L</span></span>
-<span>    <span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">integer</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">is.list</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">count_numbers</span>, <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">integer</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">is.numeric</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/is.finite.html" class="external-link">is.finite</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span> <span class="kw">else</span> <span class="fl">0L</span></span>
-<span><span class="op">}</span></span>
-<span><span class="va">counts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">unclass</a></span><span class="op">(</span><span class="va">release</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">setdiff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">release</span><span class="op">)</span>, <span class="st">"parameters"</span><span class="op">)</span><span class="op">]</span>,</span>
-<span>                 <span class="va">count_numbers</span>, <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">integer</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>field <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">counts</span><span class="op">)</span>, numbers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">counts</span><span class="op">)</span>,</span>
-<span>           row.names <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span><span class="op">[</span><span class="va">counts</span> <span class="op">&gt;</span> <span class="fl">0</span>, <span class="op">]</span></span>
-<span><span class="co">#&gt;                   field numbers</span></span>
-<span><span class="co">#&gt; 2             pk_models      32</span></span>
-<span><span class="co">#&gt; 3                    pd       5</span></span>
-<span><span class="co">#&gt; 4                  arms       1</span></span>
-<span><span class="co">#&gt; 5                dosing       9</span></span>
-<span><span class="co">#&gt; 6                visits      44</span></span>
-<span><span class="co">#&gt; 7                 cells      44</span></span>
-<span><span class="co">#&gt; 9            covariates       6</span></span>
-<span><span class="co">#&gt; 11               schema       1</span></span>
-<span><span class="co">#&gt; 14 quantification_floor       2</span></span>
-<span><span class="co">#&gt; 15             n_source       1</span></span>
-<span><span class="co">#&gt; 16             settings       2</span></span>
-<span><span class="co">#&gt; 17              privacy       2</span></span></code></pre></div>
-<p>The visit grid’s nominal times and the planned dose times are the
-protocol’s, not measurements, and are public in the sense the protocol
-is.</p>
+<p>Every field of the release, what it holds, and how many finite
+numbers it holds. <code>parameters</code> repeats the first entry of
+<code>pk_models</code> and is left out.</p>
+<table class="table">
+<colgroup>
+<col width="12%">
+<col width="82%">
+<col width="4%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">field</th>
+<th align="left">holds</th>
+<th align="right">numbers</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">structural</td>
+<td align="left">the structural PK model selected</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">pk_models</td>
+<td align="left">per concentration endpoint: typical values,
+between-subject variances, residual error, any body-weight scaling</td>
+<td align="right">32</td>
+</tr>
+<tr class="odd">
+<td align="left">pd</td>
+<td align="left">per other continuous endpoint: a time-course shape and
+its parameters, the spread of patients’ baselines, residual error</td>
+<td align="right">5</td>
+</tr>
+<tr class="even">
+<td align="left">arms</td>
+<td align="left">the arms and the number of patients in each</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">dosing</td>
+<td align="left">per arm: the planned dose at each scheduled time, the
+levels doses were reduced to, and the rates of reducing, skipping and
+stopping</td>
+<td align="right">9</td>
+</tr>
+<tr class="even">
+<td align="left">visits</td>
+<td align="left">per arm: the share of patients measured at each
+scheduled visit</td>
+<td align="right">44</td>
+</tr>
+<tr class="odd">
+<td align="left">cells</td>
+<td align="left">the scheduled visits kept, as endpoint and nominal
+time</td>
+<td align="right">44</td>
+</tr>
+<tr class="even">
+<td align="left">discrete</td>
+<td align="left">per arm and visit: the frequency of each level of a
+binary or ordinal endpoint</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">covariates</td>
+<td align="left">per baseline covariate: a trimmed mean and SD, or level
+frequencies</td>
+<td align="right">6</td>
+</tr>
+<tr class="even">
+<td align="left">covariate_effects</td>
+<td align="left">body-weight scaling, where requested: a reference
+weight</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">schema</td>
+<td align="left">the table to generate: columns and their types,
+compartment numbers, assay limits, values copied onto each arm, each
+endpoint’s value type</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">roles</td>
+<td align="left">which column holds what</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">endpoints</td>
+<td align="left">which endpoints are concentrations, time courses or
+levels</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">quantification_floor</td>
+<td align="left">per endpoint without a declared assay limit, the value
+nothing is generated below</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">n_source</td>
+<td align="left">the number of patients</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">settings</td>
+<td align="left">the frequency floors used</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">privacy</td>
+<td align="left">the verdicts of checks P4 and P5</td>
+<td align="right">2</td>
+</tr>
+</tbody>
+</table>
+<p>Membership inference gains power with the number of released numbers
+[3, 4]. Most of the count is the visit and dosing apparatus rather than
+the population model, which is in <code>pk_models</code> and
+<code>pd</code>. Part of the apparatus is the protocol rather than a
+measurement: the nominal visit times in <code>cells</code> and the
+planned dose times in <code>dosing</code> are public in the sense the
+protocol is.</p>
 </div>
 <div class="section level2">
 <h2 id="the-protections">The Protections<a class="anchor" aria-label="anchor" href="#the-protections"></a>
 </h2>
-<p>Each is applied by <code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code> without being
-asked for, and each names the work it rests on.</p>
+<p>Each protection is applied by <code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code>
+without being asked for, and each names the work it rests on.</p>
 <div class="section level3">
 <h3 id="an-allowlist-decides-what-leaves">1. An Allowlist Decides What Leaves<a class="anchor" aria-label="anchor" href="#an-allowlist-decides-what-leaves"></a>
 </h3>
 <p><code><a href="../reference/model_release.html">model_release()</a></code> copies the fields Step 6 of the <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-algorithm.html">algorithm</a>
-reads, and inside each only the parts it reads. A field added to the fit
-later stays behind unless it is added to the list. The pattern is the
-glimpse-then-simulate split of Novartis’s <code>synadam</code> package
-[13], which writes the summary that synthetic data is generated from to
-one file a reviewer can read.</p>
+reads. Inside the PK models, the PD shapes, the dosing models, the
+endpoint list and the settings, a second list names the parts it copies;
+the schema, the arm, visit and covariate models and the remaining fields
+are copied whole. A field added to the fit later stays behind unless it
+is added to a list. The pattern is the glimpse-then-simulate split of
+Novartis’s <code>synadam</code> package [7], which writes the summary
+that synthetic data is generated from to one file a reviewer can
+read.</p>
 </div>
 <div class="section level3">
 <h3 id="no-per-patient-quantity">2. No Per-Patient Quantity<a class="anchor" aria-label="anchor" href="#no-per-patient-quantity"></a>
 </h3>
-<p>The empirical Bayes estimates (EBEs), each patient’s individual
-random effects, are read twice at estimation, for the covariate
-correlations and for the influence reading in protection 8, and dropped.
+<p>The empirical Bayes estimates (EBEs) are each patient’s own random
+effects: how far that patient’s parameters sit from the typical values,
+estimated from the patient’s own measurements. They are read twice at
+estimation, for the correlations between covariates and random effects
+and for the influence reading of protection 8, and then dropped.
 Generation draws new random effects from the between-subject covariance
 matrix.</p>
 </div>
 <div class="section level3">
 <h3 id="no-identifier">3. No Identifier<a class="anchor" aria-label="anchor" href="#no-identifier"></a>
 </h3>
-<p>Synthetic subject IDs are minted at generation. No source label is
-kept, including the levels of an ID column stored as a factor. A numeric
-ID keeps only the largest source ID rounded up to a power of ten, which
-stops a synthetic ID colliding with a real one without storing the real
-one. <code>synadam</code> refuses to run when an ID column is left
-undeclared, for the same reason [13].</p>
+<p>Synthetic subject identifiers (IDs) are minted at generation. No
+source label is kept, including the levels of an ID column stored as a
+factor. A numeric ID keeps only the largest source ID rounded up to a
+power of ten, which stops a synthetic ID colliding with a real one
+without storing the real one. <code>synadam</code> refuses to run when
+an ID column is left undeclared, for the same reason [7].</p>
 </div>
 <div class="section level3">
 <h3 id="no-single-patients-value">4. No Single Patient’s Value<a class="anchor" aria-label="anchor" href="#no-single-patients-value"></a>
@@ -301,27 +520,27 @@ to 1, 2 or 5 times a power of ten</td>
 </tr>
 <tr class="even">
 <td>Continuous covariate</td>
-<td>a mean and standard deviation (SD) over every patient, and a
-median</td>
+<td>a mean and SD over every patient, and a median</td>
 <td>a trimmed mean and SD (protection 6), no median</td>
 </tr>
 <tr class="odd">
 <td>Endpoint type description</td>
-<td>a count of levels and the lowest and highest value observed</td>
-<td>the type alone</td>
+<td>text quoting the count of levels and the lowest and highest value
+observed</td>
+<td>the type, without the text</td>
 </tr>
 </tbody>
 </table>
 <p>Statistical disclosure control (SDC), the field that protects
 published statistical tables, treats extreme values the same way, by
-top-coding and coarsening them [9].</p>
+top-coding and coarsening them [8].</p>
 </div>
 <div class="section level3">
 <h3 id="several-patients-behind-every-frequency">5. Several Patients Behind Every Frequency<a class="anchor" aria-label="anchor" href="#several-patients-behind-every-frequency"></a>
 </h3>
 <p>A frequency resting on one patient is that patient. The threshold
 rule of SDC publishes a count only where at least <em>k</em> units stand
-behind it [9], and <code>synadam</code> masks values held once [13]. The
+behind it [8], and <code>synadam</code> masks values held once [7]. The
 rule applies to both sides of a frequency: an arm’s attendance at a
 visit that all but one patient kept says as much about the one who
 missed it as attendance by one patient says about the one who came. Here
@@ -340,11 +559,21 @@ every arm, where that pools enough patients, and is zero otherwise;</li>
 <li>a categorical covariate level, and a binary or ordinal endpoint’s
 level at a visit, below <code>min_category_patients</code> patients is
 excluded, or folded into the most common level;</li>
-<li>a categorical <code>keep</code> value, copied from the arm’s first
+<li>a <code>keep</code> value of any type, copied from the arm’s first
 patient as <code>keep</code> declares, is written as missing where fewer
-than <code>min_category_patients</code> patients in the arm hold it. A
-numeric value is carried unchanged.</li>
+than <code>min_category_patients</code> patients in the arm hold
+it;</li>
+<li>the description of the table to generate keeps, for a factor column,
+only the levels its arms carry or at least
+<code>min_category_patients</code> patients hold, and for a binary or
+ordinal endpoint only the levels that many patients recorded, so the
+label of an arm too small to keep, or a grade one patient reached, stays
+behind.</li>
 </ul>
+<p>The rule stops a frequency from singling out one or two patients. It
+does not stop membership inference, which adds up small signals over
+many frequencies (<a href="#membership-inference-against-the-release">Membership Inference
+Against the Release</a>).</p>
 </div>
 <div class="section level3">
 <h3 id="covariate-summaries-without-their-extremes">6. Covariate Summaries Without Their Extremes<a class="anchor" aria-label="anchor" href="#covariate-summaries-without-their-extremes"></a>
@@ -358,8 +587,8 @@ under the same trimming. With a share
 removed from each end and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>z</mi><mo>=</mo><msup><mi mathvariant="normal">Φ</mi><mrow><mi>−</mi><mn>1</mn></mrow></msup><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>α</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">z = \Phi^{-1}(1-\alpha)</annotation></semantics></math>,</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">S</mi><mi mathvariant="normal">D</mi></mrow><mo>=</mo><mfrac><msub><mrow><mi mathvariant="normal">S</mi><mi mathvariant="normal">D</mi></mrow><mtext mathvariant="normal">trimmed</mtext></msub><msqrt><mrow><mn>1</mn><mo>−</mo><mstyle displaystyle="true"><mfrac><mrow><mn>2</mn><mi>z</mi><mi>ϕ</mi><mo stretchy="false" form="prefix">(</mo><mi>z</mi><mo stretchy="false" form="postfix">)</mo></mrow><mrow><mn>1</mn><mo>−</mo><mn>2</mn><mi>α</mi></mrow></mfrac></mstyle></mrow></msqrt></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">\mathrm{SD} = \frac{\mathrm{SD}_\text{trimmed}}{\sqrt{1 - \dfrac{2 z \phi(z)}{1-2\alpha}}}.</annotation></semantics></math></p>
-<p>This is the trimmed mean of robust statistics [11]. Trimming is also
-how DP mean estimators bound one person’s influence [12], since no
+<p>This is the trimmed mean of robust statistics [9]. Trimming is also
+how DP mean estimators bound one person’s influence [10], since no
 single value can then move the result by more than the trimmed range
 allows.</p>
 </div>
@@ -369,19 +598,23 @@ allows.</p>
 <p>Every released estimate is rounded to two significant figures: PK
 fixed effects, between-subject variances, residual error, PD shape
 parameters and covariate summaries. Rounding is the other standard
-coarsening of SDC [9]. Leaving out a typical patient moves a typical
+coarsening of SDC [8]. Leaving out a typical patient moves a typical
 value by less than one rounding step, so for most patients the released
-number is identical with or without them. It does not hide an outlier’s
-effect on a variance, which is what protection 8 measures.</p>
+typical value is the same with or without them. Rounding does not hide
+an outlier’s effect on a variance, which protection 8 measures, and it
+does not weaken membership inference, because an estimate’s sampling
+variation is larger than one rounding step (<a href="#membership-inference-against-the-release">Membership Inference
+Against the Release</a>). The frequencies are not rounded: each is an
+exact count over an arm, held to the floor of protection 5 instead.</p>
 </div>
 <div class="section level3">
 <h3 id="how-far-one-patient-moves-each-estimate">8. How Far One Patient Moves Each Estimate<a class="anchor" aria-label="anchor" href="#how-far-one-patient-moves-each-estimate"></a>
 </h3>
 <p>DP calls the most one person can move a released number its
-<em>sensitivity</em>, taken over every possible dataset [6]. The same
+<em>sensitivity</em>, taken over every possible dataset [1]. The same
 question asked of the study at hand, leaving each patient out in turn
 and recording the largest move, is <em>local sensitivity</em>, and in
-regression the same idea is Cook’s distance [10]. It is computed at
+regression the same idea is Cook’s distance [11]. It is computed at
 estimation without refitting:</p>
 <ul>
 <li>A population typical value on the log scale sits close to the mean
@@ -391,7 +624,8 @@ moves it by about
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>i</mi></msub><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mi>n</mi><mo>−</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\eta_i/(n-1)</annotation></semantics></math>,
 where
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>η</mi><mi>i</mi></msub><annotation encoding="application/x-tex">\eta_i</annotation></semantics></math>
-is that patient’s random effect.</li>
+is that patient’s random effect. The PD typical baseline is read the
+same way, from each patient’s own baseline.</li>
 <li>The between-subject variance sits close to the mean of the squared
 random effects, so leaving out patient
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>
@@ -399,21 +633,21 @@ scales it by
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mfrac><mrow><mo stretchy="false" form="prefix">(</mo><mi>S</mi><mo>−</mo><msubsup><mi>η</mi><mi>i</mi><mn>2</mn></msubsup><mo stretchy="false" form="postfix">)</mo><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mi>n</mi><mo>−</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow><mrow><mi>S</mi><mi>/</mi><mi>n</mi></mrow></mfrac><annotation encoding="application/x-tex">\frac{(S-\eta_i^2)/(n-1)}{S/n}</annotation></semantics></math>,
 with
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo>=</mo><msub><mo>∑</mo><mi>j</mi></msub><msubsup><mi>η</mi><mi>j</mi><mn>2</mn></msubsup></mrow><annotation encoding="application/x-tex">S=\sum_j \eta_j^2</annotation></semantics></math>.</li>
-<li>The PD baseline and its spread are recomputed from each subject’s
-own baseline with the patient left out, and so is each covariate
-summary. Neither needs an approximation.</li>
+<li>The spread of the PD baselines and each covariate summary are
+recomputed with the patient left out, which needs no approximation.</li>
 </ul>
 <p>The largest move over all patients is kept for each estimate: in
 percent for a typical value, and in points of the between-subject SD on
-the log scale, close to a coefficient of variation in percent, for a
-spread. A move of 15 is a review; a move of 30 fails, warns at
+the log scale, close to a coefficient of variation (CV) in percent, for
+a spread. A move of 15 is a review; a move of 30 fails, warns at
 estimation, and names the patient on the console. The name is printed in
 the environment that holds the study and is not stored: the fit keeps
 the largest move per estimate, never anything per patient. On a
 parameter whose between-subject SD is 0.27, a patient 3 SD from the mean
 in a cohort of 32 moves the typical value by about 3% and the spread by
-about 4 points. Shrinkage pulls every random effect toward zero and
-makes the reading understate the move, so it is reported beside it.</p>
+about 4 points. Shrinkage, the pull of a random effect toward zero when
+the patient’s own measurements say little about their parameters, makes
+the reading understate the move, so it is reported beside it.</p>
 <p>A patient who moves an estimate by 15 or more is then left out of the
 estimates, and estimation runs again. The patient is left out of the PK
 fit, the PD fits and the covariate summaries, and stays in the dosing,
@@ -423,6 +657,12 @@ before a tenth of the cohort has been left out. Each patient left out is
 named on the console; the fit records how many, and which estimates they
 moved. <code>drop_influential = FALSE</code> keeps every patient and
 leaves the reading as a review or a failure.</p>
+<p>The rounds are repeated because leaving out the most influential
+patients makes the next ones the most influential, which Carlini and
+colleagues call the privacy onion effect [12]. The DP counterpart of the
+reading is propose-test-release, which checks that the study at hand is
+far from any study in which one patient could move an estimate far, and
+only then releases it with noise scaled to that bound [13].</p>
 </div>
 </div>
 <div class="section level2">
@@ -460,7 +700,7 @@ offset</td>
 <td>P3</td>
 <td>No single patient’s value is released</td>
 <td>floors on the 1-2-5 series, the reference weight rounded, no
-covariate median</td>
+covariate median, no factor level that no arm carries</td>
 </tr>
 <tr class="even">
 <td>P4</td>
@@ -482,11 +722,14 @@ further has been left out</td>
 <p>P1 to P3 are structural and read the release. They pass by
 construction on a fit from this version, and exist to catch a release
 assembled some other way or a fit stored before the protections existed.
-P4 recounts, at estimation, the smallest group of patients behind each
-kind of released frequency after the rules of protection 5 have run, and
-P5 is the reading of protection 8. A release carries the verdicts of
-both, and the fit the counts behind them.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+P3 reads the emission floors, the covariate summaries, the reference
+weight and the factor levels of the columns copied onto arms. P4
+recounts, at estimation, the smallest group of patients behind each kind
+of released frequency after the rules of protection 5 have run,
+including every factor and endpoint level the schema stores, and P5 is
+the reading of protection 8. A release carries the verdicts of P4 and
+P5, and the fit the counts behind them.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">checks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_privacy_checks.html">model_privacy_checks</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">checks</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"check"</span>, <span class="st">"verdict"</span>, <span class="st">"result"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   check verdict</span></span>
@@ -495,18 +738,18 @@ both, and the fit the counts behind them.</p>
 <span><span class="co">#&gt; 3    P3    pass</span></span>
 <span><span class="co">#&gt; 4    P4    pass</span></span>
 <span><span class="co">#&gt; 5    P5    pass</span></span>
-<span><span class="co">#&gt;                                                                                                                  result</span></span>
-<span><span class="co">#&gt; 1                                                                                                                  none</span></span>
-<span><span class="co">#&gt; 2                                                                                                                  none</span></span>
-<span><span class="co">#&gt; 3  none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored</span></span>
-<span><span class="co">#&gt; 4 smallest group: 3, patients on either side of an attendance fraction; adjusted to meet it: 5 (an attendance fraction)</span></span>
-<span><span class="co">#&gt; 5                                                                         largest: cp: ka between-subject SD, 10 points</span></span></code></pre></div>
+<span><span class="co">#&gt;                                                                                                                                                             result</span></span>
+<span><span class="co">#&gt; 1                                                                                                                                                             none</span></span>
+<span><span class="co">#&gt; 2                                                                                                                                                             none</span></span>
+<span><span class="co">#&gt; 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored, no factor level beyond what the arms carry</span></span>
+<span><span class="co">#&gt; 4                                            smallest group: 3, patients on either side of an attendance fraction; adjusted to meet it: 5 (an attendance fraction)</span></span>
+<span><span class="co">#&gt; 5                                                                                                                    largest: cp: ka between-subject SD, 10 points</span></span></code></pre></div>
 <p>The reading behind P5 is the <code>influence</code> attribute of the
 full fit’s checks, one row per released estimate: the released value,
 the largest move any one patient causes, its unit, the number of
 patients it was read over, the shrinkage of the random effect it came
 from, and the verdict. No row is about a patient.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">digits3</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">checks</span>, <span class="st">"influence"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;        group   name            quantity released change   unit patients</span></span>
 <span><span class="co">#&gt; 1         PK cp: cl       typical value     0.13   2.62      %       32</span></span>
@@ -546,19 +789,22 @@ from, and the verdict. No row is about a patient.</p>
 each kind of released frequency, the smallest group of patients behind
 any one of them, the floor it is held to, and how many values the rules
 changed to meet it.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">checks</span>, <span class="st">"frequencies"</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"quantity"</span>, <span class="st">"smallest"</span>, <span class="st">"threshold"</span>,</span>
 <span>                                <span class="st">"adjusted"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;                                            quantity smallest threshold adjusted</span></span>
 <span><span class="co">#&gt; 1                                patients in an arm       32         3        0</span></span>
 <span><span class="co">#&gt; 2 patients on either side of an attendance fraction        3         3        5</span></span>
 <span><span class="co">#&gt; 3       patients with the dose change behind a rate       NA         3        0</span></span>
-<span><span class="co">#&gt; 4    patients holding a categorical covariate level        5         3        0</span></span></code></pre></div>
+<span><span class="co">#&gt; 4    patients holding a categorical covariate level        5         3        0</span></span>
+<span><span class="co">#&gt; 5       patients holding a level of a factor column       32         3        0</span></span></code></pre></div>
 <p>The same checks on the release report P5 as a verdict only. A passing
 release states that every estimate moved less than 15, and nothing more,
 so the one data-dependent thing it carries about the reading is the
-verdict.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+verdict. A release that does not pass names its worst estimate and the
+size of the move, which is computed from one patient’s data; such a
+release is not meant to leave.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="../reference/model_privacy_checks.html">model_privacy_checks</a></span><span class="op">(</span><span class="va">release</span><span class="op">)</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"check"</span>, <span class="st">"verdict"</span>, <span class="st">"result"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   check verdict</span></span>
 <span><span class="co">#&gt; 1    P1    pass</span></span>
@@ -566,20 +812,20 @@ verdict.</p>
 <span><span class="co">#&gt; 3    P3    pass</span></span>
 <span><span class="co">#&gt; 4    P4    pass</span></span>
 <span><span class="co">#&gt; 5    P5    pass</span></span>
-<span><span class="co">#&gt;                                                                                                                 result</span></span>
-<span><span class="co">#&gt; 1                                                                                                                 none</span></span>
-<span><span class="co">#&gt; 2                                                                                                                 none</span></span>
-<span><span class="co">#&gt; 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored</span></span>
-<span><span class="co">#&gt; 4                                                     every released frequency rests on at least the floor of patients</span></span>
-<span><span class="co">#&gt; 5                                                                           every released estimate moves less than 15</span></span></code></pre></div>
+<span><span class="co">#&gt;                                                                                                                                                             result</span></span>
+<span><span class="co">#&gt; 1                                                                                                                                                             none</span></span>
+<span><span class="co">#&gt; 2                                                                                                                                                             none</span></span>
+<span><span class="co">#&gt; 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored, no factor level beyond what the arms carry</span></span>
+<span><span class="co">#&gt; 4                                                                                                 every released frequency rests on at least the floor of patients</span></span>
+<span><span class="co">#&gt; 5                                                                                                                       every released estimate moves less than 15</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="three-cases-built-to-need-the-checks">Three Cases Built to Need the Checks<a class="anchor" aria-label="anchor" href="#three-cases-built-to-need-the-checks"></a>
+<h2 id="three-constructed-cases">Three Constructed Cases<a class="anchor" aria-label="anchor" href="#three-constructed-cases"></a>
 </h2>
-<p>Each is <code>warfarin</code> with one or more patients changed,
+<p>Each case is <code>warfarin</code> with one or more patients changed,
 built once by <code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code> and stored with the
 package. None is a real study.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">warfarin</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu">nlmixr2data</span><span class="fu">::</span><span class="va"><a href="https://nlmixr2.github.io/nlmixr2data/reference/warfarin.html" class="external-link">warfarin</a></span><span class="op">)</span></span>
 <span><span class="va">warfarin</span><span class="op">$</span><span class="va">ntime</span> <span class="op">&lt;-</span> <span class="va">warfarin</span><span class="op">$</span><span class="va">time</span></span>
 <span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmx_roles.html">pmx_roles</a></span><span class="op">(</span></span>
@@ -599,18 +845,18 @@ package. None is a real study.</p>
 <span><span class="va">extreme</span><span class="op">$</span><span class="va">sex</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">extreme</span><span class="op">$</span><span class="va">sex</span><span class="op">)</span></span>
 <span><span class="va">extreme</span><span class="op">$</span><span class="va">sex</span><span class="op">[</span><span class="va">extreme</span><span class="op">$</span><span class="va">id</span> <span class="op">==</span> <span class="va">patients</span><span class="op">[[</span><span class="fl">12L</span><span class="op">]</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"not recorded"</span></span>
 <span><span class="va">extreme</span><span class="op">$</span><span class="va">sex</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">extreme</span><span class="op">$</span><span class="va">sex</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">misdosed_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate</a></span><span class="op">(</span><span class="va">misdosed</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">extreme_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate</a></span><span class="op">(</span><span class="va">extreme</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="a-patient-given-a-thousand-times-the-recorded-dose">A Patient Given a Thousand Times the Recorded Dose<a class="anchor" aria-label="anchor" href="#a-patient-given-a-thousand-times-the-recorded-dose"></a>
 </h3>
-<p>One patient received a thousand times the dose the record shows. A
+<p>One patient received a thousand times the dose the record shows, so a
 linear model sees concentrations a thousand times higher than the
 recorded dose implies. The case is fitted twice: as estimation runs by
 default, and with <code>drop_influential = FALSE</code>, which keeps the
 patient so that the reading can be seen to catch them.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">misdosed_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate</a></span><span class="op">(</span><span class="va">misdosed</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">misdosed_kept_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate</a></span><span class="op">(</span><span class="va">misdosed</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>                                           drop_influential <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
@@ -618,7 +864,7 @@ patient so that the reading can be seen to catch them.</p>
 exposure, and estimation warned that one patient moved a released
 estimate by 30 or more, naming the patient on the console. The stored
 fit names nobody.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">kept_checks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_privacy_checks.html">model_privacy_checks</a></span><span class="op">(</span><span class="va">misdosed_kept_fit</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">kept_checks</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"check"</span>, <span class="st">"verdict"</span>, <span class="st">"result"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   check verdict</span></span>
@@ -627,12 +873,12 @@ fit names nobody.</p>
 <span><span class="co">#&gt; 3    P3    pass</span></span>
 <span><span class="co">#&gt; 4    P4    pass</span></span>
 <span><span class="co">#&gt; 5    P5    FAIL</span></span>
-<span><span class="co">#&gt;                                                                                                                  result</span></span>
-<span><span class="co">#&gt; 1                                                                                                                  none</span></span>
-<span><span class="co">#&gt; 2                                                                                                                  none</span></span>
-<span><span class="co">#&gt; 3  none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored</span></span>
-<span><span class="co">#&gt; 4 smallest group: 3, patients on either side of an attendance fraction; adjusted to meet it: 5 (an attendance fraction)</span></span>
-<span><span class="co">#&gt; 5                                                                       largest: cp: v2 between-subject SD, 70.7 points</span></span>
+<span><span class="co">#&gt;                                                                                                                                                             result</span></span>
+<span><span class="co">#&gt; 1                                                                                                                                                             none</span></span>
+<span><span class="co">#&gt; 2                                                                                                                                                             none</span></span>
+<span><span class="co">#&gt; 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored, no factor level beyond what the arms carry</span></span>
+<span><span class="co">#&gt; 4                                            smallest group: 3, patients on either side of an attendance fraction; adjusted to meet it: 5 (an attendance fraction)</span></span>
+<span><span class="co">#&gt; 5                                                                                                                  largest: cp: v2 between-subject SD, 70.7 points</span></span>
 <span><span class="fu">digits3</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">kept_checks</span>, <span class="st">"influence"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;        group   name            quantity released   change   unit patients</span></span>
 <span><span class="co">#&gt; 1         PK cp: cl       typical value     0.11     26.2      %       32</span></span>
@@ -671,7 +917,7 @@ fit names nobody.</p>
 <p>By default, estimation left the patient out of the estimates and ran
 again. The fit records how many patients were left out and which
 estimates they moved, and the checks pass:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">misdosed_fit</span><span class="op">$</span><span class="va">privacy</span><span class="op">$</span><span class="va">left_out</span><span class="op">$</span><span class="va">patients</span></span>
 <span><span class="co">#&gt; [1] 1</span></span>
 <span><span class="fu">digits3</span><span class="op">(</span><span class="va">misdosed_fit</span><span class="op">$</span><span class="va">privacy</span><span class="op">$</span><span class="va">left_out</span><span class="op">$</span><span class="va">because</span><span class="op">)</span></span>
@@ -689,16 +935,16 @@ estimates they moved, and the checks pass:</p>
 <span><span class="co">#&gt; 3    P3    pass</span></span>
 <span><span class="co">#&gt; 4    P4    pass</span></span>
 <span><span class="co">#&gt; 5    P5    pass</span></span>
-<span><span class="co">#&gt;                                                                                                                  result</span></span>
-<span><span class="co">#&gt; 1                                                                                                                  none</span></span>
-<span><span class="co">#&gt; 2                                                                                                                  none</span></span>
-<span><span class="co">#&gt; 3  none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored</span></span>
-<span><span class="co">#&gt; 4 smallest group: 3, patients on either side of an attendance fraction; adjusted to meet it: 5 (an attendance fraction)</span></span>
-<span><span class="co">#&gt; 5                      largest: cp: ka between-subject SD, 9.32 points; after leaving 1 patient(s) out of the estimates</span></span></code></pre></div>
+<span><span class="co">#&gt;                                                                                                                                                             result</span></span>
+<span><span class="co">#&gt; 1                                                                                                                                                             none</span></span>
+<span><span class="co">#&gt; 2                                                                                                                                                             none</span></span>
+<span><span class="co">#&gt; 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored, no factor level beyond what the arms carry</span></span>
+<span><span class="co">#&gt; 4                                            smallest group: 3, patients on either side of an attendance fraction; adjusted to meet it: 5 (an attendance fraction)</span></span>
+<span><span class="co">#&gt; 5                                                                 largest: cp: ka between-subject SD, 9.32 points; after leaving 1 patient(s) out of the estimates</span></span></code></pre></div>
 <p>The synthetic data shows the difference. Kept, the patient’s exposure
-becomes between-subject variability and the synthetic patients spread
-wider than the rest of the source cohort; left out, they do not:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+becomes between-subject variability, and the synthetic patients spread
+wider than the rest of the source cohort. Left out, they do not:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">concentration</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">rows</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">$</span><span class="va">evid</span> <span class="op">==</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="va">data</span><span class="op">$</span><span class="va">dvid</span> <span class="op">==</span> <span class="st">"cp"</span> <span class="op">&amp;</span> <span class="va">data</span><span class="op">$</span><span class="va">dv</span> <span class="op">&gt;</span> <span class="fl">0</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>dataset <span class="op">=</span> <span class="va">label</span>, id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">id</span><span class="op">[</span><span class="va">rows</span><span class="op">]</span><span class="op">)</span>,</span>
@@ -724,7 +970,7 @@ wider than the rest of the source cohort; left out, they do not:</p>
 <p><img src="pmxmodel-privacy_files/figure-html/misdosed-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <p>The scorecard reads each release’s verdict as row E3, so the finding
 reaches anyone who scores the synthetic data:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">kept_card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">misdosed</span>, <span class="va">kept_synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
 <span><span class="va">card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">misdosed</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>fit <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"patient kept"</span>, <span class="st">"patient left out"</span><span class="op">)</span>,</span>
@@ -745,7 +991,7 @@ dosing is the remedy for any analysis of the real study.</p>
 <p>One patient weighs 250 kg and another is 95 years old. Neither enters
 the covariate summaries, because each is the most extreme patient on
 their side and trimming sets them aside:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">summary_of</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">model</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>covariate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"wt"</span>, <span class="st">"age"</span><span class="op">)</span>,</span>
 <span>             geometric_mean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">model</span><span class="op">$</span><span class="va">wt</span><span class="op">$</span><span class="va">meanlog</span>, <span class="va">model</span><span class="op">$</span><span class="va">age</span><span class="op">$</span><span class="va">meanlog</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -759,9 +1005,9 @@ their side and trimming sets them aside:</p>
 <span><span class="co">#&gt; 2                      warfarin       age             29   0.34</span></span>
 <span><span class="co">#&gt; 3 with the two extreme patients        wt             70   0.19</span></span>
 <span><span class="co">#&gt; 4 with the two extreme patients       age             29   0.36</span></span></code></pre></div>
-<p>The same two summaries taken over every patient, as they were before
-the trimming, move with the extreme patients:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<p>The same two summaries taken over every patient, without trimming,
+move with the extreme patients:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">first</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="va">data</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/duplicated.html" class="external-link">duplicated</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">id</span><span class="op">)</span>, <span class="op">]</span></span>
 <span><span class="va">untrimmed</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>covariate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"wt"</span>, <span class="st">"age"</span><span class="op">)</span>,</span>
@@ -779,8 +1025,8 @@ the trimming, move with the extreme patients:</p>
 <span><span class="co">#&gt; 3 with the two extreme patients        wt           71.7  0.297</span></span>
 <span><span class="co">#&gt; 4 with the two extreme patients       age           30.3  0.363</span></span></code></pre></div>
 <p>P5 reads the covariate rows of the influence table: leaving out any
-one patient barely moves them, extreme patients included.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+one patient barely moves them, the extreme patients included.</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">extreme_influence</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="fu"><a href="../reference/model_privacy_checks.html">model_privacy_checks</a></span><span class="op">(</span><span class="va">extreme_fit</span><span class="op">)</span>, <span class="st">"influence"</span><span class="op">)</span></span>
 <span><span class="fu">digits3</span><span class="op">(</span><span class="va">extreme_influence</span><span class="op">[</span><span class="va">extreme_influence</span><span class="op">$</span><span class="va">group</span> <span class="op">==</span> <span class="st">"covariate"</span>, <span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;        group name            quantity released change   unit patients shrinkage</span></span>
@@ -801,7 +1047,7 @@ one patient barely moves them, extreme patients included.</p>
 patient holds. The level is excluded from the covariate distribution and
 from the schema the generated table is written in, so no synthetic
 patient can carry it:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">extreme_fit</span><span class="op">$</span><span class="va">covariates</span><span class="op">$</span><span class="va">sex</span><span class="op">$</span><span class="va">levels</span></span>
 <span><span class="co">#&gt; [1] "female" "male"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">extreme_fit</span><span class="op">$</span><span class="va">schema</span><span class="op">$</span><span class="va">prototypes</span><span class="op">$</span><span class="va">sex</span><span class="op">)</span></span>
@@ -809,12 +1055,12 @@ patient can carry it:</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="across-the-public-studies">Across the Public Studies<a class="anchor" aria-label="anchor" href="#across-the-public-studies"></a>
+<h2 id="the-checks-across-the-public-studies">The Checks Across the Public Studies<a class="anchor" aria-label="anchor" href="#the-checks-across-the-public-studies"></a>
 </h2>
 <p>The checks on every stored fit of the <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-public-data-examples.html">public-data
-evaluation</a>, and the estimate each study’s most influential patient
-moves furthest.</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+evaluation</a>, and the estimate each study’s most influential remaining
+patient moves furthest.</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>warfarin <span class="op">=</span> <span class="st">"warfarin-model-fit.rds"</span>,</span>
 <span>           theo_md <span class="op">=</span> <span class="st">"theo-md-model-fit.rds"</span>,</span>
 <span>           mad <span class="op">=</span> <span class="st">"mad-model-fit.rds"</span>,</span>
@@ -875,7 +1121,7 @@ the synthetic table against its source, and its section B asks whether
 any synthetic patient reproduces a real one. Four of its rows do not
 apply to this generator, because no synthetic patient is assembled from
 a real patient’s record; B3, B4b and B5 do.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">fit</span>, seed <span class="op">=</span> <span class="fl">11</span><span class="op">)</span></span>
 <span><span class="va">card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">warfarin</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">card</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substr</a></span><span class="op">(</span><span class="va">card</span><span class="op">$</span><span class="va">check</span>, <span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"B"</span>, <span class="st">"E"</span><span class="op">)</span>,</span>
@@ -909,18 +1155,84 @@ fewer than three real patients held reached the output. <a href="https://iamstei
 scorecard</a> documents each row and its pass criterion.</p>
 </div>
 <div class="section level2">
+<h2 id="membership-inference-against-the-release">Membership Inference Against the Release<a class="anchor" aria-label="anchor" href="#membership-inference-against-the-release"></a>
+</h2>
+<p>A membership-inference attack gives each candidate a score that is
+high when the release has moved, away from what the population would
+give, toward the candidate’s own values. Members of the study score
+higher on average than people who were not in it, and the attack’s
+strength is read as the AUC, the probability that a randomly chosen
+member scores above a randomly chosen non-member: 0.5 is chance and 1 is
+certain identification. The attacker modelled holds the candidate’s own
+measurements and reference values for the population, and does not know
+the other patients. The release is reduced to its two kinds of number: a
+population model of five parameters, each released as a typical value
+and a between-subject variance, and one arm’s share of patients with a
+yes/no outcome at each visit. <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-privacy-simulation.html">Membership
+inference against the PMX model release</a> works through the
+calculation on one small study, shows both tables in full, and places
+each public study’s release against them. Three readings:</p>
+<ul>
+<li>
+<strong>Cohort size decides the population model’s
+exposure.</strong> With an exact reference the AUC falls from 0.74 at 12
+patients to 0.61 at 60, and a reference off by 20% brings the two to
+0.62 and 0.52.</li>
+<li>
+<strong>Two significant figures do not change it.</strong> Scored on
+the same simulated studies before and after rounding, the AUC moves by
+at most 0.002, because an estimate’s sampling variation is larger than
+one rounding step.</li>
+<li>
+<strong>The per-visit table is the most exposed part of the
+release.</strong> Its AUC grows with the number of visits and falls with
+arm size: 0.83 for 20 visits in an arm of 10, 0.72 for 20 visits in an
+arm of 30, and 0.95 for 60 visits in an arm of 10. The three-patient
+rule moves it by at most 0.02, because the rule acts only on shares near
+0 or 1.</li>
+</ul>
+<p>An AUC averages over members, and the most exposed member is the one
+far from the typical values: that patient moves the release furthest
+toward themselves, which is what protection 8 reads. The
+membership-inference literature on machine-learning models reports
+success against such patients separately for this reason [14, 15], and
+Stadler and colleagues found that synthetic data from generative models
+leaves them exposed [16].</p>
+<p>The attacker modelled here is strong. The measurements it needs, a
+candidate’s random effects estimated from their concentrations or their
+outcome at every visit, are made by the study, and outside it exist only
+where the same quantities are measured for the same patient: at a study
+site, in a related study, or in routine care such as drug-level
+monitoring.</p>
+</div>
+<div class="section level2">
 <h2 id="outstanding-risks">Outstanding Risks<a class="anchor" aria-label="anchor" href="#outstanding-risks"></a>
 </h2>
 <p>These are the ways a release from this generator can still disclose
-something about a patient. Each is either inherent to releasing
-estimates without noise, or a gap the checks above do not yet close.</p>
+something about a patient, most serious first. Each is inherent to
+releasing estimates without noise, or a limit of the checks.</p>
 <ul>
 <li>
-<strong>An adversary who knows every other patient is not
-stopped.</strong> Such an adversary can compute the exact effect of the
+<strong>An attacker who holds a candidate’s own trial data can infer
+membership.</strong> <a href="#membership-inference-against-the-release">Membership Inference
+Against the Release</a> measures how well, and the per-visit frequency
+tables are the most exposed part of the release. Fewer per-visit numbers
+would reduce it: a time course with a few parameters for a binary or
+ordinal endpoint, as continuous PD endpoints already have, or shares
+pooled over adjacent visits. Larger arms or added noise would too.</li>
+<li>
+<strong>An attacker who knows every other patient is not
+stopped.</strong> Such an attacker can compute the exact effect of the
 one patient they do not know, so any move at all is detectable, however
-far under a threshold it sits. That adversary is the one DP is defined
+far under a threshold it sits. That attacker is the one DP is defined
 against, and only a DP mechanism stops them.</li>
+<li>
+<strong>Releases compose, and their counts are exact.</strong> The
+cohort size, the arm sizes and every frequency are exact counts or exact
+ratios of counts. Two releases from overlapping data, such as an interim
+and a final analysis, or the same study before and after one patient
+withdraws, differ by exactly what the patients between them contributed.
+Nothing here accounts for that.</li>
 <li>
 <strong>Three patients is the smallest threshold in common
 use.</strong> Every released frequency rests on at least three patients
@@ -928,56 +1240,48 @@ on each side, which is the floor the threshold rule of SDC starts from.
 A release held to a stricter rule needs <code>min_arm_patients</code>
 and <code>min_category_patients</code> raised to match.</li>
 <li>
-<strong>Numeric <code>keep</code> values are copied from one patient
-per arm.</strong> <code>keep</code> writes the arm’s first patient’s
-value onto every synthetic patient in the arm, as declared. A
-categorical value too few patients hold is removed; a numeric one is
-not, so a numeric column that varies within an arm carries one patient’s
-value. Declare there only values that are constant within an arm.</li>
+<strong>The influence reading describes this study only, and its
+thresholds are empirical.</strong> How far one patient moves an estimate
+is itself a fact about the data, which is why DP calibrates its noise to
+<em>smooth</em> sensitivity rather than local sensitivity [17]. The
+review and failure thresholds were set against the public studies above,
+so that ordinary patients pass and a gross data error fails; they are
+not derived from a privacy target. Shrinkage makes the reading
+understate the move, and where shrinkage is close to 1 the reading says
+little while its verdict still reads pass.</li>
+<li>
+<strong>Not every estimate is read.</strong> The residual error, a
+parameter estimated without a between-subject term (bioavailability in a
+mixed-route model), the PD shape parameters other than the baseline, and
+a planned dose taken as the arm’s mean where no amount is shared have no
+row.</li>
 <li>
 <strong>Leaving out stops at a tenth of the cohort.</strong> A study
 with more patients than that whom the influence reading flags keeps the
 rest, and P5 then reads a review or a failure.</li>
 <li>
-<strong>The influence reading describes this study only, and its
-thresholds are empirical.</strong> How far one patient moves an estimate
-is itself a fact about the data, which is why DP calibrates its noise to
-<em>smooth</em> sensitivity rather than local sensitivity [7]. The
-review and failure thresholds were set against the public studies above,
-so that ordinary patients pass and a gross data error fails; they are
-not derived from a privacy target. Shrinkage makes the reading
-understate the move.</li>
-<li>
-<strong>Not every estimate is read.</strong> The residual error, a
-parameter estimated without a between-subject term (bioavailability in a
-mixed-route model), and the PD shape parameters other than the baseline
-have no row.</li>
-<li>
 <strong>The full fit holds diagnostics the release does
-not.</strong> The candidate AIC values, the starting values and the
-correlations between covariates and the individual random effects stay
-on the object <code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code> returns. Share the
-release or the synthetic data, never the fit.</li>
+not.</strong> The Akaike information criterion (AIC) of every candidate
+model, the starting values and the correlations between covariates and
+the individual random effects stay on the object
+<code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code> returns. Share the release or the
+synthetic data, never the fit.</li>
 <li>
-<strong>The estimation warning names a patient.</strong> A patient
-who fails the influence reading is named on the console, so logs and
-rendered reports from the environment that holds the study carry that
-identifier.</li>
+<strong>The estimation output names patients.</strong> A patient
+left out of the estimates, and a patient who fails the influence
+reading, is named on the console, so logs and rendered reports from the
+environment that holds the study carry that identifier.</li>
 <li>
 <strong>Rarity in the world is not measured.</strong> A covariate
 level held by many patients in this study can still identify someone if
 few people alive hold it.</li>
-<li>
-<strong>Releases compose.</strong> Two releases from overlapping
-data disclose more than either alone, and nothing here accounts for
-that.</li>
 </ul>
 </div>
 <div class="section level2">
 <h2 id="what-a-formal-guarantee-would-take">What a Formal Guarantee Would Take<a class="anchor" aria-label="anchor" href="#what-a-formal-guarantee-would-take"></a>
 </h2>
 <p>The DP method that fits a generator built on <code>nlmixr2</code> is
-subsample-and-aggregate [7, 8], because it treats the estimator as a
+subsample-and-aggregate [17, 18], because it treats the estimator as a
 black box:</p>
 <ol style="list-style-type: decimal">
 <li>Split the patients into <em>k</em> disjoint groups and fit the
@@ -991,12 +1295,12 @@ per parameter, where <em>d</em> parameters share the privacy budget
 </ol>
 <p>One patient is in one group, so the guarantee holds whatever the fit
 inside a group does. The textbook DP methods for regression perturb a
-convex loss with bounded gradients [14], and a population likelihood is
+convex loss with bounded gradients [19], and a population likelihood is
 neither, which rules them out here. The cost is the error law of the <a href="https://iamstein.github.io/synpmx/articles/privacy-background.html">privacy
 background</a> with the cohort size replaced by the number of groups. At
 about twenty patients per group, and a median Laplace error of
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>b</mi><mrow><mi mathvariant="normal">ln</mi><mo>⁡</mo></mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">b \ln 2</annotation></semantics></math>:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>patients <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">60</span>, <span class="fl">200</span>, <span class="fl">1000</span><span class="op">)</span>, released <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">11</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">grid</span><span class="op">$</span><span class="va">groups</span> <span class="op">&lt;-</span> <span class="va">grid</span><span class="op">$</span><span class="va">patients</span> <span class="op">/</span> <span class="fl">20</span></span>
 <span><span class="va">scale</span> <span class="op">&lt;-</span> <span class="va">grid</span><span class="op">$</span><span class="va">released</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">*</span> <span class="va">grid</span><span class="op">$</span><span class="va">groups</span><span class="op">)</span></span>
@@ -1024,6 +1328,9 @@ implemented.</p>
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
 <ol style="list-style-type: decimal">
+<li>Dwork C, McSherry F, Nissim K, Smith A. Calibrating noise to
+sensitivity in private data analysis. <em>Theory of Cryptography
+Conference (TCC).</em> 2006.</li>
 <li>Homer N, Szelinger S, Redman M, et al. Resolving individuals
 contributing trace amounts of DNA to highly complex mixtures using
 high-density SNP genotyping microarrays. <em>PLoS Genetics.</em>
@@ -1043,26 +1350,39 @@ dosing. <em>USENIX Security Symposium.</em> 2014.</li>
 <li>Dinur I, Nissim K. Revealing information while preserving privacy.
 <em>ACM Symposium on Principles of Database Systems (PODS).</em>
 2003.</li>
-<li>Dwork C, McSherry F, Nissim K, Smith A. Calibrating noise to
-sensitivity in private data analysis. <em>Theory of Cryptography
-Conference (TCC).</em> 2006.</li>
+<li>Novartis. <code>synadam</code>: generate synthetic ADaM datasets. R
+package version 0.3.4. <a href="https://github.com/Novartis/synadam" class="external-link uri">https://github.com/Novartis/synadam</a>.</li>
+<li>Hundepool A, Domingo-Ferrer J, Franconi L, et al. <em>Statistical
+Disclosure Control.</em> Wiley; 2012.</li>
+<li>Huber PJ, Ronchetti EM. <em>Robust Statistics.</em> 2nd ed. Wiley;
+2009.</li>
+<li>Bun M, Steinke T. Average-case averages: private algorithms for
+smooth sensitivity and mean estimation. <em>Advances in Neural
+Information Processing Systems (NeurIPS).</em> 2019.</li>
+<li>Cook RD. Detection of influential observation in linear regression.
+<em>Technometrics.</em> 1977;19(1):15–18.</li>
+<li>Carlini N, Jagielski M, Zhang C, Papernot N, Terzis A, Tramèr F. The
+privacy onion effect: memorization is relative. <em>Advances in Neural
+Information Processing Systems (NeurIPS).</em> 2022.</li>
+<li>Dwork C, Lei J. Differential privacy and robust statistics. <em>ACM
+Symposium on Theory of Computing (STOC).</em> 2009.</li>
+<li>Shokri R, Stronati M, Song C, Shmatikov V. Membership inference
+attacks against machine learning models. <em>IEEE Symposium on Security
+and Privacy.</em>
+<ol start="2017" style="list-style-type: decimal"><li>
+</li></ol>
+</li>
+<li>Carlini N, Chien S, Nasr M, Song S, Terzis A, Tramèr F. Membership
+inference attacks from first principles. <em>IEEE Symposium on Security
+and Privacy.</em> 2022.</li>
+<li>Stadler T, Oprisanu B, Troncoso C. Synthetic data – anonymisation
+groundhog day. <em>USENIX Security Symposium.</em> 2022.</li>
 <li>Nissim K, Raskhodnikova S, Smith A. Smooth sensitivity and sampling
 in private data analysis. <em>ACM Symposium on Theory of Computing
 (STOC).</em> 2007.</li>
 <li>Smith A. Privacy-preserving statistical estimation with optimal
 convergence rates. <em>ACM Symposium on Theory of Computing (STOC).</em>
 2011.</li>
-<li>Hundepool A, Domingo-Ferrer J, Franconi L, et al. <em>Statistical
-Disclosure Control.</em> Wiley; 2012.</li>
-<li>Cook RD. Detection of influential observation in linear regression.
-<em>Technometrics.</em> 1977;19(1):15–18.</li>
-<li>Huber PJ, Ronchetti EM. <em>Robust Statistics.</em> 2nd ed. Wiley;
-2009.</li>
-<li>Bun M, Steinke T. Average-case averages: private algorithms for
-smooth sensitivity and mean estimation. <em>Advances in Neural
-Information Processing Systems (NeurIPS).</em> 2019.</li>
-<li>Novartis. <code>synadam</code>: generate synthetic ADaM datasets. R
-package version 0.3.4. <a href="https://github.com/Novartis/synadam" class="external-link uri">https://github.com/Novartis/synadam</a>.</li>
 <li>Chaudhuri K, Monteleoni C, Sarwate AD. Differentially private
 empirical risk minimization. <em>Journal of Machine Learning
 Research.</em> 2011;12:1069–1109.</li>

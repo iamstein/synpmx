@@ -203,8 +203,8 @@ model_fit
 #>   fixed effects      cl 2.8, v 29, q 1.9, v2 4.2, ka 1.2 
 #>   between-subject    cl 0.19, v 0.141, ka 0.52, q 0.237, v2 0.274 (as SD on the log scale)
 #>   residual error     proportional 0.22 
-#>   time to fit        53.7 s
-#>   whole call         53.7 s, against 53.7 s in the fitter
+#>   time to fit        55.8 s
+#>   whole call         55.8 s, against 55.8 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: DV: ka typical value, 9.92 %;

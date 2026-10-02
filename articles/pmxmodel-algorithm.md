@@ -603,7 +603,7 @@ and acceptance checks.
 
 model_candidates(fit)
 #>       model converged accepted      aic seconds note
-#> 1 2cmt_oral      TRUE     TRUE 922.2948  59.715
+#> 1 2cmt_oral      TRUE     TRUE 922.2948  58.963
 ```
 
 ### Covariates
@@ -753,11 +753,10 @@ discloses as much as “one patient came”:
   rounded to 0 or 1, whichever is nearer, and a tie keeps the visit.
 
 Each arm also carries the values of its `strata` and `keep` columns,
-copied from the arm’s first patient as declared. A categorical `keep`
-value fewer than `min_category_patients` patients in the arm hold is
-written as missing, with a warning; a numeric value is carried
-unchanged. A `strata` column is exempt, because it defines the arm and
-the arm has its own floor.
+copied from the arm’s first patient as declared. A `keep` value of any
+type that fewer than `min_category_patients` patients in the arm hold is
+written as missing, with a warning. A `strata` column is exempt, because
+it defines the arm and the arm has its own floor.
 
 Baseline covariates are drawn independently from study-wide
 distributions. Each patient’s first row contributes one value, after
@@ -869,6 +868,18 @@ covariate correlations and the reading above and then dropped, from
 every concentration endpoint’s model. Generation draws random effects
 from the covariance matrix instead.
 
+**The schema stores no level fewer than `min_category_patients` patients
+hold.** The schema describes the table Step 6 writes: its columns and
+their types, the values copied onto each arm, and each endpoint’s value
+type. A factor column copied onto arms keeps the values its arms carry,
+and any other factor column the levels at least `min_category_patients`
+patients hold; a binary or ordinal endpoint keeps the levels that many
+patients recorded. The label of an arm too small to keep, or a grade one
+patient reached once, is not written into the release. An inferred
+binary or ordinal type left with fewer than two levels is stored as
+whole numbers, because its type alone would say the rarer level had been
+seen.
+
 ``` r
 
 model_report(fit)
@@ -915,8 +926,8 @@ model_report(fit)
 #>   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 
 #>   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)
 #>   residual error     proportional 0.21 
-#>   time to fit        59.7 s
-#>   whole call         59.9 s, against 59.7 s in the fitter
+#>   time to fit        59.0 s
+#>   whole call         59.2 s, against 59.0 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;
@@ -997,7 +1008,8 @@ fit badly is fitted, and told about.
 | Single-patient influence | a move of 15 or more, in % or points | Leaves the patient out of the PK, PD and covariate estimates and estimates again, at most a tenth of the cohort, naming them on the console. A move still at 15 is a review and at 30 a failure that warns; `drop_influential = FALSE` skips the leaving out. Read by [`model_privacy_checks()`](https://iamstein.github.io/synpmx/reference/model_privacy_checks.md) and scorecard row E3; nothing per patient is stored. |
 | Thin dose-change rate | fewer than `min_arm_patients` patients with the event | Takes the rate pooled over arms where that rests on enough patients, and is zero otherwise. A reduction is zeroed. |
 | Thin attendance fraction | fewer than `min_arm_patients` patients attending or missing | Rounded to 0 or 1, whichever is nearer; a tie keeps the visit. |
-| Rare kept value | a categorical `keep` value fewer than `min_category_patients` patients in the arm hold | Written as missing, with a warning. Numeric values, and `strata` columns, are carried unchanged. |
+| Rare kept value | a `keep` value of any type fewer than `min_category_patients` patients in the arm hold | Written as missing, with a warning. `strata` columns are carried unchanged. |
+| Rare level in the schema | a factor column’s level, or a binary or ordinal endpoint’s level, fewer than `min_category_patients` patients hold | Not stored. A column copied onto arms keeps the values its arms carry. An inferred binary or ordinal type left with fewer than two levels is stored as whole numbers. |
 | No grid cell shared | `min_arm_patients` | The cell is dropped. A nominal time one patient attended is that patient. |
 | Administration column | `adm` and `routes` together | Errors on either alone. What an administration id means is a convention of the dataset, and reading it wrong routes every dose to the wrong compartment silently. |
 | PD shape candidacy | 1 residual degree of freedom | The shape is dropped from the comparison, not the endpoint from the study. Below every candidate the endpoint is generated as a constant at its mean. A shape fitted exactly through its own points has `AIC` `-Inf` and would win any comparison it entered. |
