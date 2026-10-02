@@ -562,10 +562,12 @@
   }), endpoints)
 
   # Each arm's value of every carried column, copied from the arm's first
-  # patient as `keep` declares. A categorical `keep` value fewer than
-  # `min_patients` patients in the arm hold is one or two patients' value, and
-  # is written as missing instead (REV-066); a numeric value is carried as it
-  # is. A `strata` column is exempt: it defines the arm, whose own floor is
+  # patient as `keep` declares. A `keep` value fewer than `min_patients`
+  # patients in the arm hold is one or two patients' value, and is written as
+  # missing instead, whatever its type (REV-066, REV-069): a numeric column that
+  # varies within an arm, an age or a date, would otherwise put the first
+  # patient's own number on every synthetic patient in the arm. A `strata`
+  # column is exempt: it defines the arm, whose own floor is
   # `min_arm_patients`, and a caller who lowers that floor below this one has
   # said an arm that small is still an arm.
   carried <- intersect(c(roles$strata, roles$keep), names(source))
@@ -581,8 +583,7 @@
                                 function(column) {
       value <- .first_present(source[[column]][member_rows[[1L]]])
       if (is.factor(value)) value <- as.character(value)
-      if (!column %in% roles$strata &&
-          (is.character(value) || is.logical(value)) && !is.na(value)) {
+      if (!column %in% roles$strata && !is.na(value)) {
         holders <- sum(vapply(member_rows, function(rows) {
           own <- .first_present(source[[column]][rows])
           !is.na(own) && identical(as.character(own), as.character(value))
@@ -590,7 +591,8 @@
         if (holders < min_patients) {
           removed <<- c(removed, sprintf("`%s` in arm %s", column,
                                          .arm_label(arm)))
-          value <- if (is.logical(value)) NA else NA_character_
+          # Missing in the value's own class, so a date stays a date.
+          value <- value[NA_integer_]
         }
       }
       value
@@ -602,7 +604,7 @@
       " patients in its arm is written as missing:",
       items = removed,
       why = paste("`keep` copies each arm's value from its first patient, and",
-                  "a categorical value one or two patients hold is theirs."),
+                  "a value one or two patients hold is theirs."),
       fix = "Declare in `keep` only values that are constant within an arm."),
       call. = FALSE)
   }
@@ -622,9 +624,34 @@
   # schema. A numeric ID keeps only an offset, the largest ID rounded up to a
   # power of ten, so that a synthetic ID cannot collide with a real one and
   # the largest real ID is not stored.
+  #
+  # Nor is any other level fewer than `min_patients` patients hold
+  # (pmxmodel-algorithm.Rmd, Step 5; REV-067).
+  # Every level of the source factor otherwise travelled in its prototype and
+  # into the generated column: a `strata` column kept the label of an arm
+  # dropped for having too few patients, and a `keep` column a site one patient
+  # came from. A carried column keeps the values its arms carry, which already
+  # meet their floors; any other factor keeps the levels at least
+  # `min_patients` patients hold. A covariate is left to the generator, whose
+  # covariate model excludes the same levels.
   identifiers <- source[[roles$id]]
   prototypes <- lapply(stats::setNames(names(source), names(source)),
-                       function(column) source[[column]][0L])
+                       function(column) {
+    prototype <- source[[column]][0L]
+    if (!is.factor(prototype) || identical(column, roles$id) ||
+        column %in% roles$covariates) {
+      return(prototype)
+    }
+    kept <- if (column %in% carried) {
+      unlist(lapply(arm_values, function(values) {
+        as.character(values[[column]])
+      }), use.names = FALSE)
+    } else {
+      .held_levels(source[[column]], identifiers, min_patients)
+    }
+    factor(character(), levels = levels(prototype)[levels(prototype) %in% kept],
+           ordered = is.ordered(prototype))
+  })
   if (is.factor(prototypes[[roles$id]])) {
     prototypes[[roles$id]] <- factor(character())
   }
@@ -638,19 +665,60 @@
     cmt_dose_adm = cmt_dose_adm,
     adm_class = adm_class, cmt_obs = cmt_obs,
     carried = carried, arm_values = arm_values,
-    # The value types without their reason text (REV-060). An inferred reason
-    # quotes the observed range -- "53 whole-number levels, from 9 to 100" --
-    # and a minimum and a maximum are each one patient's value. Generation reads
-    # the type, the levels and the sign.
-    endpoint_specs = lapply(.endpoint_value_types(source, roles), function(spec) {
-      spec$reason <- if (isTRUE(spec$declared)) {
-        "declared in `pmx_roles(endpoint_types = )`"
-      } else {
-        paste(spec$type, "values, inferred from the data")
-      }
-      spec
-    })
+    endpoint_specs = .released_endpoint_specs(source, roles, min_patients)
   )
+}
+
+# The values of `x` at least `minimum` distinct patients hold, on any row.
+.held_levels <- function(x, ids, minimum) {
+  present <- !is.na(x) & !is.na(ids)
+  if (!any(present)) return(character())
+  holders <- tapply(as.character(ids[present]), as.character(x[present]),
+                    function(h) length(unique(h)))
+  names(holders)[holders >= minimum]
+}
+
+# Each endpoint's value type as the schema stores it. Generation reads the
+# type, the levels and the sign, to snap a generated value onto the scale.
+# pmxmodel-algorithm.Rmd, Step 5.
+#
+# Without the reason text (REV-060): an inferred reason quotes the observed
+# range -- "53 whole-number levels, from 9 to 100" -- and a minimum and a
+# maximum are each one patient's value. And without a level fewer than
+# `min_patients` patients recorded (REV-068): a binary or ordinal endpoint's
+# levels are every value recorded, so a grade one patient reached once was
+# stored, and with it the highest grade. The discrete model already folds such
+# a level away, so generation never draws it. An inferred binary or ordinal
+# endpoint left with fewer than two levels is stored as whole numbers, because
+# its type alone would say the rarer level had been seen; a declared type is
+# the caller's and stays.
+.released_endpoint_specs <- function(source, roles, min_patients) {
+  observed <- .observation_rows(source, roles, require_present = TRUE)
+  endpoint <- .endpoint(source, roles)
+  ids <- as.character(source[[roles$id]])
+  dv <- suppressWarnings(as.numeric(source[[roles$dv]]))
+  specs <- .endpoint_value_types(source, roles)
+  stats::setNames(lapply(names(specs), function(name) {
+    spec <- specs[[name]]
+    if (length(spec$levels)) {
+      at <- which(observed & endpoint == name & is.finite(dv) & !is.na(ids))
+      held <- vapply(spec$levels, function(level) {
+        length(unique(ids[at][abs(dv[at] - level) <= 1e-8]))
+      }, integer(1))
+      spec$levels <- spec$levels[held >= min_patients]
+      if (length(spec$levels)) spec$nonnegative <- min(spec$levels) >= 0
+      if (!isTRUE(spec$declared) && length(spec$levels) < 2L) {
+        spec$type <- "integer"
+        spec$levels <- NULL
+      }
+    }
+    spec$reason <- if (isTRUE(spec$declared)) {
+      "declared in `pmx_roles(endpoint_types = )`"
+    } else {
+      paste(spec$type, "values, inferred from the data")
+    }
+    spec
+  }), names(specs))
 }
 
 # The offset synthetic numeric IDs count up from: the largest source ID rounded

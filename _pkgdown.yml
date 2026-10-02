@@ -72,6 +72,8 @@ navbar:
         href: articles/pmxmodel-fingerprint.html
       - text: Privacy protections and checks
         href: articles/pmxmodel-privacy.html
+      - text: Membership inference, by simulation
+        href: articles/pmxmodel-privacy-simulation.html
     avatar:
       text: 2. AVATAR
       menu:

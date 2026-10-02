@@ -469,6 +469,106 @@ test_that("a categorical kept value one or two patients hold is removed, and the
   expect_identical(schema$arm_values$Placebo$CROSSOVER, first)
 })
 
+test_that("a factor column keeps only the levels its arms carry or several patients hold (REV-067)", {
+  data <- onc_sim
+  ids <- unique(data$ID)
+  # A two-patient arm the floor drops, whose label survived as a level, and a
+  # site one patient came from.
+  data$ARM[data$ID %in% ids[1:2]] <- "Two-patient cohort"
+  data$ARM <- factor(data$ARM)
+  data$SITE <- factor(ifelse(data$ID == ids[[3L]], "Reykjavik", "Boston"))
+  roles <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",
+                     dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT",
+                     dvid = "NAME", strata = "ARM", keep = "SITE")
+  group <- .model_subject_arms(data, roles)
+  kept <- suppressWarnings(.drop_short_arms(group, 3L, "test"))
+  data <- data[data$ID %in% names(group)[kept], ]
+  schema <- suppressWarnings(.source_schema(
+    data, roles, c("SLD", "Everolimus trough"), group[kept]))
+  expect_setequal(levels(schema$prototypes$ARM),
+                  c("Everolimus 10 mg", "Placebo"))
+  expect_false("Reykjavik" %in% levels(schema$prototypes$SITE))
+  expect_true("Boston" %in% levels(schema$prototypes$SITE))
+  # The generated column carries the prototype's levels, and loses no value an
+  # arm carries.
+  carried <- unlist(lapply(schema$arm_values, function(v) v$SITE))
+  restored <- .restore_column(carried, schema$prototypes$SITE)
+  expect_identical(is.na(restored), unname(is.na(carried)))
+
+  # P3 catches a level no arm carries on a release assembled any other way.
+  stored <- system.file("extdata", "warfarin-model-fit.rds", package = "synpmx")
+  skip_if(!nzchar(stored), "stored fit unavailable")
+  fit <- readRDS(stored)
+  fit$schema$carried <- "SITE"
+  fit$schema$prototypes$SITE <- factor(character(),
+                                       levels = c("Boston", "Reykjavik"))
+  fit$schema$arm_values <- lapply(fit$schema$arm_values,
+                                  function(v) c(v, list(SITE = "Boston")))
+  checks <- model_privacy_checks(fit)
+  expect_equal(checks$verdict[checks$check == "P3"], "FAIL")
+  expect_match(checks$result[checks$check == "P3"],
+               "factor level no arm carries: SITE")
+})
+
+test_that("an endpoint's stored levels leave out a level one or two patients recorded (REV-068)", {
+  data <- onc_sim
+  sld <- data[data$EVID == 0 & data$NAME %in% "SLD", ]
+  grade <- sld
+  grade$NAME <- "GRADE"
+  grade$DV <- seq_len(nrow(grade)) %% 3
+  grade$DV[which(grade$ID == grade$ID[[1L]])[[1L]]] <- 4
+  event <- sld
+  event$NAME <- "EVENT"
+  event$DV <- 0
+  event$DV[[1L]] <- 1
+  data <- rbind(data, grade, event)
+  roles <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",
+                     dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT",
+                     dvid = "NAME", strata = "ARM")
+  group <- .model_subject_arms(data, roles)
+  specs <- .source_schema(data, roles, c("SLD", "GRADE", "EVENT"),
+                          group)$endpoint_specs
+  expect_identical(specs$GRADE$type, "ordinal")
+  expect_equal(specs$GRADE$levels, c(0, 1, 2))
+  # Generation cannot emit the grade one patient reached once.
+  expect_equal(.snap_endpoint_values(c(4, 3.6), specs$GRADE), c(2, 2))
+  # An inferred binary type would itself say a 1 was recorded.
+  expect_identical(specs$EVENT$type, "integer")
+  expect_null(specs$EVENT$levels)
+  # A declared type is the caller's, and stays.
+  declared <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",
+                        dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT",
+                        dvid = "NAME", strata = "ARM",
+                        endpoint_types = c(EVENT = "binary"))
+  declared_specs <- .source_schema(data, declared, c("SLD", "EVENT"),
+                                   group)$endpoint_specs
+  expect_identical(declared_specs$EVENT$type, "binary")
+  expect_equal(declared_specs$EVENT$levels, 0)
+})
+
+test_that("a kept value of any type one or two patients hold is removed (REV-069)", {
+  data <- onc_sim
+  data$WEIGHT <- 50 + data$ID / 7
+  data$ENROLLED <- as.Date("2020-01-01") + data$ID
+  data$PLANNED <- ifelse(data$ARM == "Placebo", 0, 10)
+  roles <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",
+                     dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT",
+                     dvid = "NAME", strata = "ARM",
+                     keep = c("WEIGHT", "ENROLLED", "PLANNED"))
+  group <- .model_subject_arms(data, roles)
+  expect_warning(schema <- .source_schema(data, roles, "Everolimus trough",
+                                          group),
+                 "carried value held by fewer than 3")
+  for (arm in names(schema$arm_values)) {
+    expect_true(is.na(schema$arm_values[[arm]]$WEIGHT))
+    expect_true(is.na(schema$arm_values[[arm]]$ENROLLED))
+    expect_s3_class(schema$arm_values[[arm]]$ENROLLED, "Date")
+  }
+  # A value constant within the arm is copied as declared.
+  expect_equal(schema$arm_values$Placebo$PLANNED, 0)
+  expect_equal(schema$arm_values$`Everolimus 10 mg`$PLANNED, 10)
+})
+
 test_that("P4 recounts the smallest group behind every kind of released frequency", {
   stored <- system.file("extdata", "warfarin-model-fit.rds", package = "synpmx")
   skip_if(!nzchar(stored), "stored fit unavailable")
@@ -479,6 +579,9 @@ test_that("P4 recounts the smallest group behind every kind of released frequenc
                     names(audit)))
   known <- audit[is.finite(audit$smallest), ]
   expect_true(all(known$smallest >= known$threshold))
+  # `warfarin`'s endpoint column is a factor, so its stored levels are counted.
+  expect_true("patients holding a level of a factor column" %in%
+                audit$quantity)
   checks <- model_privacy_checks(fit)
   expect_equal(checks$verdict[checks$check == "P4"], "pass")
   expect_s3_class(attr(checks, "frequencies"), "data.frame")

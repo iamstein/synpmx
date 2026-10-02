@@ -26,8 +26,9 @@ The first three ask whether the release holds anything about one patient
 that it should not: a per-patient table, an identifier, or a single
 patient's value. The fourth recounts the smallest group of patients behind
 each kind of released frequency -- arm sizes, attendance, dose-change rates,
-categorical levels and carried values -- on both sides of it, since "one
-patient missed this visit" discloses as much as "one patient came". The
+categorical levels, carried values, and the levels the schema keeps for
+factor columns and binary or ordinal endpoints -- on both sides of it, since
+"one patient missed this visit" discloses as much as "one patient came". The
 fifth asks how far any one patient moves a released estimate, from the
 individual random effects for the population model, from each subject's
 baseline for the PD shapes, and by leaving each patient out for the

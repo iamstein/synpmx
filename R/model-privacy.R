@@ -387,8 +387,9 @@ print.pmx_model_release <- function(x, ...) {
 #' that it should not: a per-patient table, an identifier, or a single
 #' patient's value. The fourth recounts the smallest group of patients behind
 #' each kind of released frequency -- arm sizes, attendance, dose-change rates,
-#' categorical levels and carried values -- on both sides of it, since "one
-#' patient missed this visit" discloses as much as "one patient came". The
+#' categorical levels, carried values, and the levels the schema keeps for
+#' factor columns and binary or ordinal endpoints -- on both sides of it, since
+#' "one patient missed this visit" discloses as much as "one patient came". The
 #' fifth asks how far any one patient moves a released estimate, from the
 #' individual random effects for the population model, from each subject's
 #' baseline for the PD shapes, and by leaving each patient out for the
@@ -453,16 +454,28 @@ model_privacy_checks <- function(fitted_model) {
     function(effect) effect$reference)))
   unrounded <- references[abs(references - signif(references, 1L)) >
                             1e-9 * abs(references)]
+  # A factor level of a carried column that no arm carries (REV-067): the label
+  # of an arm dropped for being too small, or a value one patient held.
+  uncarried <- Filter(function(column) {
+    prototype <- schema$prototypes[[column]]
+    carried_values <- unlist(lapply(schema$arm_values, function(values) {
+      as.character(values[[column]])
+    }), use.names = FALSE)
+    is.factor(prototype) && length(setdiff(levels(prototype), carried_values))
+  }, schema$carried %||% character())
   values <- c(
     if (!all(on_series)) paste("floor not on the 1-2-5 series:",
                                paste(names(floors)[!on_series], collapse = ", ")),
     if (length(medians)) paste("covariate median stored:",
                                paste(medians, collapse = ", ")),
-    if (length(unrounded)) "allometric reference not rounded")
+    if (length(unrounded)) "allometric reference not rounded",
+    if (length(uncarried)) paste("factor level no arm carries:",
+                                 paste(uncarried, collapse = ", ")))
   p3 <- list(result = if (!length(values)) {
     paste0("none: ", if (length(floors)) "floors on the 1-2-5 series, " else "",
            "covariates summarized without their extremes, ",
-           "no median, minimum or maximum stored")
+           "no median, minimum or maximum stored, ",
+           "no factor level beyond what the arms carry")
   } else paste(values, collapse = "; "), ok = !length(values))
 
   sizes <- as.integer(release$arms$sizes)
@@ -513,7 +526,8 @@ model_privacy_checks <- function(fitted_model) {
     criterion = c(
       "the release holds only the fields generation reads, none of them per patient",
       "no source ID label, and no source ID value as the synthetic ID offset",
-      "no order statistic: floors coarsened, no median, minimum or maximum",
+      paste("no order statistic: floors coarsened, no median, minimum or",
+            "maximum; no factor level of a carried column that no arm carries"),
       sprintf(paste("each side of every released frequency none or at",
                     "least %d patients (%d for categorical levels)"),
               k_arm, k_level),
@@ -770,9 +784,7 @@ print.pmx_privacy_checks <- function(x, ...) {
       members <- first_row[subject_group == arm]
       for (column in carried) {
         stored <- schema$arm_values[[arm]][[column]]
-        own <- source[[column]][members]
-        if (is.numeric(own) && !is.factor(own)) next
-        own <- as.character(own)
+        own <- as.character(source[[column]][members])
         if (is.null(stored) || is.na(stored)) {
           if (!is.na(own[[1L]])) removed <- removed + 1L
           next
@@ -782,9 +794,60 @@ print.pmx_privacy_checks <- function(x, ...) {
       }
     }
     rows[[length(rows) + 1L]] <- row(
-      "patients holding an arm's categorical keep value",
+      "patients holding an arm's keep value",
       smallest_of(carried_holders), removed, k_level,
       "a value fewer hold is written as missing")
+  }
+
+  # The levels the schema keeps for a factor column (REV-067), other than the
+  # subject identifier, which keeps none, a covariate, counted above, and a
+  # stratum, whose levels are the arms counted first.
+  factor_holders <- numeric()
+  dropped <- 0L
+  for (column in names(schema$prototypes)) {
+    prototype <- schema$prototypes[[column]]
+    if (!is.factor(prototype) || identical(column, roles$id) ||
+        column %in% c(roles$covariates, roles$strata) ||
+        !column %in% names(source)) next
+    values <- as.character(source[[column]])
+    factor_holders <- c(factor_holders, vapply(levels(prototype),
+      function(level) {
+        length(unique(ids[!is.na(values) & values == level]))
+      }, numeric(1)))
+    if (is.factor(source[[column]])) {
+      dropped <- dropped + length(setdiff(levels(source[[column]]),
+                                          levels(prototype)))
+    }
+  }
+  if (length(factor_holders) || dropped) {
+    rows[[length(rows) + 1L]] <- row(
+      "patients holding a level of a factor column",
+      smallest_of(factor_holders), dropped, k_level,
+      "a rarer level, or one no arm carries, is not stored")
+  }
+
+  # The levels the schema keeps for each binary or ordinal endpoint's value
+  # type (REV-068), against every level the study recorded.
+  recorded <- .endpoint_value_types(source, roles)
+  observed <- .observation_rows(source, roles, require_present = TRUE)
+  endpoint <- .endpoint(source, roles)
+  dv <- suppressWarnings(as.numeric(source[[roles$dv]]))
+  endpoint_holders <- numeric()
+  dropped <- 0L
+  for (name in names(recorded)) {
+    if (!length(recorded[[name]]$levels)) next
+    stored <- schema$endpoint_specs[[name]]$levels
+    at <- which(observed & endpoint == name & is.finite(dv))
+    endpoint_holders <- c(endpoint_holders, vapply(stored, function(level) {
+      length(unique(ids[at][abs(dv[at] - level) <= 1e-8]))
+    }, numeric(1)))
+    dropped <- dropped + length(recorded[[name]]$levels) - length(stored)
+  }
+  if (length(endpoint_holders) || dropped) {
+    rows[[length(rows) + 1L]] <- row(
+      "patients holding a discrete endpoint's level in the schema",
+      smallest_of(endpoint_holders), dropped, k_level,
+      "a rarer level is not stored")
   }
   out <- do.call(rbind, rows)
   rownames(out) <- NULL
