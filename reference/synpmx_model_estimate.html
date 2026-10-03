@@ -174,7 +174,9 @@ course, so a synthetic patient's dose does not reach their response.
 <code>TRUE</code> gives each arm its own shape, selected on AIC within that arm and
 asserting no dose-response form; an arm holding too little of an endpoint
 to fit keeps the pooled shape. Costs nothing measurable, since these are
-least-squares fits.</p></dd>
+least-squares fits. The same switch governs a binary or ordinal endpoint's
+level frequencies at each visit: pooled over arms by default, as the
+visit and dose-change models always are, and read per arm under <code>TRUE</code>.</p></dd>
 
 
 <dt id="arg-endpoint-roles">endpoint_roles<a class="anchor" aria-label="anchor" href="#arg-endpoint-roles"></a></dt>

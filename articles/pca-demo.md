@@ -9,8 +9,8 @@ reduces the study to summaries and
 builds a dataset from those summaries alone. No number a patient
 measured reaches the output. What it carries out of the source is a
 mean, a scale, a set of principal-component loadings, one mean score
-vector per arm, a residual covariance, and a dosing and visit
-trial_summary per arm.
+vector per arm, a residual covariance, a planned dose schedule per arm,
+and dose-change rates and visit probabilities pooled over the arms.
 
 It makes no formal privacy claim, and it is not for estimation. The full
 specification is in

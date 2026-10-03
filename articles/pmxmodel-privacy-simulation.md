@@ -14,9 +14,9 @@ in this article.
 **The simulated release is a simplified model of the real one, and is
 not the package’s code.** It keeps the two kinds of number that
 membership inference works on, a population model’s typical values and
-variances, and an arm’s share of patients with an outcome at each visit,
-and reduces each to what the attack needs. The code is shown in full at
-the end.
+variances, and the share of patients with an outcome at each visit, and
+reduces each to what the attack needs. The code is shown in full at the
+end.
 
 ## What the Attacker Holds
 
@@ -41,9 +41,9 @@ The attack measures that lean.
 
 ## One Arm, Five Visits
 
-The smallest case shows every step. An arm of 10 patients records a
-yes/no outcome at 5 visits, such as whether a symptom was present, and
-the true rate of a yes differs by visit. Each row is a patient:
+The smallest case shows every step. Ten patients record a yes/no outcome
+at 5 visits, such as whether a symptom was present, and the true rate of
+a yes differs by visit. Each row is a patient:
 
 ``` r
 
@@ -65,9 +65,9 @@ arm
 #> patient 10       0       1       0       1       1
 ```
 
-The release holds the arm’s share of patients with a yes at each visit,
-after the floor that rounds a share with one or two patients on either
-side to 0 or 1:
+The release holds the share of patients with a yes at each visit, after
+the floor that rounds a share with one or two patients on either side to
+0 or 1:
 
 ``` r
 
@@ -81,7 +81,7 @@ rbind(true_rate = rate, released_share = released)
 At visit 2, 8 of the 10 patients had a yes, which leaves 2 with a no, so
 the floor released the share as 1.
 
-There are two candidates: patient 1, who is in the arm, and a new
+There are two candidates: patient 1, who is in the study, and a new
 patient from the same population, who is not.
 
 ``` r
@@ -128,8 +128,8 @@ more than one patient’s tenth. The lean shows over many studies.
 
 The experiment is repeated: a new study is drawn, one member and one
 non-member are scored, and this is done 2,000 times. Each panel shows
-the two resulting piles of scores, for an arm of 10 patients measured at
-5, 20 or 60 visits:
+the two resulting piles of scores, for 10 patients measured at 5, 20 or
+60 visits:
 
 ``` r
 
@@ -195,23 +195,29 @@ how far the release, taken over many people, gives membership away.
 tables <- membership_tables()
 frequency <- tables$frequency
 data.frame(visits = frequency$visits,
-           patients_in_arm = frequency$patients,
+           patients_behind_share = frequency$patients,
            correlation_within_patient = frequency$correlation,
            auc_without_floor = two(frequency$without_floor),
            auc_released = two(frequency$released))
-#>    visits patients_in_arm correlation_within_patient auc_without_floor
-#> 1       5              10                        0.0              0.70
-#> 2      20              10                        0.0              0.85
-#> 3      60              10                        0.0              0.96
-#> 4       5              30                        0.0              0.63
-#> 5      20              30                        0.0              0.72
-#> 6      60              30                        0.0              0.84
-#> 7       5              10                        0.6              0.65
-#> 8      20              10                        0.6              0.72
-#> 9      60              10                        0.6              0.75
-#> 10      5              30                        0.6              0.61
-#> 11     20              30                        0.6              0.62
-#> 12     60              30                        0.6              0.65
+#>    visits patients_behind_share correlation_within_patient auc_without_floor
+#> 1       5                    10                        0.0              0.70
+#> 2      20                    10                        0.0              0.85
+#> 3      60                    10                        0.0              0.96
+#> 4       5                    30                        0.0              0.63
+#> 5      20                    30                        0.0              0.72
+#> 6      60                    30                        0.0              0.84
+#> 7       5                   100                        0.0              0.57
+#> 8      20                   100                        0.0              0.63
+#> 9      60                   100                        0.0              0.72
+#> 10      5                    10                        0.6              0.64
+#> 11     20                    10                        0.6              0.72
+#> 12     60                    10                        0.6              0.75
+#> 13      5                    30                        0.6              0.58
+#> 14     20                    30                        0.6              0.63
+#> 15     60                    30                        0.6              0.63
+#> 16      5                   100                        0.6              0.56
+#> 17     20                   100                        0.6              0.56
+#> 18     60                   100                        0.6              0.58
 #>    auc_released
 #> 1          0.70
 #> 2          0.83
@@ -219,12 +225,18 @@ data.frame(visits = frequency$visits,
 #> 4          0.63
 #> 5          0.72
 #> 6          0.84
-#> 7          0.64
-#> 8          0.72
-#> 9          0.74
-#> 10         0.61
-#> 11         0.62
-#> 12         0.65
+#> 7          0.57
+#> 8          0.63
+#> 9          0.72
+#> 10         0.64
+#> 11         0.72
+#> 12         0.75
+#> 13         0.58
+#> 14         0.63
+#> 15         0.63
+#> 16         0.56
+#> 17         0.56
+#> 18         0.58
 ```
 
 Each row is one setting of the experiment above, repeated 1,500 times,
@@ -232,8 +244,9 @@ with the rate at each visit drawn between 0.2 and 0.8:
 
 - `visits` is how many visits record the outcome, and so how many shares
   the release holds for the arm.
-- `patients_in_arm` is the arm’s size. Each patient is one of that many
-  behind every share.
+- `patients_behind_share` is how many patients each share is a share of.
+  The release pools a share over the arms that have the visit, so this
+  is usually the whole cohort.
 - `correlation_within_patient` is 0 where a patient’s visits are
   independent, and 0.6 where a patient with a yes at one visit is much
   more likely to have one at the next, as a chronic symptom would be.
@@ -244,27 +257,28 @@ with the rate at each visit drawn between 0.2 and 0.8:
   releases it. Both columns score the same simulated studies, so they
   differ only by what the floor does.
 
-Read across one row: in an arm of 10 patients with a yes/no outcome at
-20 independent visits, an attacker who holds one candidate’s 20 outcomes
-and the true rate at each visit picks the member over the non-member
-with probability 0.83.
+Read across one row: with 10 patients behind each share and a yes/no
+outcome at 20 independent visits, an attacker who holds one candidate’s
+20 outcomes and the true rate at each visit picks the member over the
+non-member with probability 0.83.
 
 Three things move the AUC, and the floor barely does. **More visits
 raise it**, because each visit adds the same small lean toward every
 member: the leans add up in proportion to the number of visits, while
-the chance variation grows only with its square root. **A larger arm
-lowers it**, because each patient is a smaller part of every share.
-**Correlation within a patient lowers it**, because correlated visits
-repeat the same information. **The floor barely moves it**, because it
-changes only shares near 0 or 1.
+the chance variation grows only with its square root. **More patients
+behind each share lower it**, because each patient is a smaller part of
+every share. **Correlation within a patient lowers it**, because
+correlated visits repeat the same information. **The floor barely moves
+it**, because it changes only shares near 0 or 1.
 
-In the release, two fields are tables of this kind. `visits` holds each
-arm’s share of patients measured at each scheduled visit, where the
-candidate’s outcome is whether they attended; `discrete` holds each
-arm’s share of patients at each level of a binary or ordinal endpoint at
-each visit. A share of 0 or 1 says the same about every patient in the
-arm and gives the attacker nothing, so the shares that count are those
-strictly between 0 and 1.
+In the release, two fields are tables of this kind. `visits` holds the
+share of patients measured at each scheduled visit, where the
+candidate’s outcome is whether they attended; `discrete` holds the share
+of patients at each level of a binary or ordinal endpoint at each visit.
+Both are pooled over the arms that have the visit, so the patients
+behind a share are those arms’ patients together. A share of 0 or 1 says
+the same about every patient behind it and gives the attacker nothing,
+so the shares that count are those strictly between 0 and 1.
 
 ## The Population-Model Table
 
@@ -329,11 +343,12 @@ next is larger than one rounding step.
 The features that place a study among the rows above, read from the
 release of each stored fit in the [public-data
 evaluation](https://iamstein.github.io/synpmx/articles/pmxmodel-public-data-examples.html):
-the arm sizes, the number of random effects, and for each arm the number
-of per-visit shares strictly between 0 and 1, in `visits` and in
-`discrete`. At a visit where a binary or ordinal endpoint has several
-levels, their shares add up to 1, so the visit counts one fewer than its
-number of levels: one for a yes/no outcome, as in the simulation.
+the number of random effects, and for `visits` and `discrete` the number
+of per-visit shares strictly between 0 and 1 with the fewest patients
+behind any of them. At a visit where a binary or ordinal endpoint has
+several levels, their shares add up to 1, so the visit counts one fewer
+than its number of levels: one for a yes/no outcome, as in the
+simulation.
 
 ``` r
 
@@ -351,60 +366,66 @@ rows <- lapply(names(files), function(study) {
   fit <- stored_fit(files[[study]])
   if (!inherits(fit, "pmx_fitted_model")) return(NULL)
   release <- model_release(fit)
-  arms <- names(release$arms$sizes)
-  between <- function(p) sum(p > 0 & p < 1)
-  attendance <- vapply(arms, function(arm) {
-    between(as.numeric(release$visits[[arm]]$probability))
-  }, numeric(1))
-  levels <- vapply(arms, function(arm) {
-    marginals <- release$discrete[[arm]]
-    if (is.null(marginals)) return(0)
-    sum(vapply(marginals, function(marginal) {
-      if (is.null(marginal)) 0 else max(0, between(marginal$probability) - 1)
-    }, numeric(1)))
-  }, numeric(1))
-  data.frame(study = study,
-             arm_sizes = paste(unique(range(release$arms$sizes)),
-                               collapse = " to "),
+  sizes <- release$arms$sizes
+  arms <- names(sizes)
+  # Each visit's share once, with the patients of every arm that has it.
+  attendance <- vapply(seq_len(nrow(release$cells)), function(i) {
+    p <- vapply(arms, function(arm) {
+      as.numeric(release$visits[[arm]]$probability)[[i]]
+    }, numeric(1))
+    c(free = as.numeric(max(p) > 0 && max(p) < 1),
+      behind = sum(sizes[p > 0]))
+  }, numeric(2))
+  levels <- vapply(seq_len(nrow(release$cells)), function(i) {
+    marginals <- lapply(arms, function(arm) release$discrete[[arm]][[i]])
+    held <- !vapply(marginals, is.null, logical(1))
+    if (!any(held)) return(c(free = 0, behind = 0))
+    p <- marginals[[which(held)[[1L]]]]$probability
+    c(free = max(0, sum(p > 0 & p < 1) - 1), behind = sum(sizes[held]))
+  }, numeric(2))
+  fewest <- function(counts) {
+    behind <- counts["behind", counts["free", ] > 0]
+    if (length(behind)) min(behind) else NA
+  }
+  data.frame(study = study, patients = sum(sizes),
              random_effects = sum(vapply(release$pk_models, function(model) {
                nrow(model$parameters$omega)
              }, integer(1))),
-             attendance_shares_per_arm = paste(unique(range(attendance)),
-                                               collapse = " to "),
-             discrete_shares_per_arm = paste(unique(range(levels)),
-                                             collapse = " to "))
+             attendance_shares = sum(attendance["free", ]),
+             fewest_behind_attendance = fewest(attendance),
+             discrete_shares = sum(levels["free", ]),
+             fewest_behind_discrete = fewest(levels))
 })
 do.call(rbind, rows[!vapply(rows, is.null, logical(1))])
-#>           study arm_sizes random_effects attendance_shares_per_arm
-#> 1      warfarin        32              5                        10
-#> 2       theo_md        12              5                         6
-#> 3           mad        10              5                         0
-#> 4    case1_pkpd        30              5                         0
-#> 5        wbcSim        45              0                        10
-#> 6   mavoglurant       120              4                         4
-#> 7      nimoData        12              4                         8
-#> 8      pheno_sd        59              4                         9
-#> 9  mixroute_sim        30              5                         0
-#> 10      onc_sim 66 to 134              5                   2 to 24
-#>    discrete_shares_per_arm
-#> 1                        0
-#> 2                        0
-#> 3                  2 to 16
-#> 4                        0
-#> 5                        0
-#> 6                        0
-#> 7                        0
-#> 8                        0
-#> 9                        0
-#> 10                       0
+#>           study patients random_effects attendance_shares
+#> 1      warfarin       32              5                10
+#> 2       theo_md       12              5                 6
+#> 3           mad       60              5                 0
+#> 4    case1_pkpd      180              5                 0
+#> 5        wbcSim       45              0                10
+#> 6   mavoglurant      120              4                 4
+#> 7      nimoData       12              4                 8
+#> 8      pheno_sd       59              4                 9
+#> 9  mixroute_sim       90              5                 0
+#> 10      onc_sim      200              5                25
+#>    fewest_behind_attendance discrete_shares fewest_behind_discrete
+#> 1                        32               0                     NA
+#> 2                        12               0                     NA
+#> 3                        NA              27                     60
+#> 4                        NA               0                     NA
+#> 5                        45               0                     NA
+#> 6                       120               0                     NA
+#> 7                        12               0                     NA
+#> 8                        59               0                     NA
+#> 9                        NA               0                     NA
+#> 10                       66               0                     NA
 ```
 
-A study with arms of about ten patients and tens of shares between 0 and
-1 per arm sits among the per-visit rows with the highest AUC, and a
-study with one large arm and a few such shares among the lowest. For the
-population model, the cohort size places a study among the rows of the
-second table; a study fitted with more random effects than five gives
-the attacker more numbers to add up.
+A study with few patients and many shares between 0 and 1 sits among the
+per-visit rows with the highest AUC, and a large study with a few such
+shares among the lowest. For the population model, the cohort size
+places a study among the rows of the second table; a study fitted with
+more random effects than five gives the attacker more numbers to add up.
 
 ## What the Simulation Leaves Out
 
@@ -486,9 +507,10 @@ frequency_score <- function(candidate, rate, released) {
 }
 
 # One member's and one non-member's score from each of `draws` simulated
-# studies: an arm of `patients` patients measured at `visits` visits, with a
-# rate between 0.2 and 0.8 at each visit, and the attacker's reference the
-# true rate.
+# studies: `patients` patients behind each share, measured at `visits` visits,
+# with a rate between 0.2 and 0.8 at each visit, and the attacker's reference
+# the true rate. The release pools a share over the arms that have the visit,
+# so the patients behind it are usually the whole cohort.
 frequency_scores <- function(patients, visits, correlation, floor,
                              draws = 1500) {
   scores <- vapply(seq_len(draws), function(draw) {
@@ -560,7 +582,7 @@ membership_tables <- function() {
   population <- expand.grid(patients = c(12, 32, 60), off_by = c(0, 0.1, 0.2))
   population <- cbind(population, t(mapply(
     population_attack, population$patients, population$off_by)))
-  frequency <- expand.grid(visits = c(5, 20, 60), patients = c(10, 30),
+  frequency <- expand.grid(visits = c(5, 20, 60), patients = c(10, 30, 100),
                            correlation = c(0, 0.6))
   frequency <- cbind(frequency, t(mapply(
     frequency_attack, frequency$patients, frequency$visits,

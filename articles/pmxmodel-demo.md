@@ -3,9 +3,9 @@
 Fit a population model to a study, look at what the fit carries, and
 generate a synthetic dataset by simulating from it. Generation uses
 fitted population parameters and study summaries: structural curves,
-between-subject variability, residual error, endpoint frequencies, and
-dosing and visit models per arm. It does not read the original patient
-rows.
+between-subject variability, residual error, endpoint frequencies, a
+planned dose schedule per arm, and dose changes and visits pooled over
+the arms. It does not read the original patient rows.
 
 It makes no formal privacy claim, and **it is not for estimation** — the
 fitted parameters exist to make simulated profiles look like the source
@@ -110,7 +110,8 @@ model_report(fit)
 #>                      1600 mg / 1600 (10)
 #>   dose changes       none
 #>   visit grid         5 endpoint(s) at 28 nominal time(s), 66 slot(s) in all
-#>   visit attendance   median 100% of an arm attends a slot (0% to 100%)
+#>   visit attendance   median 100% of patients attend a slot, pooled over
+#>                      arms (100% to 100%)
 #>   covariates         WEIGHTB lognormal, SEX categorical, drawn once for the
 #>                      whole study, independently of the profiles
 #>   discrete endpoints PD - Binary, PD - Ordinal: drawn from each arm's
@@ -159,8 +160,8 @@ model_report(fit)
 #>   fixed effects      cl 6.3, v 49, q 5, v2 150, ka 1.2 
 #>   between-subject    cl 0.424, v 0.447, ka 0.387, q 0.529, v2 0.424 (as SD on the log scale)
 #>   residual error     proportional 0.37 
-#>   time to fit        3 min 12 s
-#>   whole call         3 min 13 s, against 3 min 12 s in the fitter
+#>   time to fit        3 min 26 s
+#>   whole call         3 min 26 s, against 3 min 26 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: PD - Continuous between-subject SD,

@@ -2,8 +2,11 @@
 
 One row per arm, endpoint and modelled nominal time, giving the
 probability that a generated subject in that arm has an observation
-there. It is the fraction of the arm's patients who did, so attendance
-is drawn per visit rather than a real patient's visit set being reused.
+there. It is the share of patients who did, pooled over the arms that
+have the visit, so every such arm shows the same probability; an arm has
+a visit where at least `min_arm_patients` of its patients were observed
+there. Attendance is drawn per visit rather than a real patient's visit
+set being reused.
 
 ## Usage
 

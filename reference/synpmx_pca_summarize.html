@@ -113,7 +113,8 @@ returned object holds nothing but summaries: no patient row survives it.</p>
 <span>  pca_variance <span class="op">=</span> <span class="fl">0.9</span>,</span>
 <span>  n_components <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  min_column_patients <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  min_arm_patients <span class="op">=</span> <span class="fl">3L</span></span>
+<span>  min_arm_patients <span class="op">=</span> <span class="fl">3L</span>,</span>
+<span>  min_category_patients <span class="op">=</span> <span class="fl">3L</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -169,6 +170,15 @@ would describe the one or two patients in it. Those patients are dropped
 with a warning naming the arms, and the synthetic data has no such arm.
 Pool the arm, drop the column from <code>strata</code>, or lower this to keep them.</p></dd>
 
+
+<dt id="arg-min-category-patients">min_category_patients<a class="anchor" aria-label="anchor" href="#arg-min-category-patients"></a></dt>
+<dd><p>Minimum distinct patients holding a level of a
+categorical covariate, a <code>keep</code> value in an arm, or a level the summary's
+schema stores, 3 by default, as <code><a href="synpmx_model_estimate.html">synpmx_model_estimate()</a></code> uses. A rarer
+covariate level gets no column in the basis and cannot be generated; the
+patients holding it are treated as missing on that covariate. Set to 1 to
+retain all observed levels.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -221,30 +231,42 @@ recorded times.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   subjects: 60  components retained: 1 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>             quantity                                                      what</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           visit grid                      Nominal times modelled, per endpoint</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      feature centers                      Mean of each grid cell and covariate</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       feature scales                            Standard deviation of the same</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>             loadings                        Component loadings on each feature</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          score means                                Mean score vector, per arm</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     score covariance                    Residual covariance between components</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  endpoint transforms                             Log or identity, per endpoint</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         assay limits                          Censoring boundary, per endpoint</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         dosing model Planned cycles, the dose ladder, and three rates, per arm</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          visit model        Probability of a visit, per arm, endpoint and time</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        arm constants                Strata and kept columns, one value per arm</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  numbers min_patients</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       14           60</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       14           60</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       14           60</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       14           60</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        1           60</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        1           60</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        2           60</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        0           60</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        8           60</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       14           60</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        0           60</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             quantity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           visit grid</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      feature centers</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       feature scales</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             loadings</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          score means</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     score covariance</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  endpoint transforms</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         assay limits</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         dosing model</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          visit model</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        arm constants</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                             what numbers</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                             Nominal times modelled, per endpoint      14</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                             Mean of each grid cell and covariate      14</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                   Standard deviation of the same      14</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                               Component loadings on each feature      14</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                       Mean score vector, per arm       1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                           Residual covariance between components       1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                    Log or identity, per endpoint       2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                 Censoring boundary, per endpoint       0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Planned cycles per arm; the dose ladder and three rates, pooled       8</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Probability of a visit, per endpoint and time, pooled over arms      14</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                       Strata and kept columns, one value per arm       0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  min_patients</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            60</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            60</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            60</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            60</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            60</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            60</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            60</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            60</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            60</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            60</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            60</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

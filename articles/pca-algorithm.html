@@ -148,8 +148,9 @@ that model’s residual.</p>
 <p>That is what makes the output fully synthetic. Nothing selects a real
 patient, nothing weights one, and no number a patient measured reaches
 the generated table. What leaves the source data is a mean, a scale, a
-set of loadings, one mean score vector per arm, a residual covariance,
-and a dosing and visit model per arm. <code><a href="../reference/pca_report.html">pca_report()</a></code>
+set of loadings, one mean score vector per arm, a residual covariance, a
+planned dose schedule per arm, and dose-change rates and visit
+probabilities pooled over the arms. <code><a href="../reference/pca_report.html">pca_report()</a></code>
 inventories all of it.</p>
 </div>
 <div class="section level2">
@@ -178,10 +179,10 @@ own mean score vector and its own residual covariance.</li>
 arm’s mean, and invert the standardization to get a feature vector
 back.</li>
 <li>
-<strong>Fit a dosing model and a visit model per arm</strong>: a
-planned dose schedule with rates for reduction, interruption and
-discontinuation, and the probability of a visit at each nominal
-time.</li>
+<strong>Fit a dosing model and a visit model</strong>: a planned
+dose schedule per arm, rates for reduction, interruption and
+discontinuation pooled over the arms, and the probability of a visit at
+each nominal time, pooled over the arms that have the visit.</li>
 <li>
 <strong>Place the drawn values</strong> on that skeleton, snapping a
 discrete endpoint back onto its levels and putting the assay limit back
@@ -245,7 +246,12 @@ is bounded by the subject count however many columns there are, so extra
 columns cost nothing but arithmetic.</p>
 <p>Endpoint values are log-transformed where the endpoint is positive.
 Covariates join the same matrix, continuous ones as themselves and
-categorical ones as one indicator column per level.</p>
+categorical ones as one indicator column per level that at least
+<code>min_category_patients</code> patients hold, 3 by default. A rarer
+level gets no column, so it is not in the basis and cannot be generated,
+and the patients holding it are missing on that covariate. A covariate
+left with one level, which no column can carry because it does not vary,
+is written as that level for every generated subject.</p>
 <p><strong>Covariates and trajectories share one matrix on
 purpose.</strong> A single draw in Step 5 therefore carries the
 relationship between a covariate and the profile, which a generator
@@ -326,21 +332,25 @@ Nothing selects a real subject, and nothing weights one.</p>
 <h2 id="step-6-the-dosing-model-and-the-visit-model">Step 6: The Dosing Model and the Visit Model<a class="anchor" aria-label="anchor" href="#step-6-the-dosing-model-and-the-visit-model"></a>
 </h2>
 <p>Each generated subject is assigned an arm, keeping each arm’s share
-of the cohort. The arm carries two models, and both are summaries of the
-arm rather than facts about a patient.</p>
+of the cohort. The arm carries its planned schedule, which is the
+protocol; the dose-change rates and the visit model are pooled over the
+arms. All of it is a summary of the study rather than a fact about a
+patient.</p>
 <div class="section level3">
 <h3 id="the-dosing-model">The dosing model<a class="anchor" aria-label="anchor" href="#the-dosing-model"></a>
 </h3>
-<p>Each arm carries a <strong>planned schedule</strong> and three
-<strong>rates</strong> that say how its patients departed from it.
-<code><a href="../reference/pca_dosing.html">pca_dosing()</a></code> reports the first and
+<p>Each arm carries a <strong>planned schedule</strong>, and three
+<strong>rates</strong>, pooled over the arms, say how patients departed
+from their schedules. <code><a href="../reference/pca_dosing.html">pca_dosing()</a></code> reports the first and
 <code><a href="../reference/pca_dose_rates.html">pca_dose_rates()</a></code> the second.</p>
 <p>The planned schedule is one row per cycle: the nominal dose time, and
 the amount the arm was planned to receive there. The amount is read per
 cycle from the patients still on their starting dose, so a
 protocol-prescribed escalation is part of the plan, while accumulated
 reductions do not drag the plan down with them.</p>
-<p>The three rates are discrete-time hazards, pooled over the arm:</p>
+<p>The three rates are discrete-time hazards, pooled over every arm, so
+an arm whose patients reduced or stopped more often than the others’
+takes the study’s rates:</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -366,11 +376,9 @@ reductions do not drag the plan down with them.</p>
 </tbody>
 </table>
 <p><strong>A rate rests on at least <code>min_arm_patients</code>
-patients.</strong> A rate whose events one or two patients had is that
-patient’s dosing history, so it takes the rate pooled over every arm,
-where that pools at least <code>min_arm_patients</code> patients, and is
-zero otherwise. A reduction is zeroed rather than pooled, because it
-needs the arm’s own ladder and such an arm has none.</p>
+patients.</strong> A rate whose events fewer than
+<code>min_arm_patients</code> patients had, across every arm, is their
+dosing history, and is zero.</p>
 <p><strong>The dose ladder is built from within-patient
 decreases.</strong> A study dosed by body weight gives every patient a
 different amount, so the pooled spread of amounts scatters continuously
@@ -378,7 +386,8 @@ and any threshold on it would invent a ladder out of ordinary
 between-patient variation. A reduction is something else: the same
 patient receiving less than they did at the previous cycle. The ladder
 is the set of fractions, of a patient’s <strong>own</strong> starting
-dose, that several patients dropped to.</p>
+dose, that several patients of some arm dropped to, one ladder for the
+study.</p>
 </div>
 <div class="section level3">
 <h3 id="why-there-is-no-detector">Why there is no detector<a class="anchor" aria-label="anchor" href="#why-there-is-no-detector"></a>
@@ -400,10 +409,11 @@ schedule has removed all three.</p>
 <h3 id="what-this-does-and-does-not-protect">What this does and does not protect<a class="anchor" aria-label="anchor" href="#what-this-does-and-does-not-protect"></a>
 </h3>
 <p>No patient’s own sequence of reductions is copied. What leaves the
-source is three probabilities and a ladder per arm, and the planned grid
-stops at the last cycle <code>min_arm_patients</code> patients reached,
-so a treatment duration only one patient had cannot be generated — the
-same reasoning as <code>SIM-047</code> on the observation side.</p>
+source is three probabilities and a ladder for the study, a planned
+schedule per arm, and the planned grid stops at the last cycle
+<code>min_arm_patients</code> patients reached, so a treatment duration
+only one patient had cannot be generated — the same reasoning as
+<code>SIM-047</code> on the observation side.</p>
 <p>What it does not give is a guarantee of non-coincidence. Simulating a
 schedule per patient means a generated sequence <strong>can</strong>
 land on a real patient’s by chance, exactly as the visit draw can.
@@ -429,13 +439,15 @@ the PCA generator on public data</a>.</p>
 </h3>
 <p><code><a href="../reference/pca_visits.html">pca_visits()</a></code> reports it: one row per arm, endpoint and
 modelled nominal time, giving the probability that a generated subject
-in that arm has an observation there. It is the fraction of the arm’s
-patients who did. A fraction with fewer than
-<code>min_arm_patients</code> patients on either side, attending or
-missing, is rounded to 0 or 1, whichever is nearer: “one patient missed
-this visit” discloses as much as “one patient came”, and the threshold
-rule of statistical disclosure control asks for enough patients on both
-sides.</p>
+in that arm has an observation there. It is the share of patients who
+did, pooled over the arms that have that visit, so every arm with the
+visit has the same probability; an arm has a visit where at least
+<code>min_arm_patients</code> of its patients were observed there. A
+share with fewer than <code>min_arm_patients</code> patients on either
+side, attending or missing, is rounded to 0 or 1, whichever is nearer:
+“one patient missed this visit” discloses as much as “one patient came”,
+and the threshold rule of statistical disclosure control asks for enough
+patients on both sides.</p>
 <p>Attendance is drawn independently per visit from that probability, so
 no real patient’s set of attended visits is reused.</p>
 </div>
@@ -489,19 +501,22 @@ arm</td>
 </tr>
 <tr class="odd">
 <td>Dosing model</td>
-<td>Per arm, the planned cycles, the dose ladder, and three rates</td>
+<td>Per arm, the planned cycles; pooled over the arms, the dose ladder
+and three rates</td>
 </tr>
 <tr class="even">
 <td>Visit model</td>
-<td>Per arm, endpoint and time, the probability of an observation</td>
+<td>Per endpoint and time, the probability of an observation, pooled
+over the arms that have the visit</td>
 </tr>
 <tr class="odd">
 <td>Schema</td>
 <td>Column order, column types as empty prototypes, the discrete
 endpoints’ level sets, the log-or-identity choice and assay limit per
-endpoint, and one value per arm for the strata and kept columns, a
-categorical kept one that fewer than three of the arm’s patients hold
-written as missing</td>
+endpoint, and one value per arm for the strata and kept columns, a kept
+one that fewer than <code>min_category_patients</code> of the arm’s
+patients hold written as missing. No factor level or discrete endpoint
+level fewer than that many patients hold is stored</td>
 </tr>
 <tr class="even">
 <td>Arms</td>
@@ -518,9 +533,10 @@ turn, on a worked study.</p>
 level set of a discrete endpoint</strong> is read from real values: a
 0/1 endpoint has no third value to emit, so a generated value is a
 source value. <strong>A categorical covariate’s levels</strong> are
-likewise the ones the source held, which is what the B5 row of
-<code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> measures — a level held by one patient
-is a level that identifies them.</p>
+likewise ones the source held. Both keep only the levels at least
+<code>min_category_patients</code> patients hold, because a level held
+by one patient is a level that identifies them, and the B5 row of
+<code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> checks the output for one.</p>
 <p>Subject identifiers are minted rather than derived. No source label
 is kept, including the levels of an identifier stored as a factor. The
 only thing kept about a numeric identifier is the largest one rounded up
@@ -664,9 +680,9 @@ the escalation.</li>
 <p>The inventory is above, under “The Model Is the Only Thing Generation
 Reads”, and <code><a href="../reference/pca_report.html">pca_report()</a></code> prints it for a given run. The
 column to read is the smallest number of patients standing behind a
-quantity. A grid cell mean is backed by most of the cohort and a per-arm
-quantity by one arm, while a rare covariate level can be backed by a
-single patient.</p>
+quantity. A grid cell mean is backed by most of the cohort, a per-arm
+quantity by one arm, and a covariate level by at least
+<code>min_category_patients</code> patients.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

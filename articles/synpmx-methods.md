@@ -172,7 +172,8 @@ model_fit
 #>                      all (12)
 #>   dose changes       none
 #>   visit grid         1 endpoint(s) at 25 nominal time(s), 25 slot(s) in all
-#>   visit attendance   median 100% of an arm attends a slot (33% to 100%)
+#>   visit attendance   median 100% of patients attend a slot, pooled over
+#>                      arms (33% to 100%)
 #>   covariates         WT lognormal, drawn once for the whole study,
 #>                      independently of the profiles
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT
@@ -203,8 +204,8 @@ model_fit
 #>   fixed effects      cl 2.8, v 29, q 1.9, v2 4.2, ka 1.2 
 #>   between-subject    cl 0.19, v 0.141, ka 0.52, q 0.237, v2 0.274 (as SD on the log scale)
 #>   residual error     proportional 0.22 
-#>   time to fit        55.8 s
-#>   whole call         55.8 s, against 55.8 s in the fitter
+#>   time to fit        1 min 0 s
+#>   whole call         1 min 0 s, against 1 min 0 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: DV: ka typical value, 9.92 %;

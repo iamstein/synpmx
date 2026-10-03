@@ -121,8 +121,8 @@ feature, so they scale as the basis widens.
 **Size and exposure are independent, and the figure is here to show that
 they are.** The loadings are the whole cohort’s — every subject
 contributes to every one, so all 180 patients stand behind each — while
-the dosing and visit models beside them are fitted per arm, so 30 do.
-The longest bar in the figure is therefore one of the *most* exposed
+the planned dose schedules beside them are read per arm, so 30 do. The
+longest bar in the figure is therefore one of the *most* exposed
 quantities rather than one of the least. Length and fill say different
 things and have to be read separately: the combination to look for is a
 long bar whose fill sits at the bottom of the scale, which is many
@@ -148,8 +148,10 @@ Short, so printed.
 ``` r
 
 unlist(trial_summary$settings)
-#>           dose_term        pca_variance min_column_patients    min_arm_patients 
-#>            "factor"               "0.9"                "18"                 "3"
+#>             dose_term          pca_variance   min_column_patients 
+#>              "factor"                 "0.9"                  "18" 
+#>      min_arm_patients min_category_patients 
+#>                   "3"                   "3"
 c(patients = trial_summary$n_source, components = trial_summary$basis$k)
 #>   patients components 
 #>        180         11
@@ -470,7 +472,7 @@ giving every arm the pooled spread would smear the low arms upward.
 [`pca_dosing()`](https://iamstein.github.io/synpmx/reference/pca_dosing.md)
 is the planned schedule each arm starts from, and
 [`pca_dose_rates()`](https://iamstein.github.io/synpmx/reference/pca_dose_rates.md)
-is how its patients departed from it.
+is how patients departed from it, pooled over the arms.
 
 ``` r
 
@@ -495,7 +497,8 @@ then differ from one another as the source patients did.
 
 ## The visit model
 
-One probability per arm, endpoint and modelled time. Attendance is drawn
+One probability per endpoint and modelled time, pooled over the arms
+that have the visit, and listed for each arm. Attendance is drawn
 independently per visit, so no real patient’s set of attended visits is
 reused.
 
@@ -520,7 +523,9 @@ show(pca_visits(trial_summary),
 
 What the generated table needs in order to come back in the source’s
 shape. Column prototypes are zero-length vectors: they carry class and
-factor levels and no values.
+factor levels and no values, and a factor keeps only the levels at least
+`min_category_patients` patients hold, or for a strata or kept column
+the values its arms carry.
 
 ``` r
 
@@ -536,7 +541,9 @@ show(data.frame(
 
 Two entries are read from real values rather than averaged, and both are
 worth knowing about. **Endpoint level sets**: a discrete endpoint has no
-value between its levels, so a generated value is a source value.
+value between its levels, so a generated value is a source value; a
+level fewer than `min_category_patients` patients recorded is not
+stored.
 
 ``` r
 
@@ -556,8 +563,9 @@ data.frame(
 
 **Arm constants**: the strata and kept columns, one value per arm,
 carried verbatim onto every generated patient in it. The value is the
-arm’s first patient’s, as `keep` declares; a categorical kept value
-fewer than three patients in the arm hold is written as missing.
+arm’s first patient’s, as `keep` declares; a kept value of any type that
+fewer than `min_category_patients` patients in the arm hold is written
+as missing.
 
 ``` r
 

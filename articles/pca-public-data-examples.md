@@ -785,11 +785,11 @@ synpmx_scorecard_datatable(onc_run$card, report = "minimal")
 ```
 
 Nothing fails, and one row is worth reading against the source rather
-than against a threshold. A5b — doses per patient — moves from 327 to
-286. That is counted on the doses, not on the records they are written
-in: both tables are expanded before the card is scored, so `ADDL` and
-`II` cannot flatter or distort it. The records themselves tell a
-different story:
+than against a threshold. A5b, doses per patient, reads 327 -\> 266.
+That is counted on the doses, not on the records they are written in:
+both tables are expanded before the card is scored, so `ADDL` and `II`
+cannot flatter or distort it. The records themselves tell a different
+story:
 
 ``` r
 
@@ -797,18 +797,21 @@ records <- function(data) {
   d <- data[data$EVID == 1L, ]
   c(records = nrow(d), doses = sum(d$ADDL + 1L))
 }
-rbind(source = records(onc_sim), synthetic = records(onc_run$synthetic))
+onc_records <- rbind(source = records(onc_sim),
+                     synthetic = records(onc_run$synthetic))
+onc_records
 #>           records doses
 #> source        322 71180
-#> synthetic    2367 63030
+#> synthetic    3283 60488
 ```
 
-The doses are close and the *encoding* is not: 2,367 records where the
+The doses are close and the *encoding* is not: 3,283 records where the
 source has 322. The dosing model draws a reduction, a skip or a
-discontinuation independently at each planned cycle, and this study’s
-cycle is one day, so a synthetic patient’s dose flickers between levels
-where a real patient held one dose for months and changed it once. The
-regimen is close to right on average and wrong in its runs, and because
+discontinuation, at rates pooled over both arms, independently at each
+planned cycle, and this study’s cycle is one day, so a synthetic
+patient’s dose flickers between levels where a real patient held one
+dose for months and changed it once. The regimen is close to right on
+average and wrong in its runs, and because
 [`pmx_compress_doses()`](https://iamstein.github.io/synpmx/reference/pmx_expand_doses.md)
 writes each constant run as its own record, the record count is what
 makes it visible — which is exactly why A5b counts doses instead, and
@@ -864,7 +867,7 @@ knitr::kable(
 | nimoData | 12 | 1 | 41 | 2 | 272 | 9 | sparsest grid cell |
 | mavoglurant | 120 | 1 | 18 | 7 | 254 | 19 | sparsest grid cell |
 | mixroute_sim | 90 | 3 | 18 | 5 | 269 | 30 | smallest arm |
-| onc_sim | 200 | 2 | 31 | 9 | 2221 | 51 | sparsest grid cell |
+| onc_sim | 200 | 2 | 31 | 9 | 2222 | 51 | sparsest grid cell |
 
 What each run read out of its source. `Numbers held` is every quantity
 in the trial summary; `Fewest patients` is the smallest number of
@@ -1009,11 +1012,12 @@ visits is possible here and no row reports it.
 ## What is preserved, and what is not
 
 Preserved, on the evidence above: the endpoint set (A3 on `mad`), the
-level sets of discrete endpoints, the arms and their sizes, the assay
-limit and the censored fraction per arm, the covariate–profile
-relationship that the shared feature matrix carries, and the planned
-dose schedule in full — including `nimoData`’s ten infusions, which the
-AVATAR run on the same study truncated.
+level sets of discrete endpoints less any level fewer than three
+patients recorded, the arms and their sizes, the assay limit and the
+censored fraction per arm, the covariate–profile relationship that the
+shared feature matrix carries, and the planned dose schedule in full —
+including `nimoData`’s ten infusions, which the AVATAR run on the same
+study truncated.
 
 Not preserved, and each is a decision rather than a defect:
 
@@ -1026,6 +1030,10 @@ Not preserved, and each is a decision rather than a defect:
   `not applicable`;
   [`pca_dosing()`](https://iamstein.github.io/synpmx/reference/pca_dosing.md)
   reports the same quantity per arm.
+- **Differences between arms in attendance and dose changes.** Both are
+  pooled over the arms, so an arm whose patients dropped out or reduced
+  more often than the others’ takes the study’s rates. `onc_sim` is the
+  worked case.
 - **Anything the grid construction merged.** `mavoglurant` is the worked
   case: 117 recorded times onto 15 nominal ones costs nine observations
   per patient.

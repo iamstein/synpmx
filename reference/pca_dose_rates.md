@@ -2,7 +2,8 @@
 
 One row per arm, giving the three discrete-time hazards that turn a
 planned schedule into the schedule a patient actually received, and the
-dose ladder reductions move down.
+dose ladder reductions move down. The hazards and the ladder are pooled
+over the arms, so every arm dosing the same drug shows the same ones.
 
 ## Usage
 

@@ -73,7 +73,10 @@ synpmx_model_estimate(
   each arm its own shape, selected on AIC within that arm and asserting
   no dose-response form; an arm holding too little of an endpoint to fit
   keeps the pooled shape. Costs nothing measurable, since these are
-  least-squares fits.
+  least-squares fits. The same switch governs a binary or ordinal
+  endpoint's level frequencies at each visit: pooled over arms by
+  default, as the visit and dose-change models always are, and read per
+  arm under `TRUE`.
 
 - endpoint_roles:
 

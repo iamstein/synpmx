@@ -17,7 +17,8 @@ synpmx_pca_summarize(
   pca_variance = 0.9,
   n_components = NULL,
   min_column_patients = NULL,
-  min_arm_patients = 3L
+  min_arm_patients = 3L,
+  min_category_patients = 3L
 )
 ```
 
@@ -74,6 +75,16 @@ synpmx_pca_summarize(
   with a warning naming the arms, and the synthetic data has no such
   arm. Pool the arm, drop the column from `strata`, or lower this to
   keep them.
+
+- min_category_patients:
+
+  Minimum distinct patients holding a level of a categorical covariate,
+  a `keep` value in an arm, or a level the summary's schema stores, 3 by
+  default, as
+  [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md)
+  uses. A rarer covariate level gets no column in the basis and cannot
+  be generated; the patients holding it are treated as missing on that
+  covariate. Set to 1 to retain all observed levels.
 
 ## Value
 
@@ -135,28 +146,40 @@ pca_report(trial_summary)
 #> 
 #>   subjects: 60  components retained: 1 
 #> 
-#>             quantity                                                      what
-#>           visit grid                      Nominal times modelled, per endpoint
-#>      feature centers                      Mean of each grid cell and covariate
-#>       feature scales                            Standard deviation of the same
-#>             loadings                        Component loadings on each feature
-#>          score means                                Mean score vector, per arm
-#>     score covariance                    Residual covariance between components
-#>  endpoint transforms                             Log or identity, per endpoint
-#>         assay limits                          Censoring boundary, per endpoint
-#>         dosing model Planned cycles, the dose ladder, and three rates, per arm
-#>          visit model        Probability of a visit, per arm, endpoint and time
-#>        arm constants                Strata and kept columns, one value per arm
-#>  numbers min_patients
-#>       14           60
-#>       14           60
-#>       14           60
-#>       14           60
-#>        1           60
-#>        1           60
-#>        2           60
-#>        0           60
-#>        8           60
-#>       14           60
-#>        0           60
+#>             quantity
+#>           visit grid
+#>      feature centers
+#>       feature scales
+#>             loadings
+#>          score means
+#>     score covariance
+#>  endpoint transforms
+#>         assay limits
+#>         dosing model
+#>          visit model
+#>        arm constants
+#>                                                             what numbers
+#>                             Nominal times modelled, per endpoint      14
+#>                             Mean of each grid cell and covariate      14
+#>                                   Standard deviation of the same      14
+#>                               Component loadings on each feature      14
+#>                                       Mean score vector, per arm       1
+#>                           Residual covariance between components       1
+#>                                    Log or identity, per endpoint       2
+#>                                 Censoring boundary, per endpoint       0
+#>  Planned cycles per arm; the dose ladder and three rates, pooled       8
+#>  Probability of a visit, per endpoint and time, pooled over arms      14
+#>                       Strata and kept columns, one value per arm       0
+#>  min_patients
+#>            60
+#>            60
+#>            60
+#>            60
+#>            60
+#>            60
+#>            60
+#>            60
+#>            60
+#>            60
+#>            60
 ```

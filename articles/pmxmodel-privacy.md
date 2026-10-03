@@ -34,12 +34,14 @@ estimates these from the study’s patients with `nlmixr2`, an R package
 for fitting population models.
 
 The generator also summarizes the study’s design as it was carried out:
-the number of patients in each treatment group (**arm**), the dose
-schedule and how often doses were reduced, skipped or stopped, the share
-of each arm measured at each scheduled visit, the distribution of each
-baseline covariate such as body weight, age or sex, and, for an endpoint
-recorded in levels such as a yes/no response or a toxicity grade, how
-often each level was recorded at each visit.
+the number of patients in each treatment group (**arm**), each arm’s
+dose schedule, how often doses were reduced, skipped or stopped, the
+share of patients measured at each scheduled visit, the distribution of
+each baseline covariate such as body weight, age or sex, and, for an
+endpoint recorded in levels such as a yes/no response or a toxicity
+grade, how often each level was recorded at each visit. Everything in
+that list read from how patients behaved, rather than from the protocol,
+is pooled over the arms, as the PD time courses are.
 
 What leaves the environment that holds the study is the **release**:
 these numbers, assembled by
@@ -81,11 +83,12 @@ population ranks a study member above a non-member with probability 0.74
 when the population model is fitted to 12 patients and 0.61 when it is
 fitted to 60. This probability is the area under the curve (AUC), where
 0.5 is chance and 1 is certainty. A reference off by 20% brings the two
-to 0.62 and 0.52. Per-visit frequency tables are more exposed: 0.83 for
-20 visits in an arm of 10 patients. Rounding moves these numbers by at
-most 0.002 and the three-patient floor by at most 0.02; cohort size, arm
-size and the number of released frequencies decide them. [Membership
-inference against the PMX model
+to 0.62 and 0.52. Per-visit shares are more exposed where few patients
+stand behind them: 0.83 for 20 visits shared by 10 patients, falling to
+0.63 when 100 share them, which pooling over arms makes the usual case.
+Rounding moves these numbers by at most 0.002 and the three-patient
+floor by at most 0.02; cohort size and the number of released
+frequencies decide them. [Membership inference against the PMX model
 release](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy-simulation.html)
 shows how each number is computed.
 
@@ -192,10 +195,10 @@ left out.
 | pk_models | per concentration endpoint: typical values, between-subject variances, residual error, any body-weight scaling | 32 |
 | pd | per other continuous endpoint: a time-course shape and its parameters, the spread of patients’ baselines, residual error | 5 |
 | arms | the arms and the number of patients in each | 1 |
-| dosing | per arm: the planned dose at each scheduled time, the levels doses were reduced to, and the rates of reducing, skipping and stopping | 9 |
-| visits | per arm: the share of patients measured at each scheduled visit | 44 |
+| dosing | per arm: the planned dose at each scheduled time; pooled over arms: the levels doses were reduced to, and the rates of reducing, skipping and stopping | 9 |
+| visits | per visit: the share of patients measured there, pooled over the arms that have the visit, and listed for each arm | 44 |
 | cells | the scheduled visits kept, as endpoint and nominal time | 44 |
-| discrete | per arm and visit: the frequency of each level of a binary or ordinal endpoint | 0 |
+| discrete | per visit: the frequency of each level of a binary or ordinal endpoint, pooled over the arms that have the visit, and listed for each arm | 0 |
 | covariates | per baseline covariate: a trimmed mean and SD, or level frequencies | 6 |
 | covariate_effects | body-weight scaling, where requested: a reference weight | 0 |
 | schema | the table to generate: columns and their types, compartment numbers, assay limits, values copied onto each arm, each endpoint’s value type | 1 |
@@ -272,18 +275,20 @@ and coarsening them \[8\].
 A frequency resting on one patient is that patient. The threshold rule
 of SDC publishes a count only where at least *k* units stand behind it
 \[8\], and `synadam` masks values held once \[7\]. The rule applies to
-both sides of a frequency: an arm’s attendance at a visit that all but
-one patient kept says as much about the one who missed it as attendance
-by one patient says about the one who came. Here *k* is 3 by default:
+both sides of a frequency: attendance at a visit that all but one
+patient kept says as much about the one who missed it as attendance by
+one patient says about the one who came. Here *k* is 3 by default:
 
 - arms below `min_arm_patients` are dropped before anything is fitted;
 - a nominal visit slot, a dose level and a planned cycle are kept only
-  where at least `min_arm_patients` patients reached them;
-- an arm’s attendance fraction at a slot with fewer than
-  `min_arm_patients` patients attending or missing is rounded to 0 or 1;
-- a dose-change rate whose events fewer than `min_arm_patients` patients
-  had takes the rate pooled over every arm, where that pools enough
-  patients, and is zero otherwise;
+  where at least `min_arm_patients` patients reached them, and an arm
+  has a visit only where at least that many of its patients were
+  observed there;
+- attendance at a visit, pooled over the arms that have it, with fewer
+  than `min_arm_patients` patients attending or missing is rounded to 0
+  or 1;
+- a dose-change rate, pooled over every arm, whose events fewer than
+  `min_arm_patients` patients had is zero;
 - a categorical covariate level, and a binary or ordinal endpoint’s
   level at a visit, below `min_category_patients` patients is excluded,
   or folded into the most common level;
@@ -299,7 +304,11 @@ by one patient says about the one who came. Here *k* is 3 by default:
 The rule stops a frequency from singling out one or two patients. It
 does not stop membership inference, which adds up small signals over
 many frequencies ([Membership Inference Against the
-Release](#membership-inference-against-the-release)).
+Release](#membership-inference-against-the-release)). Pooling over arms
+is what weakens that: attendance, the dose-change rates, and a binary or
+ordinal endpoint’s frequencies at each visit rest on every patient in
+the arms that share them, rather than on one arm’s. `pd_by_arm = TRUE`
+reads the endpoint frequencies per arm again, with the PD time courses.
 
 ### 6. Covariate Summaries Without Their Extremes
 
@@ -906,9 +915,8 @@ identification. The attacker modelled holds the candidate’s own
 measurements and reference values for the population, and does not know
 the other patients. The release is reduced to its two kinds of number: a
 population model of five parameters, each released as a typical value
-and a between-subject variance, and one arm’s share of patients with a
-yes/no outcome at each visit. [Membership inference against the PMX
-model
+and a between-subject variance, and the share of patients with a yes/no
+outcome at each visit. [Membership inference against the PMX model
 release](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy-simulation.html)
 works through the calculation on one small study, shows both tables in
 full, and places each public study’s release against them. Three
@@ -921,11 +929,14 @@ readings:
   simulated studies before and after rounding, the AUC moves by at most
   0.002, because an estimate’s sampling variation is larger than one
   rounding step.
-- **The per-visit table is the most exposed part of the release.** Its
-  AUC grows with the number of visits and falls with arm size: 0.83 for
-  20 visits in an arm of 10, 0.72 for 20 visits in an arm of 30, and
-  0.95 for 60 visits in an arm of 10. The three-patient rule moves it by
-  at most 0.02, because the rule acts only on shares near 0 or 1.
+- **A per-visit share is exposed in proportion to how few patients stand
+  behind it.** The AUC grows with the number of visits and falls with
+  the patients behind each share: 0.83 for 20 visits shared by 10
+  patients, 0.72 by 30, and 0.63 by 100. Pooling over arms puts every
+  patient in the arms that have a visit behind its share, so in a
+  six-arm study of 60 the group is 60 rather than 10. The three-patient
+  rule moves the AUC by at most 0.02, because the rule acts only on
+  shares near 0 or 1.
 
 An AUC averages over members, and the most exposed member is the one far
 from the typical values: that patient moves the release furthest toward
@@ -950,12 +961,11 @@ releasing estimates without noise, or a limit of the checks.
 
 - **An attacker who holds a candidate’s own trial data can infer
   membership.** [Membership Inference Against the
-  Release](#membership-inference-against-the-release) measures how well,
-  and the per-visit frequency tables are the most exposed part of the
-  release. Fewer per-visit numbers would reduce it: a time course with a
-  few parameters for a binary or ordinal endpoint, as continuous PD
-  endpoints already have, or shares pooled over adjacent visits. Larger
-  arms or added noise would too.
+  Release](#membership-inference-against-the-release) measures how well.
+  Pooling over arms puts the cohort behind each per-visit share, so what
+  remains is a small cohort measured at many visits. A time course with
+  a few parameters for a binary or ordinal endpoint, as continuous PD
+  endpoints already have, or added noise, would reduce it further.
 - **An attacker who knows every other patient is not stopped.** Such an
   attacker can compute the exact effect of the one patient they do not
   know, so any move at all is detectable, however far under a threshold

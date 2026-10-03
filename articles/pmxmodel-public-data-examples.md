@@ -173,7 +173,8 @@ if (inherits(case1_fit, "pmx_example_rejection")) {
 #>                      300 mg / 300 (30)
 #>   dose changes       none
 #>   visit grid         2 endpoint(s) at 25 nominal time(s), 33 slot(s) in all
-#>   visit attendance   median 100% of an arm attends a slot (0% to 100%)
+#>   visit attendance   median 100% of patients attend a slot, pooled over
+#>                      arms (100% to 100%)
 #>   covariates         WEIGHTB lognormal, drawn once for the whole study,
 #>                      independently of the profiles
 #>   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, CENS,
@@ -224,8 +225,8 @@ if (inherits(case1_fit, "pmx_example_rejection")) {
 #>                      `start_param`; the rest were read off the cohort's
 #>                      median profile
 #>   residual error     proportional 0.31 
-#>   time to fit        22 min 12 s
-#>   whole call         22 min 14 s, against 22 min 12 s in the fitter
+#>   time to fit        23 min 32 s
+#>   whole call         23 min 35 s, against 23 min 32 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: PD - Continuous between-subject SD,
@@ -305,7 +306,8 @@ mad_run$fit
 #>                      1600 mg / 1600 (10)
 #>   dose changes       none
 #>   visit grid         5 endpoint(s) at 28 nominal time(s), 66 slot(s) in all
-#>   visit attendance   median 100% of an arm attends a slot (0% to 100%)
+#>   visit attendance   median 100% of patients attend a slot, pooled over
+#>                      arms (100% to 100%)
 #>   covariates         WEIGHTB lognormal, SEX categorical, drawn once for the
 #>                      whole study, independently of the profiles
 #>   discrete endpoints PD - Binary, PD - Ordinal: drawn from each arm's
@@ -354,8 +356,8 @@ mad_run$fit
 #>   fixed effects      cl 6.3, v 49, q 5, v2 150, ka 1.2 
 #>   between-subject    cl 0.424, v 0.447, ka 0.387, q 0.529, v2 0.424 (as SD on the log scale)
 #>   residual error     proportional 0.37 
-#>   time to fit        3 min 12 s
-#>   whole call         3 min 13 s, against 3 min 12 s in the fitter
+#>   time to fit        3 min 26 s
+#>   whole call         3 min 26 s, against 3 min 26 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: PD - Continuous between-subject SD,
@@ -375,9 +377,11 @@ synpmx_scorecard_datatable(mad_run$card, report = "minimal")
 
 Nothing fails, and A3 reads 5 of 5: every endpoint survives, including
 the three discrete ones, which are drawn from the level frequencies
-their arm holds at each visit rather than modelled. D1 is the only row
-to read, and the variable it names is now the concentration, whose
-synthetic spread runs a little narrower than the source’s.
+recorded at each visit, pooled over the six arms, rather than modelled.
+Pooled, a discrete endpoint’s response no longer differs by dose group,
+as the continuous PD time course already does not. D1 reads sd x0.77 on
+PK Concentration (furthest of 6), the variable whose synthetic spread
+sits furthest from the source’s.
 
 This is also the study that found a defect: a visit where every patient
 recorded the same level of an ordinal endpoint left the draw with a
@@ -408,7 +412,8 @@ model_report(warfarin_run$fit)
 #>                      all (32)
 #>   dose changes       none
 #>   visit grid         2 endpoint(s) at 16 nominal time(s), 22 slot(s) in all
-#>   visit attendance   median 100% of an arm attends a slot (9% to 100%)
+#>   visit attendance   median 100% of patients attend a slot, pooled over
+#>                      arms (9% to 100%)
 #>   covariates         wt lognormal, age lognormal, sex categorical, drawn
 #>                      once for the whole study, independently of the
 #>                      profiles
@@ -446,8 +451,8 @@ model_report(warfarin_run$fit)
 #>   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 
 #>   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)
 #>   residual error     proportional 0.21 
-#>   time to fit        59.0 s
-#>   whole call         59.2 s, against 59.0 s in the fitter
+#>   time to fit        1 min 5 s
+#>   whole call         1 min 5 s, against 1 min 5 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;
@@ -516,7 +521,8 @@ print(model_report(wbc_run$fit))
 #>   dose routes        one route, undeclared; infused over 1 h
 #>   dose changes       none
 #>   visit grid         1 endpoint(s) at 11 nominal time(s), 11 slot(s) in all
-#>   visit attendance   median 11% of an arm attends a slot (7% to 100%)
+#>   visit attendance   median 11% of patients attend a slot, pooled over arms
+#>                      (7% to 100%)
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, RATE
 #> 
 #> Values at the lower limit of what was observed
@@ -595,7 +601,8 @@ mavo_run$fit
 #>   dose routes        one route, undeclared; infused over 0.1667 h
 #>   dose changes       none
 #>   visit grid         1 endpoint(s) at 14 nominal time(s), 14 slot(s) in all
-#>   visit attendance   median 100% of an arm attends a slot (6% to 100%)
+#>   visit attendance   median 100% of patients attend a slot, pooled over
+#>                      arms (6% to 100%)
 #>   covariates         AGE lognormal, SEX lognormal, WT lognormal, HT
 #>                      lognormal, drawn once for the whole study,
 #>                      independently of the profiles
@@ -628,8 +635,8 @@ mavo_run$fit
 #>   fixed effects      cl 0.045, v 0.096, q 0.048, v2 0.24 
 #>   between-subject    cl 0.374, v 0.4, q 0.374, v2 0.412 (as SD on the log scale)
 #>   residual error     proportional 0.34 
-#>   time to fit        42.9 s
-#>   whole call         43.1 s, against 42.9 s in the fitter
+#>   time to fit        45.1 s
+#>   whole call         45.3 s, against 45.1 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: DV: v2 between-subject SD, 1.92 points;
@@ -725,7 +732,8 @@ theo_run$fit
 #>                      all (12)
 #>   dose changes       none
 #>   visit grid         1 endpoint(s) at 25 nominal time(s), 25 slot(s) in all
-#>   visit attendance   median 100% of an arm attends a slot (33% to 100%)
+#>   visit attendance   median 100% of patients attend a slot, pooled over
+#>                      arms (33% to 100%)
 #>   covariates         WT lognormal, drawn once for the whole study,
 #>                      independently of the profiles
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT
@@ -756,8 +764,8 @@ theo_run$fit
 #>   fixed effects      cl 2.8, v 29, q 1.9, v2 4.2, ka 1.2 
 #>   between-subject    cl 0.19, v 0.141, ka 0.52, q 0.237, v2 0.274 (as SD on the log scale)
 #>   residual error     proportional 0.22 
-#>   time to fit        55.8 s
-#>   whole call         55.8 s, against 55.8 s in the fitter
+#>   time to fit        1 min 0 s
+#>   whole call         1 min 0 s, against 1 min 0 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: DV: ka typical value, 9.92 %;
@@ -845,7 +853,8 @@ nimo_run$fit
 #>   dose routes        one route, undeclared; infused over 0.2778 to 0.3333 h
 #>   dose changes       none
 #>   visit grid         1 endpoint(s) at 31 nominal time(s), 31 slot(s) in all
-#>   visit attendance   median 100% of an arm attends a slot (25% to 100%)
+#>   visit attendance   median 100% of patients attend a slot, pooled over
+#>                      arms (25% to 100%)
 #>   covariates         BSA lognormal, AGE lognormal, HGT lognormal, drawn
 #>                      once for the whole study, independently of the
 #>                      profiles
@@ -871,8 +880,8 @@ nimo_run$fit
 #>   fixed effects      cl 0.065, v 35, q 0.095, v2 320 
 #>   between-subject    cl 0.707, v 0.7, q 0.592, v2 0.436 (as SD on the log scale)
 #>   residual error     proportional 0.42 
-#>   time to fit        36.6 s
-#>   whole call         36.7 s, against 36.6 s in the fitter
+#>   time to fit        39.1 s
+#>   whole call         39.1 s, against 39.1 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: DV: v2 between-subject SD, 12.4 points;
@@ -996,10 +1005,11 @@ pheno_run$fit
 #> Summarized from the source, not estimated
 #>   cohort             59 patients in 1 arm(s)
 #>                      all (59)
-#>   dose changes       per planned cycle:
-#>       all                reduce 14%, skip 1%, stop early 10% (6 dose level(s))
+#>   dose changes       per planned cycle, pooled over arms: reduce 14%, skip
+#>                      1%, stop early 10% (6 dose level(s))
 #>   visit grid         1 endpoint(s) at 9 nominal time(s), 9 slot(s) in all
-#>   visit attendance   median 25% of an arm attends a slot (8% to 81%)
+#>   visit attendance   median 25% of patients attend a slot, pooled over arms
+#>                      (8% to 81%)
 #>   covariates         WT lognormal, APGR lognormal, drawn once for the whole
 #>                      study, independently of the profiles
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, MDV, WT, APGR
@@ -1023,10 +1033,10 @@ pheno_run$fit
 #>   fixed effects      cl 0.0057, v 0.77, q 0.62, v2 0.63 
 #>   between-subject    cl 0.346, v 0.707, q 0.098, v2 0.241 (as SD on the log scale)
 #>   residual error     proportional 0.13 
-#>   time to fit        2 min 51 s
-#>                        2cmt_iv                    59.7 s
-#>                        2cmt_oral                  1 min 51 s
-#>   whole call         2 min 51 s, against 2 min 51 s in the fitter
+#>   time to fit        3 min 6 s
+#>                        2cmt_iv                    1 min 5 s
+#>                        2cmt_oral                  2 min 0 s
+#>   whole call         3 min 6 s, against 3 min 6 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: DV: cl between-subject SD, 4.55 points;
@@ -1060,9 +1070,9 @@ observations.
 
 What has not moved is the dosing: every baby in `pheno_sd` is dosed to
 their own weight and response, and the dosing model carries one planned
-schedule per arm with a reduction, interruption and discontinuation rate
-attached. The generated babies all follow the ward’s cycle rather than
-their own.
+schedule per arm, with one set of reduction, interruption and
+discontinuation rates for the study. The generated babies all follow the
+ward’s cycle rather than their own.
 
 This is still the study to read before declaring a nominal grid, but the
 lesson is the opposite of a refusal: the generator will accept
@@ -1110,7 +1120,8 @@ mixroute_run$fit
 #>   dose routes        iv and extravascular; given as a bolus
 #>   dose changes       none
 #>   visit grid         1 endpoint(s) at 17 nominal time(s), 17 slot(s) in all
-#>   visit attendance   median 100% of an arm attends a slot (100% to 100%)
+#>   visit attendance   median 100% of patients attend a slot, pooled over
+#>                      arms (100% to 100%)
 #>   covariates         WT lognormal, drawn once for the whole study,
 #>                      independently of the profiles
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, CENS, ADM, WT,
@@ -1148,8 +1159,8 @@ mixroute_run$fit
 #>   fixed effects      cl 2.4, v 11, q 1.5, v2 0.14, ka 0.51, f 0.74 
 #>   between-subject    cl 0.316, v 0.266, q 0.31, v2 0.286, ka 0.332 (as SD on the log scale)
 #>   residual error     proportional 0.29 
-#>   time to fit        36.5 s
-#>   whole call         36.7 s, against 36.5 s in the fitter
+#>   time to fit        42.3 s
+#>   whole call         42.5 s, against 42.3 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: DV: ka between-subject SD, 4.46 points;
@@ -1223,11 +1234,11 @@ onc_run$fit
 #>   cohort             200 patients in 2 arm(s)
 #>                      Everolimus 10 mg (134)
 #>                      Placebo (66)
-#>   dose changes       per planned cycle:
-#>       Everolimus 10 mg   reduce 0%, skip 0%, stop early 0% (2 dose level(s))
-#>       Placebo            reduce 0%, skip 15%, stop early 0% (1 dose level(s))
+#>   dose changes       per planned cycle, pooled over arms: reduce 0%, skip
+#>                      5%, stop early 0% (2 dose level(s))
 #>   visit grid         2 endpoint(s) at 24 nominal time(s), 30 slot(s) in all
-#>   visit attendance   median 71% of an arm attends a slot (0% to 100%)
+#>   visit attendance   median 90% of patients attend a slot, pooled over arms
+#>                      (6% to 100%)
 #>   covariates         BSLD lognormal, AGE lognormal, SEX categorical, drawn
 #>                      once for the whole study, independently of the
 #>                      profiles
@@ -1270,10 +1281,10 @@ onc_run$fit
 #>   starting values    ka 5 declared through `start_param`; the rest were
 #>                      read off the cohort's median profile
 #>   residual error     proportional 0.2 
-#>   time to fit        41 min 41 s
-#>                        2cmt_iv                    14 min 23 s
-#>                        2cmt_oral                  27 min 18 s
-#>   whole call         41 min 48 s, against 41 min 41 s in the fitter
+#>   time to fit        41 min 51 s
+#>                        2cmt_iv                    15 min 14 s
+#>                        2cmt_oral                  26 min 38 s
+#>   whole call         41 min 60 s, against 41 min 51 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: Everolimus trough: ka between-subject
@@ -1309,8 +1320,9 @@ Read the tumour endpoint against what it is: a PD time course here is a
 function of time with no exposure term and no dose term, pooled across
 arms unless `pd_by_arm = TRUE`. The source’s placebo and 10 mg arms
 diverge because the dose drives the tumour; the generated ones follow
-one shape. The dose history is faithfully reproduced and the endpoint
-that responds to it is not, and on this study that gap is the whole
+one shape. The dosing comes through as each arm’s planned schedule,
+changed at rates pooled over both arms, and the endpoint that responds
+to it does not respond at all; on this study that gap is the whole
 scientific content.
 
 ## What the accepted fits held
@@ -1405,6 +1417,11 @@ Not preserved, with the study that shows each:
   observations with no exposure term, so a synthetic patient’s arm does
   not reach their response. `mad` is the worked case in the demo, and
   `onc_sim` shows why it matters for an exposure-driven tumour response.
+- **Differences between arms in attendance, dose changes and discrete
+  responses.** All three are pooled over the arms, the discrete
+  responses unless `pd_by_arm = TRUE`, so an arm whose patients dropped
+  out, reduced or responded more often than the others’ takes the
+  study’s average. `onc_sim` is the worked case.
 - **Per-patient dose schedules, and multiple periods.** One planned
   schedule per arm. `mavoglurant` is the worked case: occasions per
   patient fall from 1.65 to 1. `pheno_sd` is the other half of it —
