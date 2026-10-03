@@ -12,7 +12,8 @@ synpmx_pca_summarize(
   pca_variance = 0.9,
   n_components = NULL,
   min_column_patients = NULL,
-  min_arm_patients = 3L
+  min_arm_patients = 3L,
+  min_category_patients = 3L
 )
 }
 \arguments{
@@ -48,6 +49,13 @@ no spread of its own to model, so its mean score vector and its covariance
 would describe the one or two patients in it. Those patients are dropped
 with a warning naming the arms, and the synthetic data has no such arm.
 Pool the arm, drop the column from \code{strata}, or lower this to keep them.}
+
+\item{min_category_patients}{Minimum distinct patients holding a level of a
+categorical covariate, a \code{keep} value in an arm, or a level the summary's
+schema stores, 3 by default, as \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}} uses. A rarer
+covariate level gets no column in the basis and cannot be generated; the
+patients holding it are treated as missing on that covariate. Set to 1 to
+retain all observed levels.}
 }
 \value{
 A \code{pmx_trial_summary}.

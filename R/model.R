@@ -580,7 +580,7 @@ print.pmx_model_report <- function(x, ...) {
 
   # The three rates are the whole model of missed doses and reductions, and a
   # reader looking for "what happens to the dosing" has to be able to find them
-  # by name. Reported per arm, because they are per arm.
+  # by name. Pooled over arms (REV-071), so they print once.
   rates <- data.frame(
     arm = names(dosing),
     reduce = vapply(dosing, function(d) d$reduction, numeric(1)),
@@ -590,27 +590,38 @@ print.pmx_model_report <- function(x, ...) {
     stringsAsFactors = FALSE
   )
   if (any(rates$reduce > 0 | rates$skip > 0 | rates$stop_early > 0)) {
-    field("dose changes", "per planned cycle:")
-    cat(sprintf("      %-18s reduce %.0f%%, skip %.0f%%, stop early %.0f%% (%d dose level(s))\n",
-                .arm_label(rates$arm), 100 * rates$reduce, 100 * rates$skip,
-                100 * rates$stop_early, rates$levels), sep = "")
+    # Pooled over arms, so one line unless two drugs' rates differ.
+    shared <- unique(rates[, c("reduce", "skip", "stop_early", "levels")])
+    if (nrow(shared) == 1L) {
+      field("dose changes", sprintf(
+        "per planned cycle, pooled over arms: reduce %.0f%%, skip %.0f%%, stop early %.0f%% (%d dose level(s))",
+        100 * shared$reduce, 100 * shared$skip, 100 * shared$stop_early,
+        shared$levels))
+    } else {
+      field("dose changes", "per planned cycle, pooled over arms:")
+      cat(sprintf("      %-18s reduce %.0f%%, skip %.0f%%, stop early %.0f%% (%d dose level(s))\n",
+                  .arm_label(rates$arm), 100 * rates$reduce, 100 * rates$skip,
+                  100 * rates$stop_early, rates$levels), sep = "")
+    }
   } else {
     field("dose changes", "none")
   }
 
   # Attendance is the model of a missed observation, and it is one probability
-  # per endpoint per nominal time per arm -- the fraction of that arm with an
-  # observation there. Said in those words: the first readers of this report
-  # took "cell(s) of the visit grid" for a count of nominal times, which it is
-  # not, because endpoints are not all measured at the same times. The spread is
-  # what a reader needs beside the median, because a slot nobody misses and a
-  # slot half the arm misses are the same line otherwise.
+  # per endpoint per nominal time -- the share of patients with an observation
+  # there, pooled over the arms that have the slot (REV-071). Said in those
+  # words: the first readers of this report took "cell(s) of the visit grid"
+  # for a count of nominal times, which it is not, because endpoints are not all
+  # measured at the same times. The spread is what a reader needs beside the
+  # median, because a slot nobody misses and a slot half the patients miss are
+  # the same line otherwise. An arm without the slot is not read as missing it.
   attendance <- unlist(lapply(x$visits, function(v) as.numeric(v$probability)))
+  attendance <- attendance[attendance > 0]
   field("visit grid", length(unique(x$cells$endpoint)), " endpoint(s) at ",
         length(unique(x$cells$time)), " nominal time(s), ", nrow(x$cells),
         " slot(s) in all")
   field("visit attendance", if (length(attendance)) sprintf(
-    "median %.0f%% of an arm attends a slot (%.0f%% to %.0f%%)",
+    "median %.0f%% of patients attend a slot, pooled over arms (%.0f%% to %.0f%%)",
     100 * stats::median(attendance), 100 * min(attendance),
     100 * max(attendance)) else "no attendance model")
 

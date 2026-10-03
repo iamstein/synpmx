@@ -406,38 +406,94 @@ test_that("an attendance fraction resting on one or two patients is rounded (REV
   expect_equal(small$probability, c(0, 1, 1))
 })
 
-test_that("a dose-change rate one or two patients decide is pooled or zeroed (REV-065)", {
-  model <- function(patients, events, at_risk) {
+test_that("dose-change rates and the ladder are pooled over arms, and zero below the floor (REV-065, REV-071)", {
+  model <- function(patients, events, at_risk, levels = 1) {
     support <- data.frame(rate = c("discontinuation", "interruption",
                                    "reduction"),
                           patients = patients, events = events,
                           at_risk = at_risk, stringsAsFactors = FALSE)
     list(planned = data.frame(cycle = 1L, time = 0, amt = 1),
-         levels = 1, discontinuation = events[[1]] / at_risk[[1]],
+         levels = levels, discontinuation = events[[1]] / at_risk[[1]],
          interruption = events[[2]] / at_risk[[2]],
          reduction = events[[3]] / at_risk[[3]], patients = 10L,
          support = support)
   }
   dosing <- list(
-    A = model(c(1, 4, 1), c(1, 6, 1), c(60, 60, 60)),
+    A = model(c(1, 4, 1), c(1, 6, 1), c(60, 60, 60), levels = c(1, 0.5)),
     B = model(c(1, 0, 0), c(1, 0, 0), c(60, 60, 60)),
     C = model(c(2, 0, 0), c(2, 0, 0), c(60, 60, 60)))
-  pooled <- .pool_thin_rates(dosing, 3L)
-  # Four patients across the arms stopped early, so each thin arm takes the
-  # pooled rate; a reduction is zeroed, since it needs the arm's own ladder.
-  expect_equal(pooled$dosing$A$discontinuation, 4 / 180)
-  expect_equal(pooled$dosing$B$discontinuation, 4 / 180)
-  expect_equal(pooled$dosing$A$interruption, 6 / 60)
-  expect_equal(pooled$dosing$A$reduction, 0)
-  expect_null(pooled$dosing$A$support)
+  pooled <- .pool_rates(dosing, 3L)
+  for (arm in c("A", "B", "C")) {
+    # Four patients stopped early and four were interrupted across the arms,
+    # so every arm takes both pooled rates; one reduced, which even pooled is
+    # below the floor.
+    expect_equal(pooled$dosing[[arm]]$discontinuation, 4 / 180)
+    expect_equal(pooled$dosing[[arm]]$interruption, 6 / 180)
+    expect_equal(pooled$dosing[[arm]]$reduction, 0)
+    expect_equal(pooled$dosing[[arm]]$levels, c(1, 0.5))
+    expect_null(pooled$dosing[[arm]]$support)
+  }
   audit <- pooled$audit
-  expect_equal(audit$action[audit$arm == "A" & audit$rate == "reduction"],
-               "set to zero")
+  expect_equal(audit$action[audit$rate == "reduction"], "set to zero")
   expect_true(all(audit$patients_after == 0 | audit$patients_after >= 3))
   # One arm alone, with one patient interrupted: nothing to pool with.
-  alone <- .pool_thin_rates(list(A = model(c(0, 1, 0), c(0, 2, 0),
-                                           c(60, 60, 60))), 3L)
+  alone <- .pool_rates(list(A = model(c(0, 1, 0), c(0, 2, 0),
+                                      c(60, 60, 60))), 3L)
   expect_equal(alone$dosing$A$interruption, 0)
+})
+
+test_that("attendance and discrete frequencies are pooled over the arms that have the visit (REV-071)", {
+  roles <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",
+                     dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT",
+                     dvid = "NAME", strata = "ARM", addl = "ADDL", ii = "II")
+  data <- pmx_expand_doses(onc_sim, roles)
+  ids <- unique(data$ID)
+  arm_of <- stats::setNames(data$ARM[!duplicated(data$ID)],
+                            data$ID[!duplicated(data$ID)])
+  drug <- ids[arm_of[as.character(ids)] == "Everolimus 10 mg"]
+  placebo <- ids[arm_of[as.character(ids)] == "Placebo"]
+  # A yes/no response 28 days after each patient's first active dose, which
+  # is where time is aligned from: drug patients respond, placebo patients do
+  # not, and two placebo patients alone are seen at day 56.
+  planned <- data
+  planned$TIME <- data$NTIME
+  origin <- tapply(planned$TIME - .aligned_time(planned, roles), planned$ID,
+                   function(x) x[[1L]])
+  response <- function(who, day, value) {
+    time <- unname(origin[as.character(who)]) + day
+    data.frame(ID = who, TIME = time, NTIME = time, DV = value, AMT = 0,
+               EVID = 0L, CMT = NA_integer_, ADDL = 0L, II = 0,
+               NAME = "RESP", CENS = 0L, ARM = arm_of[as.character(who)],
+               CROSSOVER = FALSE, BSLD = NA_real_, AGE = NA_real_,
+               SEX = NA_character_, row.names = NULL)
+  }
+  data <- rbind(data[, names(onc_sim)],
+                response(drug[1:40], 28, 1), response(placebo[1:20], 28, 0),
+                response(placebo[21:22], 56, 1))
+  data <- data[order(data$ID, data$TIME, data$EVID == 0L), ]
+  group <- .model_subject_arms(data, roles)
+  planned <- data
+  planned$TIME <- data$NTIME
+  cells <- .model_cells(data, roles, c("SLD", "RESP"), 3L)
+  models <- .arm_models(planned, roles, cells, group, 3L)
+  p <- vapply(models$visits, function(v) as.numeric(v$probability),
+              numeric(nrow(cells)))
+  both <- p[, "Everolimus 10 mg"] > 0 & p[, "Placebo"] > 0
+  expect_true(any(both))
+  expect_equal(p[both, "Everolimus 10 mg"], p[both, "Placebo"])
+  # The day-56 visit is not a cell at all: two patients.
+  expect_false(any(cells$endpoint == "RESP" & cells$time == 56))
+  day28 <- which(cells$endpoint == "RESP" & cells$time == 28)
+  expect_equal(unname(p[day28, ]), rep(60 / 200, 2))
+
+  pooled <- .discrete_model(data, roles, cells, group, "RESP", 3L,
+                            visits = models$visits)
+  expect_equal(pooled$`Everolimus 10 mg`[[day28]]$probability, c(1, 2) / 3)
+  expect_identical(pooled$`Everolimus 10 mg`[[day28]], pooled$Placebo[[day28]])
+  by_arm <- .discrete_model(data, roles, cells, group, "RESP", 3L,
+                            by_arm = TRUE, visits = models$visits)
+  expect_equal(by_arm$`Everolimus 10 mg`[[day28]]$levels, 1)
+  expect_equal(by_arm$Placebo[[day28]]$levels, 0)
 })
 
 test_that("a categorical kept value one or two patients hold is removed, and the rest is kept as is (REV-066)", {
@@ -567,6 +623,37 @@ test_that("a kept value of any type one or two patients hold is removed (REV-069
   # A value constant within the arm is copied as declared.
   expect_equal(schema$arm_values$Placebo$PLANNED, 0)
   expect_equal(schema$arm_values$`Everolimus 10 mg`$PLANNED, 10)
+})
+
+test_that("PCA leaves out a covariate level one or two patients hold (REV-070)", {
+  data <- pmx_simulated_fixture(60)
+  ids <- unique(data$ID)
+  data$RACE <- factor(ifelse(data$ID == ids[[1L]], "Rare",
+                             ifelse(data$ID %in% ids[2:30], "A", "B")))
+  # One patient in Oslo leaves a single level, which the basis cannot hold as
+  # a column because it no longer varies.
+  data$SITE <- factor(ifelse(data$ID == ids[[2L]], "Oslo", "Boston"))
+  roles <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",
+                     dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT",
+                     dvid = "DVID", mdv = "MDV",
+                     covariates = c("WT", "SEX", "RACE", "SITE"))
+  summary <- synpmx_pca_summarize(data, roles, seed = 1)
+  in_basis <- unlist(lapply(summary$basis$members, function(m) m$level))
+  expect_false(any(c("Rare", "Oslo") %in% in_basis))
+  expect_false("Rare" %in% levels(summary$schema$prototypes$RACE))
+  expect_false("Oslo" %in% levels(summary$schema$prototypes$SITE))
+  synthetic <- synpmx_pca_generate(summary, seed = 1)
+  expect_false("Rare" %in% as.character(synthetic$RACE))
+  expect_setequal(unique(as.character(synthetic$RACE)), c("A", "B"))
+  expect_true(all(as.character(synthetic$SITE) == "Boston"))
+  # Every covariate level stored rests on at least three patients.
+  report <- pca_report(synthetic)
+  expect_gte(report$min_patients[report$quantity == "feature centers"], 3)
+  # A caller can keep every level.
+  every <- synpmx_pca_summarize(data, roles, seed = 1,
+                                min_category_patients = 1)
+  expect_true("Rare" %in% unlist(lapply(every$basis$members,
+                                        function(m) m$level)))
 })
 
 test_that("P4 recounts the smallest group behind every kind of released frequency", {

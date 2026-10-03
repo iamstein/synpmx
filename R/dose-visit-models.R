@@ -251,7 +251,7 @@
     interruption = rate(skips, at_risk_skip),
     reduction = rate(drops, at_risk_drop),
     # How many patients, events and patient-cycles stand behind each rate.
-    # Read by `.pool_thin_rates()` and removed by it, so that the dose model
+    # Read by `.pool_rates()` and removed by it, so that the dose model
     # that is stored and released carries the rates alone.
     support = data.frame(
       rate = c("discontinuation", "interruption", "reduction"),
@@ -307,18 +307,21 @@
              stringsAsFactors = FALSE)
 }
 
-# The dosing model and the visit model, one of each per arm.
+# The dosing model and the visit model, one of each per arm, with everything
+# read from patients pooled over the arms (REV-071).
 #
 # `cells` is the grid attendance is measured on: one row per endpoint and
 # nominal time, carrying the `index` the caller knows that cell by. Passing the
 # grid rather than a fitted object is what keeps this callable by a generator
 # that has no components.
 #
-# Both are summaries of the arm rather than facts about a patient. The dosing
-# model is built above: a planned schedule and three rates. The visit model is,
-# per endpoint and per retained nominal time, the fraction of the arm that has
-# an observation there, so attendance is drawn per visit rather than a real
-# patient's set of attended visits being reused.
+# Both are summaries of the study rather than facts about a patient. The dosing
+# model is built above: a planned schedule per arm, which is the protocol, and
+# three rates and a ladder, pooled over the arms. The visit model is, per
+# endpoint and per retained nominal time, the share of patients with an
+# observation there, pooled over the arms that have that visit, so attendance
+# is drawn per visit rather than a real patient's set of attended visits being
+# reused.
 .arm_models <- function(source, roles, cells, subject_group, floor,
                         dose_groups = NULL) {
   subjects <- .unique_in_order(source[[roles$id]])
@@ -349,7 +352,7 @@
   index <- .named(cells$index, cells$name)
   dosing <- list()
   visits <- list()
-  attendance <- list()
+  attenders <- list()
   sizes <- integer()
 
   for (arm in arms) {
@@ -376,7 +379,7 @@
       }), .unique_in_order(dose_groups[!is.na(dose_groups)]))
     }
 
-    attenders <- vapply(seq_len(nrow(cells)), function(row) {
+    attenders[[arm]] <- vapply(seq_len(nrow(cells)), function(row) {
       sum(vapply(member_rows, function(rows) {
         selected <- rows & observed & endpoint == cells$endpoint[row]
         any(is.finite(aligned[selected]) &
@@ -384,46 +387,63 @@
                 sqrt(.Machine$double.eps))
       }, logical(1)))
     }, numeric(1))
-    rounded <- .round_thin_attendance(attenders, length(members), floor)
-    attendance[[arm]] <- data.frame(arm = arm, cell = seq_len(nrow(cells)),
-                                    attenders = attenders,
-                                    misses = length(members) - attenders,
-                                    rounded = rounded$rounded,
-                                    stringsAsFactors = FALSE)
-    visits[[arm]] <- list(cells = index,
-                          probability = .named(rounded$probability, cells$name))
   }
-  pooled <- .pool_thin_rates(dosing, floor)
+
+  # Attendance pooled over arms (REV-071), as the PD shapes are. An arm has a
+  # visit where at least `floor` of its patients were observed there, which is
+  # the protocol's schedule for that arm and keeps a placebo arm from being
+  # sampled for drug; the share at a visit is then the share of every patient
+  # in the arms that have it. One share per visit rests on all of those
+  # patients rather than on one arm's, and an arm whose patients missed more
+  # visits than the others' takes the study's attendance.
+  counts <- matrix(unlist(attenders, use.names = FALSE), nrow = nrow(cells),
+                   dimnames = list(NULL, arms))
+  has <- counts >= floor
+  held <- rowSums(counts * has)
+  of <- as.numeric(has %*% as.numeric(sizes[arms]))
+  rounded <- .round_thin_attendance(held, of, floor)
+  for (arm in arms) {
+    visits[[arm]] <- list(cells = index, probability = .named(
+      ifelse(has[, arm], rounded$probability, 0), cells$name))
+  }
+  attendance <- data.frame(
+    arm = "pooled", cell = seq_len(nrow(cells)), attenders = held,
+    misses = of - held, rounded = rounded$rounded,
+    # Arms whose one or two patients at a visit were left out of it.
+    masked = rowSums(counts > 0 & !has), stringsAsFactors = FALSE)
+  pooled <- .pool_rates(dosing, floor)
   list(dosing = pooled$dosing, visits = visits, sizes = sizes, arms = arms,
        cells = index,
-       audit = list(rates = pooled$audit,
-                    attendance = do.call(rbind, attendance)))
+       audit = list(rates = pooled$audit, attendance = attendance))
 }
 
-# pmxmodel-algorithm.Rmd, Step 4, and pca-algorithm.Rmd, Step 6 (REV-065). An
-# arm's attendance at a slot is a share of its patients, and a share one or two
-# patients decide -- the one who came, or the one who missed it -- is that
-# patient. Statistical disclosure control's threshold rule, applied to both
-# sides: a fraction with fewer than `floor` patients on either side is rounded
-# to 0 or to 1, whichever it is nearer, and a tie goes to 1 so a small arm keeps
-# the visit.
+# pmxmodel-algorithm.Rmd, Step 4, and pca-algorithm.Rmd, Step 6 (REV-065).
+# Attendance at a visit is a share of patients, and a share one or two patients
+# decide -- the one who came, or the one who missed it -- is that patient.
+# Statistical disclosure control's threshold rule, applied to both sides: a
+# share with fewer than `floor` patients on either side is rounded to 0 or to
+# 1, whichever it is nearer, and a tie goes to 1 so a small group keeps the
+# visit. `n` is one count, or one per visit.
 .round_thin_attendance <- function(attenders, n, floor) {
   misses <- n - attenders
   thin <- pmin(attenders, misses) > 0 & pmin(attenders, misses) < floor
-  probability <- if (n > 0) attenders / n else rep(0, length(attenders))
+  probability <- attenders / pmax(n, 1)
+  probability[n <= 0] <- 0
   probability[thin] <- as.numeric(probability[thin] >= 0.5)
   list(probability = probability, rounded = thin)
 }
 
-# pmxmodel-algorithm.Rmd, Step 4, and pca-algorithm.Rmd, Step 6 (REV-065). A
-# dose-change rate whose events one or two patients had is that patient's dosing
-# history. It takes the rate pooled over every arm instead, where that pools at
-# least `floor` patients, which keeps a rare dose change in the generated study
-# without tying it to an arm; and is zero where even the pooled rate rests on
-# fewer. A reduction is zeroed rather than pooled, because it needs the arm's
-# own ladder of levels, and an arm with too few reductions has none to step
-# down. The counts behind each rate are removed from the dose model afterwards.
-.pool_thin_rates <- function(dosing, floor) {
+# pmxmodel-algorithm.Rmd, Step 4, and pca-algorithm.Rmd, Step 6 (REV-065,
+# REV-071). The three dose-change rates are pooled over every arm dosing the
+# same drug, as the PD shapes are: each is the events over the patient-cycles
+# at risk across those arms, and zero where fewer than `floor` patients had the
+# change, because a rate one or two patients decide is their dosing history.
+# The ladder is pooled with them, as every level some arm's patients share,
+# so a reduction can step down in any arm. Pooling puts every arm's patients
+# behind each rate, and a dose-dependent reduction or discontinuation becomes
+# the study's. The counts behind each rate are removed from the dose model
+# afterwards.
+.pool_rates <- function(dosing, floor) {
   entries <- list()
   for (arm in names(dosing)) {
     models <- .dose_group_models(dosing[[arm]])
@@ -434,40 +454,30 @@
     }
   }
   audit <- list()
-  for (e in seq_along(entries)) {
-    entry <- entries[[e]]
-    support <- entry$model$support
-    if (is.null(support)) next
-    for (r in seq_len(nrow(support))) {
-      rate <- support$rate[[r]]
-      patients <- support$patients[[r]]
-      action <- "kept"
-      after <- patients
-      if (patients > 0 && patients < floor) {
-        same <- Filter(function(x) identical(x$group, entry$group), entries)
-        pooled <- do.call(rbind, lapply(same, function(x) {
-          x$model$support[x$model$support$rate == rate, ]
-        }))
-        if (!identical(rate, "reduction") && sum(pooled$patients) >= floor &&
-            sum(pooled$at_risk) > 0) {
-          entries[[e]]$model[[rate]] <- min(1, sum(pooled$events) /
-                                              sum(pooled$at_risk))
-          action <- "pooled over arms"
-          after <- sum(pooled$patients)
-        } else {
-          entries[[e]]$model[[rate]] <- 0
-          action <- "set to zero"
-          after <- 0L
-        }
-      }
+  for (group in unique(vapply(entries, function(e) e$group, character(1)))) {
+    members <- which(vapply(entries, function(e) identical(e$group, group),
+                            logical(1)))
+    ladder <- sort(unique(unlist(lapply(entries[members], function(e) {
+      e$model$levels
+    }))), decreasing = TRUE)
+    for (rate in c("discontinuation", "interruption", "reduction")) {
+      support <- do.call(rbind, lapply(entries[members], function(e) {
+        e$model$support[e$model$support$rate == rate, , drop = FALSE]
+      }))
+      if (is.null(support) || !nrow(support)) next
+      patients <- sum(support$patients)
+      enough <- patients >= floor && sum(support$at_risk) > 0
+      value <- if (enough) min(1, sum(support$events) / sum(support$at_risk)) else 0
+      for (e in members) entries[[e]]$model[[rate]] <- value
       audit[[length(audit) + 1L]] <- data.frame(
-        arm = entry$arm, group = entry$group, rate = rate,
-        patients = patients, action = action, patients_after = after,
+        arm = "pooled", group = group, rate = rate, patients = patients,
+        action = if (enough) "pooled over arms" else if (patients > 0)
+          "set to zero" else "none",
+        patients_after = if (enough) patients else 0L,
         stringsAsFactors = FALSE)
     }
+    for (e in members) entries[[e]]$model$levels <- ladder
   }
-  # Written back only after every rate has been read, so a rate pooled for one
-  # arm is pooled from the arms' own counts and not from a rate already pooled.
   for (entry in entries) {
     entry$model$support <- NULL
     if (!is.null(dosing[[entry$arm]]$planned)) {
@@ -631,15 +641,14 @@
   # into the generated column: a `strata` column kept the label of an arm
   # dropped for having too few patients, and a `keep` column a site one patient
   # came from. A carried column keeps the values its arms carry, which already
-  # meet their floors; any other factor keeps the levels at least
-  # `min_patients` patients hold. A covariate is left to the generator, whose
-  # covariate model excludes the same levels.
+  # meet their floors; any other factor, a covariate included (REV-070), keeps
+  # the levels at least `min_patients` patients hold. The model generator's
+  # covariate model then narrows a covariate to the levels it draws from.
   identifiers <- source[[roles$id]]
   prototypes <- lapply(stats::setNames(names(source), names(source)),
                        function(column) {
     prototype <- source[[column]][0L]
-    if (!is.factor(prototype) || identical(column, roles$id) ||
-        column %in% roles$covariates) {
+    if (!is.factor(prototype) || identical(column, roles$id)) {
       return(prototype)
     }
     kept <- if (column %in% carried) {

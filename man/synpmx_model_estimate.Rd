@@ -51,7 +51,9 @@ course, so a synthetic patient's dose does not reach their response.
 \code{TRUE} gives each arm its own shape, selected on AIC within that arm and
 asserting no dose-response form; an arm holding too little of an endpoint
 to fit keeps the pooled shape. Costs nothing measurable, since these are
-least-squares fits.}
+least-squares fits. The same switch governs a binary or ordinal endpoint's
+level frequencies at each visit: pooled over arms by default, as the
+visit and dose-change models always are, and read per arm under \code{TRUE}.}
 
 \item{endpoint_roles}{Which endpoint is the drug concentration, as
 \code{c(pk = "cp")}, overriding the inference. A positive baseline at or before

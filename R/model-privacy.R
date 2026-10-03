@@ -684,7 +684,7 @@ print.pmx_privacy_checks <- function(x, ...) {
 # in it is about a patient.
 .frequency_audit <- function(source, roles, subject_group, arm_models, cells,
                              covariates, estimate_source, discrete, schema,
-                             k_arm, k_level) {
+                             k_arm, k_level, discrete_by_arm = FALSE) {
   smallest_of <- function(x) if (length(x)) min(x) else NA_real_
   row <- function(quantity, smallest, adjusted, threshold, rule) {
     data.frame(quantity = quantity, smallest = smallest,
@@ -698,18 +698,21 @@ print.pmx_privacy_checks <- function(x, ...) {
   if (!is.null(attendance)) {
     open <- attendance[!attendance$rounded & attendance$attenders > 0 &
                          attendance$misses > 0, , drop = FALSE]
+    masked <- attendance$masked %||% rep(0, nrow(attendance))
     rows[[length(rows) + 1L]] <- row(
       "patients on either side of an attendance fraction",
-      smallest_of(pmin(open$attenders, open$misses)), sum(attendance$rounded),
-      k_arm, "a fraction resting on fewer is rounded to 0 or 1")
+      smallest_of(pmin(open$attenders, open$misses)),
+      sum(attendance$rounded | masked > 0), k_arm,
+      paste("pooled over arms; a fraction resting on fewer is rounded to 0",
+            "or 1, and an arm with fewer at a visit does not have it"))
   }
   rates <- arm_models$audit$rates
   if (!is.null(rates)) {
     moving <- rates[rates$patients_after > 0, , drop = FALSE]
     rows[[length(rows) + 1L]] <- row(
       "patients with the dose change behind a rate",
-      smallest_of(moving$patients_after), sum(rates$action != "kept"), k_arm,
-      "a rate resting on fewer is pooled over arms, or set to zero")
+      smallest_of(moving$patients_after), sum(rates$action == "set to zero"),
+      k_arm, "pooled over arms; a rate resting on fewer is set to zero")
   }
 
   baseline <- .baseline_covariates(estimate_source, roles)
@@ -750,11 +753,19 @@ print.pmx_privacy_checks <- function(x, ...) {
     row_arm <- arm_of[ids]
     discrete_holders <- numeric()
     folded <- 0L
-    for (arm in names(discrete)) {
-      for (i in seq_along(discrete[[arm]])) {
-        marginal <- discrete[[arm]][[i]]
-        if (is.null(marginal)) next
-        at <- observed & row_arm == arm & endpoint == cells$endpoint[i] &
+    # One marginal per visit, read over the arms that share it, or one per
+    # arm under `pd_by_arm` (REV-071).
+    groups <- if (discrete_by_arm) as.list(names(discrete)) else
+      list(names(discrete))
+    for (group in groups) {
+      for (i in seq_along(discrete[[group[[1L]]]])) {
+        sharing <- group[!vapply(group, function(arm) {
+          is.null(discrete[[arm]][[i]])
+        }, logical(1))]
+        if (!length(sharing)) next
+        marginal <- discrete[[sharing[[1L]]]][[i]]
+        at <- observed & row_arm %in% sharing &
+          endpoint == cells$endpoint[i] &
           abs(aligned - cells$time[i]) < sqrt(.Machine$double.eps)
         values <- suppressWarnings(as.numeric(source[[roles$dv]][at]))
         holders <- ids[at]

@@ -706,23 +706,30 @@ overlay_plot(onc_run$source, onc_run$synthetic, onc_roles,
 synpmx_scorecard_datatable(onc_run$card, report = "minimal")
 ```
 
-Nothing fails, and one row is worth reading against the source rather than
-against a threshold. A5b — doses per patient — moves from 327 to 286. That is
-counted on the doses, not on the records they are written in: both tables are
-expanded before the card is scored, so `ADDL` and `II` cannot flatter or
-distort it. The records themselves tell a different story:
+`r if (any(onc_run$card$verdict == "FAIL")) "A row fails" else "Nothing fails"`,
+and one row is worth reading against the source rather than against a
+threshold. A5b, doses per patient, reads
+`r onc_run$card$result[onc_run$card$check == "A5b"]`. That is counted on the
+doses, not on the records they are written in: both tables are expanded before
+the card is scored, so `ADDL` and `II` cannot flatter or distort it. The records
+themselves tell a different story:
 
 ```{r onc-doses}
 records <- function(data) {
   d <- data[data$EVID == 1L, ]
   c(records = nrow(d), doses = sum(d$ADDL + 1L))
 }
-rbind(source = records(onc_sim), synthetic = records(onc_run$synthetic))
+onc_records <- rbind(source = records(onc_sim),
+                     synthetic = records(onc_run$synthetic))
+onc_records
 ```
 
-The doses are close and the *encoding* is not: 2,367 records where the source
-has 322. The dosing model draws a reduction, a skip or a discontinuation
-independently at each planned cycle, and this study's cycle is one day, so a
+The doses are close and the *encoding* is not:
+`r format(onc_records["synthetic", "records"], big.mark = ",")` records where
+the source has `r format(onc_records["source", "records"], big.mark = ",")`.
+The dosing model draws a reduction, a skip or a discontinuation, at rates pooled
+over both arms, independently at each planned cycle, and this study's cycle is
+one day, so a
 synthetic patient's dose flickers between levels where a real patient held one
 dose for months and changed it once. The regimen is close to right on average
 and wrong in its runs, and because `pmx_compress_doses()` writes each constant
@@ -869,7 +876,8 @@ row reports it.
 ## What is preserved, and what is not
 
 Preserved, on the evidence above: the endpoint set (A3 on `mad`), the level sets
-of discrete endpoints, the arms and their sizes, the assay limit and the
+of discrete endpoints less any level fewer than three patients recorded, the
+arms and their sizes, the assay limit and the
 censored fraction per arm, the covariate–profile relationship that the shared
 feature matrix carries, and the planned dose schedule in full — including
 `nimoData`'s ten infusions, which the AVATAR run on the same study truncated.
@@ -883,6 +891,9 @@ Not preserved, and each is a decision rather than a defect:
 - **The variety of dose schedules.** One schedule per arm, against one per
   patient on a study recording actuals. C2 would report it and reads
   `not applicable`; `pca_dosing()` reports the same quantity per arm.
+- **Differences between arms in attendance and dose changes.** Both are pooled
+  over the arms, so an arm whose patients dropped out or reduced more often
+  than the others' takes the study's rates. `onc_sim` is the worked case.
 - **Anything the grid construction merged.** `mavoglurant` is the worked case:
   117 recorded times onto 15 nominal ones costs nine observations per patient.
 - **Late follow-up held by few patients**, which the column guard drops.

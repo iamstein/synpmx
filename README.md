@@ -78,7 +78,7 @@ roles <- pmx_roles(
   addl           = NULL,                 # additional doses
   ii             = NULL,                 # interdose interval
   covariates     = c("WEIGHTB", "SEX"),  # patient baseline covariates
-  strata         = c("TRTACT", "DOSE"),  # assigned arm / dose group / cohort; one dosing and visit model per arm
+  strata         = c("TRTACT", "DOSE"),  # assigned arm / dose group / cohort; one planned dose schedule per arm
   dose_covariate = NULL,                 # covariate the dose is a fixed multiple of (e.g. WEIGHTB for weight based dosing)
   endpoint_types = NULL,                 # value kind of each DV variable (continuous, binary, ordinal) per endpoint; inferred when NULL
   keep           = NULL,                 # columns carried through verbatim

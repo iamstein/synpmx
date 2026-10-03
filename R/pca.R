@@ -17,7 +17,8 @@
 #
 # Documented in `pca-algorithm.Rmd`, Step 2.
 .pca_features <- function(source, roles, min_column_patients,
-                          transform_source = NULL) {
+                          transform_source = NULL,
+                          min_category_patients = 3L) {
   subjects <- .unique_in_order(source[[roles$id]])
   n <- length(subjects)
   subject_rows <- lapply(subjects, function(subject) {
@@ -64,6 +65,7 @@
   features <- list()
   kinds <- character()
   members <- list()
+  covariate_levels <- list()
 
   for (covariate in roles$covariates) {
     template <- source[[covariate]]
@@ -79,13 +81,31 @@
       }, character(1))
       levels_present <- if (is.factor(template)) levels(template) else
         sort(unique(characters[!is.na(characters)]))
-      for (level in levels_present) {
+      # pca-algorithm.Rmd, Step 2 (REV-070). A level fewer than
+      # `min_category_patients` patients hold is one or two patients' value.
+      # It gets no indicator column, so it is not in the basis and cannot be
+      # drawn, and the patients who hold it are missing on this covariate,
+      # filled at the column centre like any other missing value.
+      # `synpmx_model()` excludes the same levels.
+      holders <- vapply(levels_present, function(level) {
+        sum(characters == level, na.rm = TRUE)
+      }, numeric(1))
+      kept <- levels_present[holders >= min_category_patients]
+      if (!length(kept) && any(!is.na(characters))) {
+        warning("Categorical covariate `", covariate, "` has no level held ",
+                "by at least ", min_category_patients, " patients; ",
+                "generated values will be missing.", call. = FALSE)
+      }
+      characters[!characters %in% kept] <- NA_character_
+      covariate_levels[[covariate]] <- kept
+      for (level in kept) {
         name <- paste0("cov_", covariate, "__", make.names(level))
         indicator <- as.numeric(characters == level)
         indicator[is.na(characters)] <- NA_real_
         features[[name]] <- indicator
         kinds[name] <- "covariate_level"
-        members[[name]] <- list(covariate = covariate, level = level)
+        members[[name]] <- list(covariate = covariate, level = level,
+                                patients = holders[[level]])
       }
     }
   }
@@ -122,7 +142,8 @@
   rownames(matrix_out) <- as.character(subjects)
   list(matrix = matrix_out, kinds = kinds[colnames(matrix_out)],
        members = members[colnames(matrix_out)], transforms = transforms,
-       grids = grids, endpoints = endpoints, subjects = subjects, n = n)
+       grids = grids, endpoints = endpoints, subjects = subjects, n = n,
+       covariate_levels = covariate_levels)
 }
 
 # Total amount administered, per subject. The one design fact that enters the
@@ -251,7 +272,8 @@
       as.integer(min(table(group))),
     variance = variance, explained = explained, k = k, has_dose = has_dose,
     n_source = n, transforms = features$transforms, grids = features$grids,
-    endpoints = features$endpoints
+    endpoints = features$endpoints,
+    covariate_levels = features$covariate_levels
   )
 }
 
@@ -370,6 +392,12 @@
 #'   would describe the one or two patients in it. Those patients are dropped
 #'   with a warning naming the arms, and the synthetic data has no such arm.
 #'   Pool the arm, drop the column from `strata`, or lower this to keep them.
+#' @param min_category_patients Minimum distinct patients holding a level of a
+#'   categorical covariate, a `keep` value in an arm, or a level the summary's
+#'   schema stores, 3 by default, as [synpmx_model_estimate()] uses. A rarer
+#'   covariate level gets no column in the basis and cannot be generated; the
+#'   patients holding it are treated as missing on that covariate. Set to 1 to
+#'   retain all observed levels.
 #'
 #' @return A `pmx_trial_summary`.
 #' @seealso [synpmx_pca_generate()], [synpmx_pca()], [pca_report()].
@@ -387,8 +415,11 @@ synpmx_pca_summarize <- function(data, roles, seed = NULL,
                                  dose_term = c("factor", "log"),
                                  pca_variance = 0.9, n_components = NULL,
                                  min_column_patients = NULL,
-                                 min_arm_patients = 3L) {
+                                 min_arm_patients = 3L,
+                                 min_category_patients = 3L) {
   dose_term <- match.arg(dose_term)
+  min_category_patients <- .positive_integer(min_category_patients,
+                                              "min_category_patients")
   if (!inherits(roles, "pmx_roles")) {
     stop("`roles` must come from `pmx_roles()`.", call. = FALSE)
   }
@@ -439,7 +470,8 @@ synpmx_pca_summarize <- function(data, roles, seed = NULL,
   }
 
   features <- .pca_features(source, roles, min_column_patients,
-                            transform_source = censoring_source)
+                            transform_source = censoring_source,
+                            min_category_patients = min_category_patients)
   dose <- .pca_subject_dose(source, roles, features$subjects)
   strata_key <- as.character(.subject_strata(source, roles))
   subject_group <- vapply(features$subjects, function(subject) {
@@ -460,12 +492,13 @@ synpmx_pca_summarize <- function(data, roles, seed = NULL,
     dosing = arm_models$dosing,
     visits = arm_models$visits,
     schema = .source_schema(censoring_source, roles, fit$endpoints,
-                           subject_group),
+                           subject_group, min_category_patients),
     roles = roles,
     settings = list(dose_term = dose_term, pca_variance = pca_variance,
                     n_components = n_components,
                     min_column_patients = min_column_patients,
-                    min_arm_patients = min_arm_patients),
+                    min_arm_patients = min_arm_patients,
+                    min_category_patients = min_category_patients),
     n_source = n_source
   ), class = "pmx_trial_summary")
 }
@@ -726,7 +759,17 @@ synpmx_pca <- function(data, roles, n_subjects = NULL, seed = NULL, ...) {
         vapply(fit$members, function(m) identical(m$covariate, covariate) &&
                  !is.null(m$level), logical(1))
       ]
-      if (!length(level_columns)) next
+      # No column is left where one level, or none, met the floor: the basis
+      # drops a constant column. One level is written for everyone; none is
+      # missing, as `synpmx_model()` writes it.
+      if (!length(level_columns)) {
+        kept <- fit$covariate_levels[[covariate]]
+        if (!is.null(kept)) {
+          value <- if (length(kept) == 1L) kept else NA_character_
+          out[[covariate]] <- .restore_column(rep(value, nrow(out)), prototype)
+        }
+        next
+      }
       levels_named <- vapply(fit$members[level_columns],
                              function(m) m$level, character(1))
       picked <- levels_named[max.col(drawn[, level_columns, drop = FALSE],
@@ -815,7 +858,8 @@ pca_dosing <- function(x) {
 #'
 #' One row per arm, giving the three discrete-time hazards that turn a planned
 #' schedule into the schedule a patient actually received, and the dose ladder
-#' reductions move down.
+#' reductions move down. The hazards and the ladder are pooled over the arms,
+#' so every arm dosing the same drug shows the same ones.
 #'
 #' A study where nobody reduces, skips or stops early has all three rates at
 #' zero and a single level, and every generated patient then receives the
@@ -867,8 +911,10 @@ pca_dose_rates <- function(x) {
 #'
 #' One row per arm, endpoint and modelled nominal time, giving the probability
 #' that a generated subject in that arm has an observation there. It is the
-#' fraction of the arm's patients who did, so attendance is drawn per visit
-#' rather than a real patient's visit set being reused.
+#' share of patients who did, pooled over the arms that have the visit, so
+#' every such arm shows the same probability; an arm has a visit where at least
+#' `min_arm_patients` of its patients were observed there. Attendance is drawn
+#' per visit rather than a real patient's visit set being reused.
 #'
 #' @param x A dataset from [synpmx_pca()], or its trial summary.
 #'
@@ -960,9 +1006,9 @@ print.pmx_trial_summary <- function(x, ...) {
 #'
 #' One row per released quantity: what it is, how many numbers it holds, and
 #' the smallest number of patients standing behind any one of them. That last
-#' column is where disclosure risk sits. A grid cell or a covariate mean is
-#' backed by the whole cohort, while a rare covariate level can be backed by a
-#' single patient.
+#' column is where disclosure risk sits. A grid cell is backed by the patients
+#' who reached it, a covariate mean by the whole cohort, and a covariate level
+#' by the patients who hold it, at least `min_category_patients`.
 #'
 #' @param x A dataset from [synpmx_pca()], or the fit itself.
 #'
@@ -989,6 +1035,21 @@ pca_report <- function(x) {
     min(vapply(fit$members[cells], function(m) as.numeric(m$patients),
                numeric(1)))
   } else NA_real_
+  # A feature column is a grid cell or a covariate level, each backed by the
+  # patients who reached or hold it; a continuous covariate is the cohort's.
+  feature_patients <- suppressWarnings(min(c(
+    cell_patients,
+    vapply(fit$members, function(m) as.numeric(m$patients %||% NA),
+           numeric(1))), na.rm = TRUE))
+  if (!is.finite(feature_patients)) feature_patients <- NA_real_
+  # A visit's probability is pooled over the arms that have the visit, so it
+  # rests on every patient in them (REV-071).
+  sizes <- trial_summary$arms$sizes
+  visit_groups <- Reduce(`+`, lapply(names(sizes), function(arm) {
+    sizes[[arm]] * (as.numeric(trial_summary$visits[[arm]]$probability) > 0)
+  }))
+  visit_patients <- if (any(visit_groups > 0)) min(visit_groups[visit_groups > 0]) else
+    NA_real_
   p <- length(fit$columns)
   rows <- data.frame(
     quantity = c("visit grid", "feature centers", "feature scales",
@@ -1005,8 +1066,8 @@ pca_report <- function(x) {
       "Residual covariance between components",
       "Log or identity, per endpoint",
       "Censoring boundary, per endpoint",
-      "Planned cycles, the dose ladder, and three rates, per arm",
-      "Probability of a visit, per arm, endpoint and time",
+      "Planned cycles per arm; the dose ladder and three rates, pooled",
+      "Probability of a visit, per endpoint and time, pooled over arms",
       "Strata and kept columns, one value per arm"
     ),
     numbers = c(
@@ -1015,9 +1076,9 @@ pca_report <- function(x) {
       dosing_numbers, visit_numbers, arm_numbers
     ),
     min_patients = c(
-      cell_patients, cell_patients, cell_patients,
+      cell_patients, feature_patients, feature_patients,
       fit$n_source, fit$min_group, fit$min_group, fit$n_source,
-      fit$n_source, fit$min_group, fit$min_group, fit$min_group
+      fit$n_source, fit$min_group, visit_patients, fit$min_group
     ),
     stringsAsFactors = FALSE
   )

@@ -1408,7 +1408,9 @@
 #'   `TRUE` gives each arm its own shape, selected on AIC within that arm and
 #'   asserting no dose-response form; an arm holding too little of an endpoint
 #'   to fit keeps the pooled shape. Costs nothing measurable, since these are
-#'   least-squares fits.
+#'   least-squares fits. The same switch governs a binary or ordinal endpoint's
+#'   level frequencies at each visit: pooled over arms by default, as the
+#'   visit and dose-change models always are, and read per arm under `TRUE`.
 #' @param endpoint_roles Which endpoint is the drug concentration, as
 #'   `c(pk = "cp")`, overriding the inference. A positive baseline at or before
 #'   the first recorded dose excludes a continuous endpoint from inferred PK
@@ -2011,7 +2013,8 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   discrete <- .discrete_model(source, roles, cells, subject_group,
                               setdiff(unique(cells$endpoint),
                                       c(classified$pk, names(pd_fits))),
-                              min_category_patients)
+                              min_category_patients, by_arm = pd_by_arm,
+                              visits = arm_models$visits)
 
   fitted <- .pmx_fitted_model(
     structural = selected, candidates = primary$candidates,
@@ -2043,7 +2046,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
                      source, roles, subject_group, arm_models, cells,
                      covariates, source[in_estimates, , drop = FALSE],
                      discrete, schema, min_arm_patients,
-                     min_category_patients)),
+                     min_category_patients, discrete_by_arm = pd_by_arm)),
     censoring = .model_censoring_summary(censoring_source, roles, fittable),
     quantification_floor = .model_quantification_floor(censoring_source, roles,
                                                        fittable,

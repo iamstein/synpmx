@@ -17,8 +17,10 @@ cell at all.
 \description{
 One row per arm, endpoint and modelled nominal time, giving the probability
 that a generated subject in that arm has an observation there. It is the
-fraction of the arm's patients who did, so attendance is drawn per visit
-rather than a real patient's visit set being reused.
+share of patients who did, pooled over the arms that have the visit, so
+every such arm shows the same probability; an arm has a visit where at least
+\code{min_arm_patients} of its patients were observed there. Attendance is drawn
+per visit rather than a real patient's visit set being reused.
 }
 \examples{
 data <- pmx_simulated_fixture(60)

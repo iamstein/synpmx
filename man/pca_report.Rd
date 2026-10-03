@@ -15,9 +15,9 @@ A \code{pca_report} data frame.
 \description{
 One row per released quantity: what it is, how many numbers it holds, and
 the smallest number of patients standing behind any one of them. That last
-column is where disclosure risk sits. A grid cell or a covariate mean is
-backed by the whole cohort, while a rare covariate level can be backed by a
-single patient.
+column is where disclosure risk sits. A grid cell is backed by the patients
+who reached it, a covariate mean by the whole cohort, and a covariate level
+by the patients who hold it, at least \code{min_category_patients}.
 }
 \examples{
 data <- pmx_simulated_fixture(60)

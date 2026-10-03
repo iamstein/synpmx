@@ -187,8 +187,14 @@
 }
 
 # Per-visit marginals for the endpoints that are not time courses. A binary or
-# ordinal endpoint is drawn from the level frequencies its arm holds at that
-# nominal time, which is the same thing the visit model does for attendance.
+# ordinal endpoint is drawn from the level frequencies recorded at that nominal
+# time, which is the same thing the visit model does for attendance.
+#
+# Pooled over the arms that have the visit (REV-071), as the PD shapes and the
+# visit model are, unless `by_arm` asks for one marginal per arm, as
+# `pd_by_arm = TRUE` does for the shapes. Pooled, each frequency rests on every
+# patient in those arms rather than on one arm's, and an arm's response at a
+# visit becomes the study's.
 #
 # `drawn` is the set of endpoints `.model_generate()` will actually look up
 # here: everything that is neither a concentration nor a fitted shape. Without
@@ -197,7 +203,8 @@
 # endpoints were all time courses carried thousands of real measurements that
 # nothing could ever read -- 5219 of them on `case1_pkpd` (`SIM-083`). The
 # entry stays `NULL` at its own index rather than being dropped, because
-# generation indexes this list by cell.
+# generation indexes this list by cell, and it is `NULL` too in an arm that
+# does not have the visit.
 #
 # pmxmodel-algorithm.Rmd, Step 4 (REV-062): a level fewer than
 # `min_category_patients` patients held at that visit is folded into the
@@ -205,7 +212,8 @@
 # covariate's rare level is excluded. A level one patient held is that patient,
 # and drawing from it would put them back.
 .discrete_model <- function(source, roles, cells, subject_group, drawn,
-                            min_category_patients = 3L) {
+                            min_category_patients = 3L, by_arm = FALSE,
+                            visits = NULL) {
   nominal <- suppressWarnings(as.numeric(source[[roles$nominal_time]]))
   planned <- source
   planned[[roles$time]] <- nominal
@@ -217,18 +225,28 @@
   row_arm <- arm_of[as.character(source[[roles$id]])]
   ids <- as.character(source[[roles$id]])
 
-  out <- list()
-  for (arm in unique(subject_group)) {
-    out[[arm]] <- lapply(seq_len(nrow(cells)), function(i) {
-      if (!cells$endpoint[i] %in% drawn) return(NULL)
-      at <- observed & row_arm == arm & endpoint == cells$endpoint[i] &
+  arms <- unique(subject_group)
+  out <- stats::setNames(lapply(arms, function(arm) {
+    vector("list", nrow(cells))
+  }), arms)
+  for (i in seq_len(nrow(cells))) {
+    if (!cells$endpoint[i] %in% drawn) next
+    with_visit <- if (is.null(visits)) arms else arms[vapply(arms, function(arm) {
+      isTRUE(visits[[arm]]$probability[[i]] > 0)
+    }, logical(1))]
+    groups <- if (by_arm) as.list(with_visit) else list(with_visit)
+    for (group in groups) {
+      if (!length(group)) next
+      at <- observed & row_arm %in% group & endpoint == cells$endpoint[i] &
         abs(aligned - cells$time[i]) < sqrt(.Machine$double.eps)
       values <- source[[roles$dv]][at]
       holders <- ids[at][!is.na(values)]
       values <- values[!is.na(values)]
-      if (!length(values)) return(NULL)
-      .fold_rare_levels(values, holders, min_category_patients)
-    })
+      marginal <- if (length(values)) {
+        .fold_rare_levels(values, holders, min_category_patients)
+      } else NULL
+      for (arm in group) out[[arm]][i] <- list(marginal)
+    }
   }
   out
 }

@@ -304,8 +304,9 @@ data.frame(arm = fit$arms$arms, patients = as.integer(fit$arms$sizes))
 
 ## The dosing model
 
-Per arm: a planned schedule, a dose ladder, and three discrete-time hazards.
-This is the apparatus `synpmx_pca_summarize()` builds, unchanged.
+A planned schedule per arm, and one dose ladder and three discrete-time hazards
+pooled over the arms. This is the apparatus `synpmx_pca_summarize()` builds,
+unchanged.
 
 ```{r dosing, eval=tables}
 arm <- fit$arms$arms[[1L]]
@@ -327,8 +328,9 @@ from it, a synthetic subject who steps down has the lower exposure that implies.
 
 ## The visit model
 
-Per endpoint and per retained nominal time, the fraction of the arm holding an
-observation there. Attendance is drawn per visit at generation.
+Per endpoint and per retained nominal time, the share of patients holding an
+observation there, pooled over the arms that have the visit. Attendance is drawn
+per visit at generation.
 
 ```{r visits, eval=tables}
 cells <- fit$cells

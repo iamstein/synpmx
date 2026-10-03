@@ -265,11 +265,21 @@ overlay_plot(mad_run$source, mad_run$synthetic, mad_roles,
 synpmx_scorecard_datatable(mad_run$card, report = "minimal")
 ```
 
-Nothing fails, and A3 reads 5 of 5: every endpoint survives, including the
-three discrete ones, which are drawn from the level frequencies their arm holds
-at each visit rather than modelled. D1 is the only row to read, and the variable
-it names is now the concentration, whose synthetic spread runs a little
-narrower than the source's.
+```{r mad-readings, include=FALSE}
+mad_reading <- function(check) {
+  if (run) mad_run$card$result[mad_run$card$check == check] else "not run here"
+}
+mad_fails <- run && any(mad_run$card$verdict == "FAIL")
+```
+
+`r if (mad_fails) "A row fails" else "Nothing fails"`,
+and A3 reads `r mad_reading("A3")`: every
+endpoint survives, including the three discrete ones, which are drawn from the
+level frequencies recorded at each visit, pooled over the six arms, rather than
+modelled. Pooled, a discrete endpoint's response no longer differs by dose
+group, as the continuous PD time course already does not. D1 reads
+`r mad_reading("D1")`, the variable whose
+synthetic spread sits furthest from the source's.
 
 This is also the study that found a defect: a visit where every patient
 recorded the same level of an ordinal endpoint left the draw with a single
@@ -660,8 +670,8 @@ both volumes are identified by these observations.
 
 What has not moved is the dosing: every baby in `pheno_sd` is dosed to their
 own weight and response, and the dosing model carries one planned schedule per
-arm with a reduction, interruption and discontinuation rate attached. The
-generated babies all follow the ward's cycle rather than their own.
+arm, with one set of reduction, interruption and discontinuation rates for the
+study. The generated babies all follow the ward's cycle rather than their own.
 
 This is still the study to read before declaring a nominal grid, but the
 lesson is the opposite of a refusal: the generator will accept `NTIME <- TIME`
@@ -770,8 +780,9 @@ Read the tumour endpoint against what it is: a PD time
 course here is a function of time with no exposure term and no dose term, pooled
 across arms unless `pd_by_arm = TRUE`. The source's placebo and 10 mg arms
 diverge because the dose drives the tumour; the generated ones follow one shape.
-The dose history is faithfully reproduced and the endpoint that responds to it
-is not, and on this study that gap is the whole scientific content.
+The dosing comes through as each arm's planned schedule, changed at rates
+pooled over both arms, and the endpoint that responds to it does not respond at
+all; on this study that gap is the whole scientific content.
 
 ## What the accepted fits held
 
@@ -832,6 +843,11 @@ Not preserved, with the study that shows each:
   with no exposure term, so a synthetic patient's arm does not reach their
   response. `mad` is the worked case in the demo, and `onc_sim` shows why
   it matters for an exposure-driven tumour response.
+- **Differences between arms in attendance, dose changes and discrete
+  responses.** All three are pooled over the arms, the discrete responses
+  unless `pd_by_arm = TRUE`, so an arm whose patients dropped out, reduced or
+  responded more often than the others' takes the study's average. `onc_sim`
+  is the worked case.
 - **Per-patient dose schedules, and multiple periods.** One planned schedule
   per arm. `mavoglurant` is the worked case: occasions per patient fall from
   1.65 to 1. `pheno_sd` is the other half of it — every neonate is dosed to

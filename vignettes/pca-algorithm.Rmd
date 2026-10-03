@@ -43,8 +43,9 @@ new subjects come from drawing that model's residual.
 That is what makes the output fully synthetic. Nothing selects a real patient,
 nothing weights one, and no number a patient measured reaches the generated
 table. What leaves the source data is a mean, a scale, a set of loadings, one
-mean score vector per arm, a residual covariance, and a dosing and visit model
-per arm. `pca_report()` inventories all of it.
+mean score vector per arm, a residual covariance, a planned dose schedule per
+arm, and dose-change rates and visit probabilities pooled over the arms.
+`pca_report()` inventories all of it.
 
 ## Overview of Algorithm
 
@@ -60,9 +61,10 @@ per arm. `pca_report()` inventories all of it.
    and its own residual covariance.
 5. **Draw new subjects** by adding a fresh residual to an arm's mean, and invert
    the standardization to get a feature vector back.
-6. **Fit a dosing model and a visit model per arm**: a planned dose schedule
-   with rates for reduction, interruption and discontinuation, and the
-   probability of a visit at each nominal time.
+6. **Fit a dosing model and a visit model**: a planned dose schedule per arm,
+   rates for reduction, interruption and discontinuation pooled over the arms,
+   and the probability of a visit at each nominal time, pooled over the arms
+   that have the visit.
 7. **Place the drawn values** on that skeleton, snapping a discrete endpoint
    back onto its levels and putting the assay limit back where the source had
    one.
@@ -119,7 +121,11 @@ however many columns there are, so extra columns cost nothing but arithmetic.
 
 Endpoint values are log-transformed where the endpoint is positive. Covariates
 join the same matrix, continuous ones as themselves and categorical ones as one
-indicator column per level.
+indicator column per level that at least `min_category_patients` patients hold,
+3 by default. A rarer level gets no column, so it is not in the basis and cannot
+be generated, and the patients holding it are missing on that covariate. A
+covariate left with one level, which no column can carry because it does not
+vary, is written as that level for every generated subject.
 
 **Covariates and trajectories share one matrix on purpose.** A single draw in
 Step 5 therefore carries the relationship between a covariate and the profile,
@@ -188,14 +194,15 @@ selects a real subject, and nothing weights one.
 ## Step 6: The Dosing Model and the Visit Model
 
 Each generated subject is assigned an arm, keeping each arm's share of the
-cohort. The arm carries two models, and both are summaries of the arm rather
-than facts about a patient.
+cohort. The arm carries its planned schedule, which is the protocol; the
+dose-change rates and the visit model are pooled over the arms. All of it is a
+summary of the study rather than a fact about a patient.
 
 ### The dosing model
 
-Each arm carries a **planned schedule** and three **rates** that say how its
-patients departed from it. `pca_dosing()` reports the first and
-`pca_dose_rates()` the second.
+Each arm carries a **planned schedule**, and three **rates**, pooled over the
+arms, say how patients departed from their schedules. `pca_dosing()` reports
+the first and `pca_dose_rates()` the second.
 
 The planned schedule is one row per cycle: the nominal dose time, and the amount
 the arm was planned to receive there. The amount is read per cycle from the
@@ -203,7 +210,9 @@ patients still on their starting dose, so a protocol-prescribed escalation is
 part of the plan, while accumulated reductions do not drag the plan down with
 them.
 
-The three rates are discrete-time hazards, pooled over the arm:
+The three rates are discrete-time hazards, pooled over every arm, so an arm
+whose patients reduced or stopped more often than the others' takes the
+study's rates:
 
 | Rate | What it is |
 |---|---|
@@ -212,10 +221,8 @@ The three rates are discrete-time hazards, pooled over the arm:
 | `reduction` | P(drop one level, given still on and a lower level exists) |
 
 **A rate rests on at least `min_arm_patients` patients.** A rate whose events
-one or two patients had is that patient's dosing history, so it takes the rate
-pooled over every arm, where that pools at least `min_arm_patients` patients,
-and is zero otherwise. A reduction is zeroed rather than pooled, because it
-needs the arm's own ladder and such an arm has none.
+fewer than `min_arm_patients` patients had, across every arm, is their dosing
+history, and is zero.
 
 **The dose ladder is built from within-patient decreases.** A study dosed by
 body weight gives every patient a different amount, so the pooled spread of
@@ -223,7 +230,7 @@ amounts scatters continuously and any threshold on it would invent a ladder out
 of ordinary between-patient variation. A reduction is something else: the same
 patient receiving less than they did at the previous cycle. The ladder is the
 set of fractions, of a patient's **own** starting dose, that several patients
-dropped to.
+of some arm dropped to, one ladder for the study.
 
 ### Why there is no detector
 
@@ -243,7 +250,8 @@ generator handing everyone the modal schedule has removed all three.
 ### What this does and does not protect
 
 No patient's own sequence of reductions is copied. What leaves the source is
-three probabilities and a ladder per arm, and the planned grid stops at the last
+three probabilities and a ladder for the study, a planned schedule per arm, and
+the planned grid stops at the last
 cycle `min_arm_patients` patients reached, so a treatment duration only one
 patient had cannot be generated — the same reasoning as `SIM-047` on the
 observation side.
@@ -272,11 +280,14 @@ data](https://iamstein.github.io/synpmx/articles/pca-public-data-examples.html).
 
 `pca_visits()` reports it: one row per arm, endpoint and modelled nominal
 time, giving the probability that a generated subject in that arm has an
-observation there. It is the fraction of the arm's patients who did. A
-fraction with fewer than `min_arm_patients` patients on either side, attending
-or missing, is rounded to 0 or 1, whichever is nearer: "one patient missed this
-visit" discloses as much as "one patient came", and the threshold rule of
-statistical disclosure control asks for enough patients on both sides.
+observation there. It is the share of patients who did, pooled over the arms
+that have that visit, so every arm with the visit has the same probability; an
+arm has a visit where at least `min_arm_patients` of its patients were
+observed there. A share with fewer than `min_arm_patients` patients on either
+side, attending or missing, is rounded to 0 or 1, whichever is nearer: "one
+patient missed this visit" discloses as much as "one patient came", and the
+threshold rule of statistical disclosure control asks for enough patients on
+both sides.
 
 Attendance is drawn independently per visit from that probability, so no real
 patient's set of attended visits is reused.
@@ -311,9 +322,9 @@ The object holds, and this is all of it:
 |---|---|
 | Basis | Column means, column standard deviations, and the component loadings |
 | Scores | One mean score vector per arm, and one residual covariance per arm |
-| Dosing model | Per arm, the planned cycles, the dose ladder, and three rates |
-| Visit model | Per arm, endpoint and time, the probability of an observation |
-| Schema | Column order, column types as empty prototypes, the discrete endpoints' level sets, the log-or-identity choice and assay limit per endpoint, and one value per arm for the strata and kept columns, a categorical kept one that fewer than three of the arm's patients hold written as missing |
+| Dosing model | Per arm, the planned cycles; pooled over the arms, the dose ladder and three rates |
+| Visit model | Per endpoint and time, the probability of an observation, pooled over the arms that have the visit |
+| Schema | Column order, column types as empty prototypes, the discrete endpoints' level sets, the log-or-identity choice and assay limit per endpoint, and one value per arm for the strata and kept columns, a kept one that fewer than `min_category_patients` of the arm's patients hold written as missing. No factor level or discrete endpoint level fewer than that many patients hold is stored |
 | Arms | The number of patients in each |
 
 `pca_report()` prints the inventory with the count of numbers in each group
@@ -324,9 +335,10 @@ study.
 Two entries deserve naming because they are not averages. **The level set of a
 discrete endpoint** is read from real values: a 0/1 endpoint has no third value
 to emit, so a generated value is a source value. **A categorical covariate's
-levels** are likewise the ones the source held, which is what the B5 row of
-`synpmx_scorecard()` measures — a level held by one patient is a level that
-identifies them.
+levels** are likewise ones the source held. Both keep only the levels at least
+`min_category_patients` patients hold, because a level held by one patient is a
+level that identifies them, and the B5 row of `synpmx_scorecard()` checks the
+output for one.
 
 Subject identifiers are minted rather than derived. No source label is kept,
 including the levels of an identifier stored as a factor. The only thing kept
@@ -450,5 +462,5 @@ card says nothing about it. `pca_dosing()` reports the same quantity as
 The inventory is above, under "The Model Is the Only Thing Generation Reads",
 and `pca_report()` prints it for a given run. The column to read is the
 smallest number of patients standing behind a quantity. A grid cell mean is
-backed by most of the cohort and a per-arm quantity by one arm, while a rare
-covariate level can be backed by a single patient.
+backed by most of the cohort, a per-arm quantity by one arm, and a covariate
+level by at least `min_category_patients` patients.

@@ -48,9 +48,10 @@ frequency_score <- function(candidate, rate, released) {
 }
 
 # One member's and one non-member's score from each of `draws` simulated
-# studies: an arm of `patients` patients measured at `visits` visits, with a
-# rate between 0.2 and 0.8 at each visit, and the attacker's reference the
-# true rate.
+# studies: `patients` patients behind each share, measured at `visits` visits,
+# with a rate between 0.2 and 0.8 at each visit, and the attacker's reference
+# the true rate. The release pools a share over the arms that have the visit,
+# so the patients behind it are usually the whole cohort.
 frequency_scores <- function(patients, visits, correlation, floor,
                              draws = 1500) {
   scores <- vapply(seq_len(draws), function(draw) {
@@ -122,7 +123,7 @@ membership_tables <- function() {
   population <- expand.grid(patients = c(12, 32, 60), off_by = c(0, 0.1, 0.2))
   population <- cbind(population, t(mapply(
     population_attack, population$patients, population$off_by)))
-  frequency <- expand.grid(visits = c(5, 20, 60), patients = c(10, 30),
+  frequency <- expand.grid(visits = c(5, 20, 60), patients = c(10, 30, 100),
                            correlation = c(0, 0.6))
   frequency <- cbind(frequency, t(mapply(
     frequency_attack, frequency$patients, frequency$visits,
