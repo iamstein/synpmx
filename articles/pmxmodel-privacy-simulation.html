@@ -139,9 +139,9 @@ not. Every number is computed in this article.</p>
 <p><strong>The simulated release is a simplified model of the real one,
 and is not the package’s code.</strong> It keeps the two kinds of number
 that membership inference works on, a population model’s typical values
-and variances, and the share of patients with an outcome at each visit,
-and reduces each to what the attack needs. The code is shown in full at
-the end.</p>
+and variances, and the share of patients sampled at each scheduled
+visit, and reduces each to what the attack needs. The code is shown in
+full at the end.</p>
 <div class="section level2">
 <h2 id="what-the-attacker-holds">What the Attacker Holds<a class="anchor" aria-label="anchor" href="#what-the-attacker-holds"></a>
 </h2>
@@ -152,12 +152,12 @@ holds three things:</p>
 <li>the release, which <code><a href="../reference/synpmx_model.html">synpmx_model()</a></code> attaches to every
 synthetic dataset it generates;</li>
 <li>the candidate’s own measurements of the kind the study made, such as
-their yes/no outcome at each visit, or their <strong>random
+which scheduled visits they were sampled at, or their <strong>random
 effects</strong>, which say how far that person’s own drug clearance and
 volume sit from the typical values and which their concentrations
 imply;</li>
 <li>reference values for the population the study drew from, such as the
-true rate of a yes at each visit.</li>
+average attendance at each scheduled visit.</li>
 </ol>
 <p>The attacker does not see the other patients. A patient in the study
 contributed to every number in the release, so the release leans
@@ -165,17 +165,19 @@ slightly toward them; a patient who was not in it contributed nothing.
 The attack measures that lean.</p>
 </div>
 <div class="section level2">
-<h2 id="one-arm-five-visits">One Arm, Five Visits<a class="anchor" aria-label="anchor" href="#one-arm-five-visits"></a>
+<h2 id="one-study-five-visits">One Study, Five Visits<a class="anchor" aria-label="anchor" href="#one-study-five-visits"></a>
 </h2>
-<p>The smallest case shows every step. Ten patients record a yes/no
-outcome at 5 visits, such as whether a symptom was present, and the true
-rate of a yes differs by visit. Each row is a patient:</p>
+<p>The smallest case shows every step. Ten patients each have a
+concentration sample scheduled at 5 visits, and each sample is either
+taken (1) or missed (0). The average attendance differs by visit, as it
+does in a sparse sampling design, where each patient is sampled at some
+of the scheduled times. Each row is a patient:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span></span>
-<span><span class="va">rate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.3</span>, <span class="fl">0.5</span>, <span class="fl">0.7</span>, <span class="fl">0.4</span>, <span class="fl">0.6</span><span class="op">)</span></span>
-<span><span class="va">arm</span> <span class="op">&lt;-</span> <span class="fu">draw_outcomes</span><span class="op">(</span><span class="fl">10</span>, <span class="va">rate</span>, correlation <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/dimnames.html" class="external-link">dimnames</a></span><span class="op">(</span><span class="va">arm</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"patient"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"visit"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">arm</span></span>
+<span><span class="va">average</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.3</span>, <span class="fl">0.5</span>, <span class="fl">0.7</span>, <span class="fl">0.4</span>, <span class="fl">0.6</span><span class="op">)</span></span>
+<span><span class="va">study</span> <span class="op">&lt;-</span> <span class="fu">draw_attendance</span><span class="op">(</span><span class="fl">10</span>, <span class="va">average</span>, correlation <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/dimnames.html" class="external-link">dimnames</a></span><span class="op">(</span><span class="va">study</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"patient"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"visit"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">study</span></span>
 <span><span class="co">#&gt;            visit 1 visit 2 visit 3 visit 4 visit 5</span></span>
 <span><span class="co">#&gt; patient 1        1       1       0       0       0</span></span>
 <span><span class="co">#&gt; patient 2        1       1       0       1       1</span></span>
@@ -187,64 +189,69 @@ rate of a yes differs by visit. Each row is a patient:</p>
 <span><span class="co">#&gt; patient 8        1       0       1       0       0</span></span>
 <span><span class="co">#&gt; patient 9        0       1       1       1       0</span></span>
 <span><span class="co">#&gt; patient 10       0       1       0       1       1</span></span></code></pre></div>
-<p>The release holds the share of patients with a yes at each visit,
-after the floor that rounds a share with one or two patients on either
-side to 0 or 1:</p>
+<p>The release’s visit model holds the share of patients sampled at each
+visit, after the floor that rounds a share with one or two patients on
+either side to 0 or 1:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">released</span> <span class="op">&lt;-</span> <span class="fu">release_shares</span><span class="op">(</span><span class="va">arm</span>, floor <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span>true_rate <span class="op">=</span> <span class="va">rate</span>, released_share <span class="op">=</span> <span class="va">released</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">released</span> <span class="op">&lt;-</span> <span class="fu">release_shares</span><span class="op">(</span><span class="va">study</span>, floor <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span>average <span class="op">=</span> <span class="va">average</span>, released_share <span class="op">=</span> <span class="va">released</span><span class="op">)</span></span>
 <span><span class="co">#&gt;                visit 1 visit 2 visit 3 visit 4 visit 5</span></span>
-<span><span class="co">#&gt; true_rate          0.3     0.5     0.7     0.4     0.6</span></span>
+<span><span class="co">#&gt; average            0.3     0.5     0.7     0.4     0.6</span></span>
 <span><span class="co">#&gt; released_share     0.5     1.0     0.3     0.5     0.6</span></span></code></pre></div>
-<p>At visit 2, 8 of the 10 patients had a yes, which leaves 2 with a no,
-so the floor released the share as 1.</p>
+<p>At visit 2, 8 of the 10 patients were sampled, which leaves 2 who
+missed it, so the floor released the share as 1.</p>
 <p>There are two candidates: patient 1, who is in the study, and a new
 patient from the same population, who is not.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">member</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="va">arm</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span><span class="op">)</span></span>
-<span><span class="va">non_member</span> <span class="op">&lt;-</span> <span class="fu">draw_outcomes</span><span class="op">(</span><span class="fl">1</span>, <span class="va">rate</span>, correlation <span class="op">=</span> <span class="fl">0</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span></span></code></pre></div>
-<p><strong>The score multiplies, at each visit, how far the candidate’s
-outcome sits from the true rate by how far the released share sits from
-it, and adds the products.</strong> A product is positive when the
-candidate and the release lean the same way: a yes where the share came
-out above the true rate, or a no where it came out below.</p>
+<code class="sourceCode R"><span><span class="va">member</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="va">study</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">non_member</span> <span class="op">&lt;-</span> <span class="fu">draw_attendance</span><span class="op">(</span><span class="fl">1</span>, <span class="va">average</span>, correlation <span class="op">=</span> <span class="fl">0</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span></span></code></pre></div>
+<p><strong>The score asks whether the visits the candidate missed are
+the visits whose released attendance came out below average.</strong> At
+each visit it multiplies how far the candidate sits from the average, 1
+minus the average for a visit they were sampled at and minus the average
+for one they missed, by how far the released share sits from the
+average, and adds the products. A product is positive when the candidate
+and the release lean the same way: sampled where the share came out
+above average, or missed where it came out below.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>  visit <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, true_rate <span class="op">=</span> <span class="va">rate</span>, share <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="va">released</span><span class="op">)</span>,</span>
-<span>  member <span class="op">=</span> <span class="va">member</span>, member_term <span class="op">=</span> <span class="op">(</span><span class="va">member</span> <span class="op">-</span> <span class="va">rate</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="va">released</span> <span class="op">-</span> <span class="va">rate</span><span class="op">)</span>,</span>
+<span>  visit <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, average <span class="op">=</span> <span class="va">average</span>, share <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="va">released</span><span class="op">)</span>,</span>
+<span>  member <span class="op">=</span> <span class="va">member</span>, member_term <span class="op">=</span> <span class="op">(</span><span class="va">member</span> <span class="op">-</span> <span class="va">average</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="va">released</span> <span class="op">-</span> <span class="va">average</span><span class="op">)</span>,</span>
 <span>  non_member <span class="op">=</span> <span class="va">non_member</span>,</span>
-<span>  non_member_term <span class="op">=</span> <span class="op">(</span><span class="va">non_member</span> <span class="op">-</span> <span class="va">rate</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="va">released</span> <span class="op">-</span> <span class="va">rate</span><span class="op">)</span>,</span>
+<span>  non_member_term <span class="op">=</span> <span class="op">(</span><span class="va">non_member</span> <span class="op">-</span> <span class="va">average</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="va">released</span> <span class="op">-</span> <span class="va">average</span><span class="op">)</span>,</span>
 <span>  row.names <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
-<span><span class="co">#&gt;   visit true_rate share member member_term non_member non_member_term</span></span>
-<span><span class="co">#&gt; 1     1       0.3   0.5      1        0.14          0           -0.06</span></span>
-<span><span class="co">#&gt; 2     2       0.5   1.0      1        0.25          0           -0.25</span></span>
-<span><span class="co">#&gt; 3     3       0.7   0.3      0        0.28          1           -0.12</span></span>
-<span><span class="co">#&gt; 4     4       0.4   0.5      0       -0.04          0           -0.04</span></span>
-<span><span class="co">#&gt; 5     5       0.6   0.6      0        0.00          1            0.00</span></span>
-<span><span class="va">scores</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>member <span class="op">=</span> <span class="fu">frequency_score</span><span class="op">(</span><span class="va">member</span>, <span class="va">rate</span>, <span class="va">released</span><span class="op">)</span>,</span>
-<span>            non_member <span class="op">=</span> <span class="fu">frequency_score</span><span class="op">(</span><span class="va">non_member</span>, <span class="va">rate</span>, <span class="va">released</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   visit average share member member_term non_member non_member_term</span></span>
+<span><span class="co">#&gt; 1     1     0.3   0.5      1        0.14          0           -0.06</span></span>
+<span><span class="co">#&gt; 2     2     0.5   1.0      1        0.25          0           -0.25</span></span>
+<span><span class="co">#&gt; 3     3     0.7   0.3      0        0.28          1           -0.12</span></span>
+<span><span class="co">#&gt; 4     4     0.4   0.5      0       -0.04          0           -0.04</span></span>
+<span><span class="co">#&gt; 5     5     0.6   0.6      0        0.00          1            0.00</span></span>
+<span><span class="va">scores</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>member <span class="op">=</span> <span class="fu">attendance_score</span><span class="op">(</span><span class="va">member</span>, <span class="va">average</span>, <span class="va">released</span><span class="op">)</span>,</span>
+<span>            non_member <span class="op">=</span> <span class="fu">attendance_score</span><span class="op">(</span><span class="va">non_member</span>, <span class="va">average</span>, <span class="va">released</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">scores</span></span>
 <span><span class="co">#&gt;     member non_member </span></span>
 <span><span class="co">#&gt;       0.63      -0.47</span></span></code></pre></div>
 <p>Patient 1 is one of the ten patients behind every share, so each
-share leans one tenth of the way toward patient 1’s own outcome. The
-non-member’s outcomes had no part in the shares. In this one study the
-member scores higher than the non-member, but one study shows little,
-because the shares also vary by chance from one study to the next, by
-more than one patient’s tenth. The lean shows over many studies.</p>
+share leans one tenth of the way toward patient 1’s own attendance: a
+visit patient 1 missed comes out a tenth lower than it would have with
+them sampled there. The non-member’s attendance had no part in the
+shares. In this one study the member scores higher than the non-member,
+but one study shows little, because the shares also vary by chance from
+one study to the next, by more than one patient’s tenth. The lean shows
+over many studies.</p>
 </div>
 <div class="section level2">
 <h2 id="from-scores-to-the-auc">From Scores to the AUC<a class="anchor" aria-label="anchor" href="#from-scores-to-the-auc"></a>
 </h2>
 <p>The experiment is repeated: a new study is drawn, one member and one
 non-member are scored, and this is done 2,000 times. Each panel shows
-the two resulting piles of scores, for 10 patients measured at 5, 20 or
+the two resulting piles of scores, for 10 patients scheduled at 5, 20 or
 60 visits:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">11</span><span class="op">)</span></span>
 <span><span class="va">piles</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">20</span>, <span class="fl">60</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">visits</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">one</span> <span class="op">&lt;-</span> <span class="fu">frequency_scores</span><span class="op">(</span><span class="fl">10</span>, <span class="va">visits</span>, correlation <span class="op">=</span> <span class="fl">0</span>, floor <span class="op">=</span> <span class="fl">3</span>,</span>
-<span>                          draws <span class="op">=</span> <span class="fl">2000</span><span class="op">)</span></span>
+<span>  <span class="va">one</span> <span class="op">&lt;-</span> <span class="fu">attendance_scores</span><span class="op">(</span><span class="fl">10</span>, <span class="va">visits</span>, correlation <span class="op">=</span> <span class="fl">0</span>, floor <span class="op">=</span> <span class="fl">3</span>,</span>
+<span>                           draws <span class="op">=</span> <span class="fl">2000</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>visits <span class="op">=</span> <span class="va">visits</span>, candidate <span class="op">=</span> <span class="st">"member"</span>,</span>
 <span>                   score <span class="op">=</span> <span class="va">one</span><span class="op">$</span><span class="va">member</span><span class="op">)</span>,</span>
 <span>        <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>visits <span class="op">=</span> <span class="va">visits</span>, candidate <span class="op">=</span> <span class="st">"non-member"</span>,</span>
@@ -288,16 +295,16 @@ any single person the attacker can be wrong; what the AUC measures is
 how far the release, taken over many people, gives membership away.</p>
 </div>
 <div class="section level2">
-<h2 id="the-per-visit-table-row-by-row">The Per-Visit Table, Row by Row<a class="anchor" aria-label="anchor" href="#the-per-visit-table-row-by-row"></a>
+<h2 id="the-attendance-table-row-by-row">The Attendance Table, Row by Row<a class="anchor" aria-label="anchor" href="#the-attendance-table-row-by-row"></a>
 </h2>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tables</span> <span class="op">&lt;-</span> <span class="fu">membership_tables</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="va">frequency</span> <span class="op">&lt;-</span> <span class="va">tables</span><span class="op">$</span><span class="va">frequency</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>visits <span class="op">=</span> <span class="va">frequency</span><span class="op">$</span><span class="va">visits</span>,</span>
-<span>           patients_behind_share <span class="op">=</span> <span class="va">frequency</span><span class="op">$</span><span class="va">patients</span>,</span>
-<span>           correlation_within_patient <span class="op">=</span> <span class="va">frequency</span><span class="op">$</span><span class="va">correlation</span>,</span>
-<span>           auc_without_floor <span class="op">=</span> <span class="fu">two</span><span class="op">(</span><span class="va">frequency</span><span class="op">$</span><span class="va">without_floor</span><span class="op">)</span>,</span>
-<span>           auc_released <span class="op">=</span> <span class="fu">two</span><span class="op">(</span><span class="va">frequency</span><span class="op">$</span><span class="va">released</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">attendance</span> <span class="op">&lt;-</span> <span class="va">tables</span><span class="op">$</span><span class="va">attendance</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>visits <span class="op">=</span> <span class="va">attendance</span><span class="op">$</span><span class="va">visits</span>,</span>
+<span>           patients_behind_share <span class="op">=</span> <span class="va">attendance</span><span class="op">$</span><span class="va">patients</span>,</span>
+<span>           correlation_within_patient <span class="op">=</span> <span class="va">attendance</span><span class="op">$</span><span class="va">correlation</span>,</span>
+<span>           auc_without_floor <span class="op">=</span> <span class="fu">two</span><span class="op">(</span><span class="va">attendance</span><span class="op">$</span><span class="va">without_floor</span><span class="op">)</span>,</span>
+<span>           auc_released <span class="op">=</span> <span class="fu">two</span><span class="op">(</span><span class="va">attendance</span><span class="op">$</span><span class="va">released</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    visits patients_behind_share correlation_within_patient auc_without_floor</span></span>
 <span><span class="co">#&gt; 1       5                    10                        0.0              0.70</span></span>
 <span><span class="co">#&gt; 2      20                    10                        0.0              0.85</span></span>
@@ -337,20 +344,22 @@ how far the release, taken over many people, gives membership away.</p>
 <span><span class="co">#&gt; 17         0.56</span></span>
 <span><span class="co">#&gt; 18         0.58</span></span></code></pre></div>
 <p>Each row is one setting of the experiment above, repeated 1,500
-times, with the rate at each visit drawn between 0.2 and 0.8:</p>
+times, with the average attendance at each visit drawn between 0.2 and
+0.8, which is where the in-between shares of the sparse-sampling public
+studies sit (the last table below):</p>
 <ul>
 <li>
-<code>visits</code> is how many visits record the outcome, and so
-how many shares the release holds for the arm.</li>
+<code>visits</code> is how many scheduled visits a patient can be
+sampled at, and so how many shares the release holds.</li>
 <li>
 <code>patients_behind_share</code> is how many patients each share
 is a share of. The release pools a share over the arms that have the
 visit, so this is usually the whole cohort.</li>
 <li>
 <code>correlation_within_patient</code> is 0 where a patient’s
-visits are independent, and 0.6 where a patient with a yes at one visit
-is much more likely to have one at the next, as a chronic symptom would
-be.</li>
+visits are independent, and 0.6 where a patient who misses one visit is
+much more likely to miss the next, as a patient drifting out of the
+study would.</li>
 <li>
 <code>auc_without_floor</code> releases every share as it is.</li>
 <li>
@@ -359,10 +368,10 @@ either side to 0 or 1, as <code><a href="../reference/synpmx_model.html">synpmx_
 columns score the same simulated studies, so they differ only by what
 the floor does.</li>
 </ul>
-<p>Read across one row: with 10 patients behind each share and a yes/no
-outcome at 20 independent visits, an attacker who holds one candidate’s
-20 outcomes and the true rate at each visit picks the member over the
-non-member with probability 0.83.</p>
+<p>Read across one row: with 10 patients behind each share and 20
+independently attended visits, an attacker who knows which of the 20
+visits one candidate was sampled at, and the average attendance at each,
+picks the member over the non-member with probability 0.83.</p>
 <p>Three things move the AUC, and the floor barely does. <strong>More
 visits raise it</strong>, because each visit adds the same small lean
 toward every member: the leans add up in proportion to the number of
@@ -372,15 +381,14 @@ patient is a smaller part of every share. <strong>Correlation within a
 patient lowers it</strong>, because correlated visits repeat the same
 information. <strong>The floor barely moves it</strong>, because it
 changes only shares near 0 or 1.</p>
-<p>In the release, two fields are tables of this kind.
-<code>visits</code> holds the share of patients measured at each
-scheduled visit, where the candidate’s outcome is whether they attended;
-<code>discrete</code> holds the share of patients at each level of a
-binary or ordinal endpoint at each visit. Both are pooled over the arms
-that have the visit, so the patients behind a share are those arms’
-patients together. A share of 0 or 1 says the same about every patient
-behind it and gives the attacker nothing, so the shares that count are
-those strictly between 0 and 1.</p>
+<p><strong>The release does not hold this table.</strong> Its visit
+model is one attendance rate for the whole study, applied at every visit
+an arm has, so an attacker who knows which visits a candidate was
+sampled at has one number to match rather than a share per visit; the
+table above is what a share per visit would expose, and is why the
+release keeps one rate. A binary or ordinal endpoint is released the
+same way, as one set of level frequencies over the whole study, and dose
+changes as three rates.</p>
 </div>
 <div class="section level2">
 <h2 id="the-population-model-table">The Population-Model Table<a class="anchor" aria-label="anchor" href="#the-population-model-table"></a>
@@ -443,16 +451,15 @@ it was, because an estimate’s sampling variation from one study to the
 next is larger than one rounding step.</p>
 </div>
 <div class="section level2">
-<h2 id="each-public-studys-release-against-the-tables">Each Public Study’s Release Against the Tables<a class="anchor" aria-label="anchor" href="#each-public-studys-release-against-the-tables"></a>
+<h2 id="what-each-public-study-releases">What Each Public Study Releases<a class="anchor" aria-label="anchor" href="#what-each-public-study-releases"></a>
 </h2>
-<p>The features that place a study among the rows above, read from the
-release of each stored fit in the <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-public-data-examples.html">public-data
-evaluation</a>: the number of random effects, and for
-<code>visits</code> and <code>discrete</code> the number of per-visit
-shares strictly between 0 and 1 with the fewest patients behind any of
-them. At a visit where a binary or ordinal endpoint has several levels,
-their shares add up to 1, so the visit counts one fewer than its number
-of levels: one for a yes/no outcome, as in the simulation.</p>
+<p>The numbers the attack could use in the release of each stored fit in
+the <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-public-data-examples.html">public-data
+evaluation</a>: the random effects of the population model, the
+attendance rate, and the free level frequencies of the binary and
+ordinal endpoints, each of which rests on every patient in the study. An
+endpoint with several levels has one fewer free frequency than levels,
+because they add up to 1.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>warfarin <span class="op">=</span> <span class="st">"warfarin-model-fit.rds"</span>,</span>
 <span>           theo_md <span class="op">=</span> <span class="st">"theo-md-model-fit.rds"</span>,</span>
@@ -468,62 +475,35 @@ of levels: one for a yes/no outcome, as in the simulation.</p>
 <span>  <span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">stored_fit</span><span class="op">(</span><span class="va">files</span><span class="op">[[</span><span class="va">study</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">inherits</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"pmx_fitted_model"</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span>
 <span>  <span class="va">release</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_release.html">model_release</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span>  <span class="va">sizes</span> <span class="op">&lt;-</span> <span class="va">release</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">sizes</span></span>
-<span>  <span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">sizes</span><span class="op">)</span></span>
-<span>  <span class="co"># Each visit's share once, with the patients of every arm that has it.</span></span>
-<span>  <span class="va">attendance</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">cells</span><span class="op">)</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">arms</span>, <span class="kw">function</span><span class="op">(</span><span class="va">arm</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">visits</span><span class="op">[[</span><span class="va">arm</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">probability</span><span class="op">)</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span></span>
-<span>    <span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>free <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">1</span><span class="op">)</span>,</span>
-<span>      behind <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">sizes</span><span class="op">[</span><span class="va">p</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="va">levels</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">cells</span><span class="op">)</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">marginals</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">arms</span>, <span class="kw">function</span><span class="op">(</span><span class="va">arm</span><span class="op">)</span> <span class="va">release</span><span class="op">$</span><span class="va">discrete</span><span class="op">[[</span><span class="va">arm</span><span class="op">]</span><span class="op">]</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
-<span>    <span class="va">held</span> <span class="op">&lt;-</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">marginals</span>, <span class="va">is.null</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">logical</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/any.html" class="external-link">any</a></span><span class="op">(</span><span class="va">held</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>free <span class="op">=</span> <span class="fl">0</span>, behind <span class="op">=</span> <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="va">p</span> <span class="op">&lt;-</span> <span class="va">marginals</span><span class="op">[[</span><span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">held</span><span class="op">)</span><span class="op">[[</span><span class="fl">1L</span><span class="op">]</span><span class="op">]</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">probability</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>free <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">p</span> <span class="op">&gt;</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="va">p</span> <span class="op">&lt;</span> <span class="fl">1</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span>, behind <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">sizes</span><span class="op">[</span><span class="va">held</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="va">fewest</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">counts</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">behind</span> <span class="op">&lt;-</span> <span class="va">counts</span><span class="op">[</span><span class="st">"behind"</span>, <span class="va">counts</span><span class="op">[</span><span class="st">"free"</span>, <span class="op">]</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">]</span></span>
-<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">behind</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">behind</span><span class="op">)</span> <span class="kw">else</span> <span class="cn">NA</span></span>
-<span>  <span class="op">}</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>study <span class="op">=</span> <span class="va">study</span>, patients <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">sizes</span><span class="op">)</span>,</span>
+<span>  <span class="va">rate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">visits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">v</span><span class="op">$</span><span class="va">probability</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">rate</span> <span class="op">&lt;-</span> <span class="va">rate</span><span class="op">[</span><span class="va">rate</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">]</span></span>
+<span>  <span class="va">marginals</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Filter</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Negate</a></span><span class="op">(</span><span class="va">is.null</span><span class="op">)</span>,</span>
+<span>                             <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">discrete</span>, recursive <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>study <span class="op">=</span> <span class="va">study</span>, patients <span class="op">=</span> <span class="va">release</span><span class="op">$</span><span class="va">n_source</span>,</span>
 <span>             random_effects <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">pk_models</span>, <span class="kw">function</span><span class="op">(</span><span class="va">model</span><span class="op">)</span> <span class="op">{</span></span>
 <span>               <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">model</span><span class="op">$</span><span class="va">parameters</span><span class="op">$</span><span class="va">omega</span><span class="op">)</span></span>
 <span>             <span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">integer</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>             attendance_shares <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">attendance</span><span class="op">[</span><span class="st">"free"</span>, <span class="op">]</span><span class="op">)</span>,</span>
-<span>             fewest_behind_attendance <span class="op">=</span> <span class="fu">fewest</span><span class="op">(</span><span class="va">attendance</span><span class="op">)</span>,</span>
-<span>             discrete_shares <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">levels</span><span class="op">[</span><span class="st">"free"</span>, <span class="op">]</span><span class="op">)</span>,</span>
-<span>             fewest_behind_discrete <span class="op">=</span> <span class="fu">fewest</span><span class="op">(</span><span class="va">levels</span><span class="op">)</span><span class="op">)</span></span>
+<span>             attendance_rate <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">rate</span><span class="op">)</span> <span class="op">==</span> <span class="fl">1L</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">signif</a></span><span class="op">(</span><span class="va">rate</span>, <span class="fl">2</span><span class="op">)</span> <span class="kw">else</span> <span class="cn">NA</span>,</span>
+<span>             discrete_frequencies <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">marginals</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="op">{</span></span>
+<span>               <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">levels</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span></span>
+<span>             <span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="va">rows</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">rows</span>, <span class="va">is.null</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">logical</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt;           study patients random_effects attendance_shares</span></span>
-<span><span class="co">#&gt; 1      warfarin       32              5                10</span></span>
-<span><span class="co">#&gt; 2       theo_md       12              5                 6</span></span>
-<span><span class="co">#&gt; 3           mad       60              5                 0</span></span>
-<span><span class="co">#&gt; 4    case1_pkpd      180              5                 0</span></span>
-<span><span class="co">#&gt; 5        wbcSim       45              0                10</span></span>
-<span><span class="co">#&gt; 6   mavoglurant      120              4                 4</span></span>
-<span><span class="co">#&gt; 7      nimoData       12              4                 8</span></span>
-<span><span class="co">#&gt; 8      pheno_sd       59              4                 9</span></span>
-<span><span class="co">#&gt; 9  mixroute_sim       90              5                 0</span></span>
-<span><span class="co">#&gt; 10      onc_sim      200              5                25</span></span>
-<span><span class="co">#&gt;    fewest_behind_attendance discrete_shares fewest_behind_discrete</span></span>
-<span><span class="co">#&gt; 1                        32               0                     NA</span></span>
-<span><span class="co">#&gt; 2                        12               0                     NA</span></span>
-<span><span class="co">#&gt; 3                        NA              27                     60</span></span>
-<span><span class="co">#&gt; 4                        NA               0                     NA</span></span>
-<span><span class="co">#&gt; 5                        45               0                     NA</span></span>
-<span><span class="co">#&gt; 6                       120               0                     NA</span></span>
-<span><span class="co">#&gt; 7                        12               0                     NA</span></span>
-<span><span class="co">#&gt; 8                        59               0                     NA</span></span>
-<span><span class="co">#&gt; 9                        NA               0                     NA</span></span>
-<span><span class="co">#&gt; 10                       66               0                     NA</span></span></code></pre></div>
-<p>A study with few patients and many shares between 0 and 1 sits among
-the per-visit rows with the highest AUC, and a large study with a few
-such shares among the lowest. For the population model, the cohort size
+<span><span class="co">#&gt;           study patients random_effects attendance_rate discrete_frequencies</span></span>
+<span><span class="co">#&gt; 1      warfarin       32              5            0.68                    0</span></span>
+<span><span class="co">#&gt; 2       theo_md       12              5            0.87                    0</span></span>
+<span><span class="co">#&gt; 3           mad       60              5            1.00                    3</span></span>
+<span><span class="co">#&gt; 4    case1_pkpd      180              5            1.00                    0</span></span>
+<span><span class="co">#&gt; 5        wbcSim       45              0            0.28                    0</span></span>
+<span><span class="co">#&gt; 6   mavoglurant      120              4            0.80                    0</span></span>
+<span><span class="co">#&gt; 7      nimoData       12              4            0.84                    0</span></span>
+<span><span class="co">#&gt; 8      pheno_sd       59              4            0.28                    0</span></span>
+<span><span class="co">#&gt; 9  mixroute_sim       90              5            1.00                    0</span></span>
+<span><span class="co">#&gt; 10      onc_sim      200              5            0.78                    0</span></span></code></pre></div>
+<p>An attendance rate of 1 tells the attacker nothing; one below 1 is a
+single number for the cohort. For the population model, the cohort size
 places a study among the rows of the second table; a study fitted with
 more random effects than five gives the attacker more numbers to add
 up.</p>
@@ -583,22 +563,22 @@ attacker holding what this one holds.</li>
 <span>  <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">ranks</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span><span class="op">]</span><span class="op">)</span> <span class="op">-</span> <span class="va">n</span> <span class="op">*</span> <span class="op">(</span><span class="va">n</span> <span class="op">+</span> <span class="fl">1</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="va">n</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">others</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="co"># Yes/no outcomes, one row per patient and one column per visit. The rate of a</span></span>
-<span><span class="co"># yes differs by visit, and `correlation` is shared between one patient's</span></span>
-<span><span class="co"># visits: a patient with a yes at one visit is more likely to have one at the</span></span>
-<span><span class="co"># next.</span></span>
-<span><span class="va">draw_outcomes</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">patients</span>, <span class="va">rate</span>, <span class="va">correlation</span><span class="op">)</span> <span class="op">{</span></span>
+<span><span class="co"># Attendance, one row per patient and one column per scheduled visit: 1 where</span></span>
+<span><span class="co"># the patient was sampled there and 0 where the sample was missed. The chance of</span></span>
+<span><span class="co"># a sample differs by visit, and `correlation` is shared between one patient's</span></span>
+<span><span class="co"># visits: a patient who misses one visit is more likely to miss the next.</span></span>
+<span><span class="va">draw_attendance</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">patients</span>, <span class="va">rate</span>, <span class="va">correlation</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">latent</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">correlation</span><span class="op">)</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">patients</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">correlation</span><span class="op">)</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">patients</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">rate</span><span class="op">)</span><span class="op">)</span>, <span class="va">patients</span><span class="op">)</span></span>
 <span>  <span class="fl">1</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="va">latent</span>, <span class="fl">2</span>, <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">qnorm</a></span><span class="op">(</span><span class="va">rate</span><span class="op">)</span>, <span class="st">"&lt;"</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="co"># The arm's share of patients with a yes at each visit. With `floor = 3`, a</span></span>
-<span><span class="co"># share with one or two patients on either side is rounded to 0 or 1, as the</span></span>
-<span><span class="co"># release does; `floor = 1` releases every share as it is.</span></span>
-<span><span class="va">release_shares</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">outcomes</span>, <span class="va">floor</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">patients</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">outcomes</span><span class="op">)</span></span>
-<span>  <span class="va">held</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">outcomes</span><span class="op">)</span></span>
+<span><span class="co"># The share of patients sampled at each visit, as the visit model releases it.</span></span>
+<span><span class="co"># With `floor = 3`, a share with one or two patients on either side is rounded</span></span>
+<span><span class="co"># to 0 or 1, as the release does; `floor = 1` releases every share as it is.</span></span>
+<span><span class="va">release_shares</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">attendance</span>, <span class="va">floor</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">patients</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">attendance</span><span class="op">)</span></span>
+<span>  <span class="va">held</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">attendance</span><span class="op">)</span></span>
 <span>  <span class="va">released</span> <span class="op">&lt;-</span> <span class="va">held</span> <span class="op">/</span> <span class="va">patients</span></span>
 <span>  <span class="va">thin</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmin</a></span><span class="op">(</span><span class="va">held</span>, <span class="va">patients</span> <span class="op">-</span> <span class="va">held</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span> <span class="op">&amp;</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmin</a></span><span class="op">(</span><span class="va">held</span>, <span class="va">patients</span> <span class="op">-</span> <span class="va">held</span><span class="op">)</span> <span class="op">&lt;</span> <span class="va">floor</span></span>
@@ -606,43 +586,45 @@ attacker holding what this one holds.</li>
 <span>  <span class="va">released</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="co"># The attacker's score for one candidate: at each visit, the candidate's</span></span>
-<span><span class="co"># outcome minus the reference rate, times the released share minus the</span></span>
-<span><span class="co"># reference rate, summed over visits.</span></span>
-<span><span class="va">frequency_score</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">candidate</span>, <span class="va">rate</span>, <span class="va">released</span><span class="op">)</span> <span class="op">{</span></span>
+<span><span class="co"># The attacker's score for one candidate: at each visit, whether the candidate</span></span>
+<span><span class="co"># was sampled minus the visit's average attendance, times the released share</span></span>
+<span><span class="co"># minus that average, summed over visits. It is high when the visits the</span></span>
+<span><span class="co"># candidate missed are the ones whose released attendance came out below</span></span>
+<span><span class="co"># average, and the ones they kept came out above.</span></span>
+<span><span class="va">attendance_score</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">candidate</span>, <span class="va">rate</span>, <span class="va">released</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">(</span><span class="va">candidate</span> <span class="op">-</span> <span class="va">rate</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="va">released</span> <span class="op">-</span> <span class="va">rate</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="co"># One member's and one non-member's score from each of `draws` simulated</span></span>
-<span><span class="co"># studies: `patients` patients behind each share, measured at `visits` visits,</span></span>
-<span><span class="co"># with a rate between 0.2 and 0.8 at each visit, and the attacker's reference</span></span>
-<span><span class="co"># the true rate. The release pools a share over the arms that have the visit,</span></span>
-<span><span class="co"># so the patients behind it are usually the whole cohort.</span></span>
-<span><span class="va">frequency_scores</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">patients</span>, <span class="va">visits</span>, <span class="va">correlation</span>, <span class="va">floor</span>,</span>
-<span>                             <span class="va">draws</span> <span class="op">=</span> <span class="fl">1500</span><span class="op">)</span> <span class="op">{</span></span>
+<span><span class="co"># studies: `patients` patients behind each share, scheduled at `visits` visits,</span></span>
+<span><span class="co"># with an average attendance between 0.2 and 0.8 at each, and the attacker's</span></span>
+<span><span class="co"># reference the true average. The release pools a share over the arms that</span></span>
+<span><span class="co"># have the visit, so the patients behind it are usually the whole cohort.</span></span>
+<span><span class="va">attendance_scores</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">patients</span>, <span class="va">visits</span>, <span class="va">correlation</span>, <span class="va">floor</span>,</span>
+<span>                              <span class="va">draws</span> <span class="op">=</span> <span class="fl">1500</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">scores</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">draw</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">rate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">visits</span>, <span class="fl">0.2</span>, <span class="fl">0.8</span><span class="op">)</span></span>
-<span>    <span class="va">arm</span> <span class="op">&lt;-</span> <span class="fu">draw_outcomes</span><span class="op">(</span><span class="va">patients</span>, <span class="va">rate</span>, <span class="va">correlation</span><span class="op">)</span></span>
-<span>    <span class="va">outsider</span> <span class="op">&lt;-</span> <span class="fu">draw_outcomes</span><span class="op">(</span><span class="fl">1</span>, <span class="va">rate</span>, <span class="va">correlation</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span></span>
-<span>    <span class="va">released</span> <span class="op">&lt;-</span> <span class="fu">release_shares</span><span class="op">(</span><span class="va">arm</span>, <span class="va">floor</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">frequency_score</span><span class="op">(</span><span class="va">arm</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span>, <span class="va">rate</span>, <span class="va">released</span><span class="op">)</span>,</span>
-<span>      <span class="fu">frequency_score</span><span class="op">(</span><span class="va">outsider</span>, <span class="va">rate</span>, <span class="va">released</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">study</span> <span class="op">&lt;-</span> <span class="fu">draw_attendance</span><span class="op">(</span><span class="va">patients</span>, <span class="va">rate</span>, <span class="va">correlation</span><span class="op">)</span></span>
+<span>    <span class="va">outsider</span> <span class="op">&lt;-</span> <span class="fu">draw_attendance</span><span class="op">(</span><span class="fl">1</span>, <span class="va">rate</span>, <span class="va">correlation</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span></span>
+<span>    <span class="va">released</span> <span class="op">&lt;-</span> <span class="fu">release_shares</span><span class="op">(</span><span class="va">study</span>, <span class="va">floor</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">attendance_score</span><span class="op">(</span><span class="va">study</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span>, <span class="va">rate</span>, <span class="va">released</span><span class="op">)</span>,</span>
+<span>      <span class="fu">attendance_score</span><span class="op">(</span><span class="va">outsider</span>, <span class="va">rate</span>, <span class="va">released</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>member <span class="op">=</span> <span class="va">scores</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span>, non_member <span class="op">=</span> <span class="va">scores</span><span class="op">[</span><span class="fl">2</span>, <span class="op">]</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="co"># The same studies scored with every share released and with the floor.</span></span>
-<span><span class="va">frequency_attack</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">patients</span>, <span class="va">visits</span>, <span class="va">correlation</span>, <span class="va">draws</span> <span class="op">=</span> <span class="fl">1500</span><span class="op">)</span> <span class="op">{</span></span>
+<span><span class="va">attendance_attack</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">patients</span>, <span class="va">visits</span>, <span class="va">correlation</span>, <span class="va">draws</span> <span class="op">=</span> <span class="fl">1500</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">scores</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">draw</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">rate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">visits</span>, <span class="fl">0.2</span>, <span class="fl">0.8</span><span class="op">)</span></span>
-<span>    <span class="va">arm</span> <span class="op">&lt;-</span> <span class="fu">draw_outcomes</span><span class="op">(</span><span class="va">patients</span>, <span class="va">rate</span>, <span class="va">correlation</span><span class="op">)</span></span>
-<span>    <span class="va">outsider</span> <span class="op">&lt;-</span> <span class="fu">draw_outcomes</span><span class="op">(</span><span class="fl">1</span>, <span class="va">rate</span>, <span class="va">correlation</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span></span>
-<span>    <span class="va">whole</span> <span class="op">&lt;-</span> <span class="fu">release_shares</span><span class="op">(</span><span class="va">arm</span>, <span class="fl">1</span><span class="op">)</span></span>
-<span>    <span class="va">floored</span> <span class="op">&lt;-</span> <span class="fu">release_shares</span><span class="op">(</span><span class="va">arm</span>, <span class="fl">3</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">frequency_score</span><span class="op">(</span><span class="va">arm</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span>, <span class="va">rate</span>, <span class="va">whole</span><span class="op">)</span>,</span>
-<span>      <span class="fu">frequency_score</span><span class="op">(</span><span class="va">outsider</span>, <span class="va">rate</span>, <span class="va">whole</span><span class="op">)</span>,</span>
-<span>      <span class="fu">frequency_score</span><span class="op">(</span><span class="va">arm</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span>, <span class="va">rate</span>, <span class="va">floored</span><span class="op">)</span>,</span>
-<span>      <span class="fu">frequency_score</span><span class="op">(</span><span class="va">outsider</span>, <span class="va">rate</span>, <span class="va">floored</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">study</span> <span class="op">&lt;-</span> <span class="fu">draw_attendance</span><span class="op">(</span><span class="va">patients</span>, <span class="va">rate</span>, <span class="va">correlation</span><span class="op">)</span></span>
+<span>    <span class="va">outsider</span> <span class="op">&lt;-</span> <span class="fu">draw_attendance</span><span class="op">(</span><span class="fl">1</span>, <span class="va">rate</span>, <span class="va">correlation</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span></span>
+<span>    <span class="va">whole</span> <span class="op">&lt;-</span> <span class="fu">release_shares</span><span class="op">(</span><span class="va">study</span>, <span class="fl">1</span><span class="op">)</span></span>
+<span>    <span class="va">floored</span> <span class="op">&lt;-</span> <span class="fu">release_shares</span><span class="op">(</span><span class="va">study</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">attendance_score</span><span class="op">(</span><span class="va">study</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span>, <span class="va">rate</span>, <span class="va">whole</span><span class="op">)</span>,</span>
+<span>      <span class="fu">attendance_score</span><span class="op">(</span><span class="va">outsider</span>, <span class="va">rate</span>, <span class="va">whole</span><span class="op">)</span>,</span>
+<span>      <span class="fu">attendance_score</span><span class="op">(</span><span class="va">study</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span>, <span class="va">rate</span>, <span class="va">floored</span><span class="op">)</span>,</span>
+<span>      <span class="fu">attendance_score</span><span class="op">(</span><span class="va">outsider</span>, <span class="va">rate</span>, <span class="va">floored</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fl">4</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>without_floor <span class="op">=</span> <span class="fu">auc</span><span class="op">(</span><span class="va">scores</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span>, <span class="va">scores</span><span class="op">[</span><span class="fl">2</span>, <span class="op">]</span><span class="op">)</span>,</span>
 <span>    released <span class="op">=</span> <span class="fu">auc</span><span class="op">(</span><span class="va">scores</span><span class="op">[</span><span class="fl">3</span>, <span class="op">]</span>, <span class="va">scores</span><span class="op">[</span><span class="fl">4</span>, <span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
@@ -689,12 +671,12 @@ attacker holding what this one holds.</li>
 <span>  <span class="va">population</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>patients <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">12</span>, <span class="fl">32</span>, <span class="fl">60</span><span class="op">)</span>, off_by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.1</span>, <span class="fl">0.2</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="va">population</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">population</span>, <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mapply.html" class="external-link">mapply</a></span><span class="op">(</span></span>
 <span>    <span class="va">population_attack</span>, <span class="va">population</span><span class="op">$</span><span class="va">patients</span>, <span class="va">population</span><span class="op">$</span><span class="va">off_by</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="va">frequency</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>visits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">20</span>, <span class="fl">60</span><span class="op">)</span>, patients <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">30</span>, <span class="fl">100</span><span class="op">)</span>,</span>
-<span>                           correlation <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.6</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="va">frequency</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">frequency</span>, <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mapply.html" class="external-link">mapply</a></span><span class="op">(</span></span>
-<span>    <span class="va">frequency_attack</span>, <span class="va">frequency</span><span class="op">$</span><span class="va">patients</span>, <span class="va">frequency</span><span class="op">$</span><span class="va">visits</span>,</span>
-<span>    <span class="va">frequency</span><span class="op">$</span><span class="va">correlation</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>population <span class="op">=</span> <span class="va">population</span>, frequency <span class="op">=</span> <span class="va">frequency</span><span class="op">)</span></span>
+<span>  <span class="va">attendance</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>visits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">20</span>, <span class="fl">60</span><span class="op">)</span>, patients <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">30</span>, <span class="fl">100</span><span class="op">)</span>,</span>
+<span>                            correlation <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.6</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">attendance</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">attendance</span>, <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mapply.html" class="external-link">mapply</a></span><span class="op">(</span></span>
+<span>    <span class="va">attendance_attack</span>, <span class="va">attendance</span><span class="op">$</span><span class="va">patients</span>, <span class="va">attendance</span><span class="op">$</span><span class="va">visits</span>,</span>
+<span>    <span class="va">attendance</span><span class="op">$</span><span class="va">correlation</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>population <span class="op">=</span> <span class="va">population</span>, attendance <span class="op">=</span> <span class="va">attendance</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 </div>
 <div class="section level2">

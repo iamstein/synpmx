@@ -298,8 +298,8 @@ model demo uses <code>mad</code>, whose fit passed the checks.</p>
 <span><span class="co">#&gt;                      300 mg / 300 (30)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         2 endpoint(s) at 25 nominal time(s), 33 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   median 100% of patients attend a slot, pooled over</span></span>
-<span><span class="co">#&gt;                      arms (100% to 100%)</span></span>
+<span><span class="co">#&gt;   visit attendance   100% of scheduled slots attended, one rate for the</span></span>
+<span><span class="co">#&gt;                      study</span></span>
 <span><span class="co">#&gt;   covariates         WEIGHTB lognormal, drawn once for the whole study,</span></span>
 <span><span class="co">#&gt;                      independently of the profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, CENS,</span></span>
@@ -350,8 +350,8 @@ model demo uses <code>mad</code>, whose fit passed the checks.</p>
 <span><span class="co">#&gt;                      `start_param`; the rest were read off the cohort's</span></span>
 <span><span class="co">#&gt;                      median profile</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.31 </span></span>
-<span><span class="co">#&gt;   time to fit        23 min 32 s</span></span>
-<span><span class="co">#&gt;   whole call         23 min 35 s, against 23 min 32 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        21 min 21 s</span></span>
+<span><span class="co">#&gt;   whole call         21 min 23 s, against 21 min 21 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: PD - Continuous between-subject SD,</span></span>
@@ -419,8 +419,8 @@ the discrete ones are a question this generator does not answer.</p>
 <span><span class="co">#&gt;                      1600 mg / 1600 (10)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         5 endpoint(s) at 28 nominal time(s), 66 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   median 100% of patients attend a slot, pooled over</span></span>
-<span><span class="co">#&gt;                      arms (100% to 100%)</span></span>
+<span><span class="co">#&gt;   visit attendance   100% of scheduled slots attended, one rate for the</span></span>
+<span><span class="co">#&gt;                      study</span></span>
 <span><span class="co">#&gt;   covariates         WEIGHTB lognormal, SEX categorical, drawn once for the</span></span>
 <span><span class="co">#&gt;                      whole study, independently of the profiles</span></span>
 <span><span class="co">#&gt;   discrete endpoints PD - Binary, PD - Ordinal: drawn from each arm's</span></span>
@@ -469,8 +469,8 @@ the discrete ones are a question this generator does not answer.</p>
 <span><span class="co">#&gt;   fixed effects      cl 6.3, v 49, q 5, v2 150, ka 1.2 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.424, v 0.447, ka 0.387, q 0.529, v2 0.424 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.37 </span></span>
-<span><span class="co">#&gt;   time to fit        3 min 26 s</span></span>
-<span><span class="co">#&gt;   whole call         3 min 26 s, against 3 min 26 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        3 min 19 s</span></span>
+<span><span class="co">#&gt;   whole call         3 min 20 s, against 3 min 19 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: PD - Continuous between-subject SD,</span></span>
@@ -484,12 +484,12 @@ the discrete ones are a question this generator does not answer.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">mad_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-e5c8c404fe174e4c81bd" style="width:100%;height:auto;"></div>
 <script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"caption":"<caption>15 pass, 1 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.77 on PK Concentration (furthest of 6)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Nothing fails, and A3 reads 5 of 5: every endpoint survives,
-including the three discrete ones, which are drawn from the level
-frequencies recorded at each visit, pooled over the six arms, rather
-than modelled. Pooled, a discrete endpoint’s response no longer differs
-by dose group, as the continuous PD time course already does not. D1
-reads sd x0.77 on PK Concentration (furthest of 6), the variable whose
-synthetic spread sits furthest from the source’s.</p>
+including the three discrete ones, which are drawn from one set of level
+frequencies for the whole study rather than modelled. Pooled, a discrete
+endpoint’s response differs neither by dose group, as the continuous PD
+time course already does not, nor over the visits. D1 reads sd x0.77 on
+PK Concentration (furthest of 6), the variable whose synthetic spread
+sits furthest from the source’s.</p>
 <p>This is also the study that found a defect: a visit where every
 patient recorded the same level of an ordinal endpoint left the draw
 with a single level, and the draw read that level as a count of levels
@@ -520,8 +520,8 @@ about this study rather than constructing a grid.</p>
 <span><span class="co">#&gt;                      all (32)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         2 endpoint(s) at 16 nominal time(s), 22 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   median 100% of patients attend a slot, pooled over</span></span>
-<span><span class="co">#&gt;                      arms (9% to 100%)</span></span>
+<span><span class="co">#&gt;   visit attendance   68% of scheduled slots attended, one rate for the</span></span>
+<span><span class="co">#&gt;                      study</span></span>
 <span><span class="co">#&gt;   covariates         wt lognormal, age lognormal, sex categorical, drawn</span></span>
 <span><span class="co">#&gt;                      once for the whole study, independently of the</span></span>
 <span><span class="co">#&gt;                      profiles</span></span>
@@ -559,8 +559,8 @@ about this study rather than constructing a grid.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
-<span><span class="co">#&gt;   time to fit        1 min 5 s</span></span>
-<span><span class="co">#&gt;   whole call         1 min 5 s, against 1 min 5 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        57.1 s</span></span>
+<span><span class="co">#&gt;   whole call         57.3 s, against 57.1 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;</span></span>
@@ -573,7 +573,7 @@ about this study rather than constructing a grid.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">warfarin_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-36aa3d2a04d42bbc2145" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"caption":"<caption>15 pass, 1 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x0.81 on wt (furthest of 4)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Read the design line in the report above rather than the parameters.
+<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"caption":"<caption>15 pass, 1 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x1.3 on cp (furthest of 4)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Read the design line in the report above rather than the parameters.
 It says the median profile peaks at 9 h and that <strong>31% of subjects
 do too</strong> — 22 of the 32 are first sampled at 24 h, well past the
 peak, so most individual profiles only decline. The route was decided
@@ -619,8 +619,8 @@ generator looks for is not here: what is recorded is the response.</p>
 <span><span class="co">#&gt;   dose routes        one route, undeclared; infused over 1 h</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         1 endpoint(s) at 11 nominal time(s), 11 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   median 11% of patients attend a slot, pooled over arms</span></span>
-<span><span class="co">#&gt;                      (7% to 100%)</span></span>
+<span><span class="co">#&gt;   visit attendance   28% of scheduled slots attended, one rate for the</span></span>
+<span><span class="co">#&gt;                      study</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, RATE</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
@@ -647,7 +647,7 @@ generator looks for is not here: what is recorded is the response.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">wbc_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-febe03efa1a2d8d52a86" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"caption":"<caption>13 pass, 3 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","A5b","D1"],["Observations per patient","Doses per patient","Values landing in the same range"],["both","both","both"],["3.91 -&gt; 3.29","1.16 -&gt; 1","sd x1 on DV (furthest of 1)"],["review","review","review"],["compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The positive first-dose baseline identifies this as a PD-only study.
+<script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"caption":"<caption>13 pass, 3 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","A5b","D1"],["Observations per patient","Doses per patient","Values landing in the same range"],["both","both","both"],["3.91 -&gt; 3.04","1.16 -&gt; 1","sd x0.91 on DV (furthest of 1)"],["review","review","review"],["compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The positive first-dose baseline identifies this as a PD-only study.
 No compartment model is attempted. The report shows the response’s
 time-course fit and its residual variation, alongside the infusion and
 visit summaries.</p>
@@ -677,6 +677,11 @@ grid is the one the PCA survey writes down, reused unchanged.</p>
 <span><span class="op">)</span></span>
 <span><span class="va">mavo_run</span> <span class="op">&lt;-</span> <span class="fu">model_run</span><span class="op">(</span><span class="st">"mavoglurant"</span>, <span class="va">mavoglurant</span>, <span class="va">mavo_roles</span>,</span>
 <span>                      <span class="st">"mavoglurant-model-fit.rds"</span>, seed <span class="op">=</span> <span class="fl">707</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: 9% of generated observations (119 of 1343) fell below the emission floor</span></span>
+<span><span class="co">#&gt; and were raised to it.</span></span>
+<span><span class="co">#&gt;   A floor catching this much is a fitted model that does not describe the</span></span>
+<span><span class="co">#&gt;   low end of the data, not an assay limit.</span></span>
+<span><span class="co">#&gt;   Fix: Read `model_report()` before using this dataset.</span></span>
 <span><span class="va">mavo_run</span><span class="op">$</span><span class="va">fit</span></span>
 <span><span class="co">#&gt; A fitted PMX model, from synpmx_model_estimate()</span></span>
 <span><span class="co">#&gt; Everything below is an input to `synpmx_model_generate()`.</span></span>
@@ -689,8 +694,8 @@ grid is the one the PCA survey writes down, reused unchanged.</p>
 <span><span class="co">#&gt;   dose routes        one route, undeclared; infused over 0.1667 h</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         1 endpoint(s) at 14 nominal time(s), 14 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   median 100% of patients attend a slot, pooled over</span></span>
-<span><span class="co">#&gt;                      arms (6% to 100%)</span></span>
+<span><span class="co">#&gt;   visit attendance   80% of scheduled slots attended, one rate for the</span></span>
+<span><span class="co">#&gt;                      study</span></span>
 <span><span class="co">#&gt;   covariates         AGE lognormal, SEX lognormal, WT lognormal, HT</span></span>
 <span><span class="co">#&gt;                      lognormal, drawn once for the whole study,</span></span>
 <span><span class="co">#&gt;                      independently of the profiles</span></span>
@@ -723,8 +728,8 @@ grid is the one the PCA survey writes down, reused unchanged.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.045, v 0.096, q 0.048, v2 0.24 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.374, v 0.4, q 0.374, v2 0.412 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.34 </span></span>
-<span><span class="co">#&gt;   time to fit        45.1 s</span></span>
-<span><span class="co">#&gt;   whole call         45.3 s, against 45.1 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        45.0 s</span></span>
+<span><span class="co">#&gt;   whole call         45.2 s, against 45.0 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: DV: v2 between-subject SD, 1.92 points;</span></span>
@@ -733,7 +738,7 @@ grid is the one the PCA survey writes down, reused unchanged.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">mavo_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-1fb4450895fe099f74a1" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-1fb4450895fe099f74a1">{"x":{"filter":"none","vertical":false,"caption":"<caption>13 pass, 3 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","A5b","D1"],["Observations per patient","Doses per patient","Values landing in the same range"],["both","both","both"],["20.2 -&gt; 11.3","1.65 -&gt; 1","sd x0.4 on DV (furthest of 5)"],["review","review","review"],["compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Three rows to read, and two findings. A5b reports occasions per
+<script type="application/json" data-for="htmlwidget-1fb4450895fe099f74a1">{"x":{"filter":"none","vertical":false,"caption":"<caption>13 pass, 3 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","A5b","D1"],["Observations per patient","Doses per patient","Values landing in the same range"],["both","both","both"],["20.2 -&gt; 11.2","1.65 -&gt; 1","sd x0.39 on DV (furthest of 5)"],["review","review","review"],["compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Three rows to read, and two findings. A5b reports occasions per
 patient falling from 1.65 to 1 and A5a observations per patient from
 20.2 to 11.3: <code>mavoglurant</code> is one- and two-period, and the
 dosing model carries one planned schedule per arm, so the patients who
@@ -811,8 +816,8 @@ twelve.</p>
 <span><span class="co">#&gt;                      all (12)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         1 endpoint(s) at 25 nominal time(s), 25 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   median 100% of patients attend a slot, pooled over</span></span>
-<span><span class="co">#&gt;                      arms (33% to 100%)</span></span>
+<span><span class="co">#&gt;   visit attendance   87% of scheduled slots attended, one rate for the</span></span>
+<span><span class="co">#&gt;                      study</span></span>
 <span><span class="co">#&gt;   covariates         WT lognormal, drawn once for the whole study,</span></span>
 <span><span class="co">#&gt;                      independently of the profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT</span></span>
@@ -843,8 +848,8 @@ twelve.</p>
 <span><span class="co">#&gt;   fixed effects      cl 2.8, v 29, q 1.9, v2 4.2, ka 1.2 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.19, v 0.141, ka 0.52, q 0.237, v2 0.274 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.22 </span></span>
-<span><span class="co">#&gt;   time to fit        1 min 0 s</span></span>
-<span><span class="co">#&gt;   whole call         1 min 0 s, against 1 min 0 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        52.4 s</span></span>
+<span><span class="co">#&gt;   whole call         52.4 s, against 52.4 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: DV: ka typical value, 9.92 %;</span></span>
@@ -920,8 +925,8 @@ seconds.</p>
 <span><span class="co">#&gt;   dose routes        one route, undeclared; infused over 0.2778 to 0.3333 h</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         1 endpoint(s) at 31 nominal time(s), 31 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   median 100% of patients attend a slot, pooled over</span></span>
-<span><span class="co">#&gt;                      arms (25% to 100%)</span></span>
+<span><span class="co">#&gt;   visit attendance   84% of scheduled slots attended, one rate for the</span></span>
+<span><span class="co">#&gt;                      study</span></span>
 <span><span class="co">#&gt;   covariates         BSA lognormal, AGE lognormal, HGT lognormal, drawn</span></span>
 <span><span class="co">#&gt;                      once for the whole study, independently of the</span></span>
 <span><span class="co">#&gt;                      profiles</span></span>
@@ -947,8 +952,8 @@ seconds.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.065, v 35, q 0.095, v2 320 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.707, v 0.7, q 0.592, v2 0.436 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.42 </span></span>
-<span><span class="co">#&gt;   time to fit        39.1 s</span></span>
-<span><span class="co">#&gt;   whole call         39.1 s, against 39.1 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        38.2 s</span></span>
+<span><span class="co">#&gt;   whole call         38.3 s, against 38.2 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: DV: v2 between-subject SD, 12.4 points;</span></span>
@@ -957,7 +962,7 @@ seconds.</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">nimo_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-4018eef1a407a0df6b52" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-4018eef1a407a0df6b52">{"x":{"filter":"none","vertical":false,"caption":"<caption>15 pass, 1 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x1.3 on DV (furthest of 4)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The generation screen warns that the simulated interquartile range is
+<script type="application/json" data-for="htmlwidget-4018eef1a407a0df6b52">{"x":{"filter":"none","vertical":false,"caption":"<caption>15 pass, 1 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["D1"],["Values landing in the same range"],["both"],["sd x1.4 on DV (furthest of 4)"],["review"],["compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The generation screen warns that the simulated interquartile range is
 more than twice the source’s. The fit remains accepted: this is a spread
 warning, not a gross failure that triggers one-compartment fallback. D1
 and the plot show the wider synthetic distribution. With only twelve
@@ -1004,7 +1009,7 @@ requirements stops this study — and with <code>NTIME</code> set to
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pheno_flat_fit</span> <span class="op">&lt;-</span> <span class="fu">stored_fit</span><span class="op">(</span><span class="st">"pheno-flat-model-fit.rds"</span><span class="op">)</span></span>
 <span><span class="va">pheno_flat_synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">pheno_flat_fit</span>, seed <span class="op">=</span> <span class="fl">707</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: 65% of generated observations (15 of 23) fell below the emission floor and</span></span>
+<span><span class="co">#&gt; Warning: 70% of generated observations (21 of 30) fell below the emission floor and</span></span>
 <span><span class="co">#&gt; were raised to it.</span></span>
 <span><span class="co">#&gt;   A floor catching this much is a fitted model that does not describe the</span></span>
 <span><span class="co">#&gt;   low end of the data, not an assay limit.</span></span>
@@ -1019,7 +1024,7 @@ requirements stops this study — and with <code>NTIME</code> set to
 <span><span class="co">#&gt;            distinct_times                grid_cells    source_obs_per_patient </span></span>
 <span><span class="co">#&gt;                    118.00                      5.00                      2.63 </span></span>
 <span><span class="co">#&gt; synthetic_obs_per_patient </span></span>
-<span><span class="co">#&gt;                      0.44</span></span></code></pre></div>
+<span><span class="co">#&gt;                      0.55</span></span></code></pre></div>
 <p>118 distinct recorded times become a handful of grid cells. A cell
 has to be reached by enough patients to be a visit rather than one
 baby’s afternoon, and one clock reading per patient clears that almost
@@ -1046,6 +1051,11 @@ the sample times to the day is that statement, and it is two lines.</p>
 <div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pheno_run</span> <span class="op">&lt;-</span> <span class="fu">model_run</span><span class="op">(</span><span class="st">"pheno_sd"</span>, <span class="va">pheno_sd</span>, <span class="va">pheno_roles</span>,</span>
 <span>                       <span class="st">"pheno-model-fit.rds"</span>, seed <span class="op">=</span> <span class="fl">707</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: 12% of generated observations (19 of 153) fell below the emission floor and</span></span>
+<span><span class="co">#&gt; were raised to it.</span></span>
+<span><span class="co">#&gt;   A floor catching this much is a fitted model that does not describe the</span></span>
+<span><span class="co">#&gt;   low end of the data, not an assay limit.</span></span>
+<span><span class="co">#&gt;   Fix: Read `model_report()` before using this dataset.</span></span>
 <span><span class="va">pheno_run</span><span class="op">$</span><span class="va">fit</span></span>
 <span><span class="co">#&gt; A fitted PMX model, from synpmx_model_estimate()</span></span>
 <span><span class="co">#&gt; Everything below is an input to `synpmx_model_generate()`.</span></span>
@@ -1058,8 +1068,8 @@ the sample times to the day is that statement, and it is two lines.</p>
 <span><span class="co">#&gt;   dose changes       per planned cycle, pooled over arms: reduce 14%, skip</span></span>
 <span><span class="co">#&gt;                      1%, stop early 10% (6 dose level(s))</span></span>
 <span><span class="co">#&gt;   visit grid         1 endpoint(s) at 9 nominal time(s), 9 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   median 25% of patients attend a slot, pooled over arms</span></span>
-<span><span class="co">#&gt;                      (8% to 81%)</span></span>
+<span><span class="co">#&gt;   visit attendance   28% of scheduled slots attended, one rate for the</span></span>
+<span><span class="co">#&gt;                      study</span></span>
 <span><span class="co">#&gt;   covariates         WT lognormal, APGR lognormal, drawn once for the whole</span></span>
 <span><span class="co">#&gt;                      study, independently of the profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, MDV, WT, APGR</span></span>
@@ -1083,10 +1093,10 @@ the sample times to the day is that statement, and it is two lines.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.0057, v 0.77, q 0.62, v2 0.63 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.346, v 0.707, q 0.098, v2 0.241 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.13 </span></span>
-<span><span class="co">#&gt;   time to fit        3 min 6 s</span></span>
-<span><span class="co">#&gt;                        2cmt_iv                    1 min 5 s</span></span>
-<span><span class="co">#&gt;                        2cmt_oral                  2 min 0 s</span></span>
-<span><span class="co">#&gt;   whole call         3 min 6 s, against 3 min 6 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        3 min 2 s</span></span>
+<span><span class="co">#&gt;                        2cmt_iv                    1 min 4 s</span></span>
+<span><span class="co">#&gt;                        2cmt_oral                  1 min 58 s</span></span>
+<span><span class="co">#&gt;   whole call         3 min 2 s, against 3 min 2 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: DV: cl between-subject SD, 4.55 points;</span></span>
@@ -1095,7 +1105,7 @@ the sample times to the day is that statement, and it is two lines.</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">pheno_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-5b1b2f4ad92281566982" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-5b1b2f4ad92281566982">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5b","D1"],["Doses per patient","Values landing in the same range"],["both","both"],["9.98 -&gt; 7.32","sd x1.4 on APGR (furthest of 3)"],["review","review"],["pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The fixed effects are the same either way, and that is the point
+<script type="application/json" data-for="htmlwidget-5b1b2f4ad92281566982">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5b","D1"],["Doses per patient","Values landing in the same range"],["both","both"],["9.98 -&gt; 8.32","sd x1.4 on DV (furthest of 3)"],["review","review"],["pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The fixed effects are the same either way, and that is the point
 worth holding on to: estimation reads the recorded clock and the
 recorded dosing history, so the grid never touches it. What the grid
 decides is the visit model, and the visit model is the whole of what the
@@ -1159,8 +1169,8 @@ reports whether fallback was needed.</p>
 <span><span class="co">#&gt;   dose routes        iv and extravascular; given as a bolus</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         1 endpoint(s) at 17 nominal time(s), 17 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   median 100% of patients attend a slot, pooled over</span></span>
-<span><span class="co">#&gt;                      arms (100% to 100%)</span></span>
+<span><span class="co">#&gt;   visit attendance   100% of scheduled slots attended, one rate for the</span></span>
+<span><span class="co">#&gt;                      study</span></span>
 <span><span class="co">#&gt;   covariates         WT lognormal, drawn once for the whole study,</span></span>
 <span><span class="co">#&gt;                      independently of the profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, CENS, ADM, WT,</span></span>
@@ -1198,8 +1208,8 @@ reports whether fallback was needed.</p>
 <span><span class="co">#&gt;   fixed effects      cl 2.4, v 11, q 1.5, v2 0.14, ka 0.51, f 0.74 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.316, v 0.266, q 0.31, v2 0.286, ka 0.332 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.29 </span></span>
-<span><span class="co">#&gt;   time to fit        42.3 s</span></span>
-<span><span class="co">#&gt;   whole call         42.5 s, against 42.3 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        41.3 s</span></span>
+<span><span class="co">#&gt;   whole call         41.5 s, against 41.3 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: DV: ka between-subject SD, 4.46 points;</span></span>
@@ -1267,8 +1277,8 @@ the curve.</p>
 <span><span class="co">#&gt;   dose changes       per planned cycle, pooled over arms: reduce 0%, skip</span></span>
 <span><span class="co">#&gt;                      5%, stop early 0% (2 dose level(s))</span></span>
 <span><span class="co">#&gt;   visit grid         2 endpoint(s) at 24 nominal time(s), 30 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   median 90% of patients attend a slot, pooled over arms</span></span>
-<span><span class="co">#&gt;                      (6% to 100%)</span></span>
+<span><span class="co">#&gt;   visit attendance   78% of scheduled slots attended, one rate for the</span></span>
+<span><span class="co">#&gt;                      study</span></span>
 <span><span class="co">#&gt;   covariates         BSLD lognormal, AGE lognormal, SEX categorical, drawn</span></span>
 <span><span class="co">#&gt;                      once for the whole study, independently of the</span></span>
 <span><span class="co">#&gt;                      profiles</span></span>
@@ -1311,10 +1321,10 @@ the curve.</p>
 <span><span class="co">#&gt;   starting values    ka 5 declared through `start_param`; the rest were</span></span>
 <span><span class="co">#&gt;                      read off the cohort's median profile</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.2 </span></span>
-<span><span class="co">#&gt;   time to fit        41 min 51 s</span></span>
-<span><span class="co">#&gt;                        2cmt_iv                    15 min 14 s</span></span>
-<span><span class="co">#&gt;                        2cmt_oral                  26 min 38 s</span></span>
-<span><span class="co">#&gt;   whole call         41 min 60 s, against 41 min 51 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        42 min 55 s</span></span>
+<span><span class="co">#&gt;                        2cmt_iv                    15 min 27 s</span></span>
+<span><span class="co">#&gt;                        2cmt_oral                  27 min 29 s</span></span>
+<span><span class="co">#&gt;   whole call         43 min 3 s, against 42 min 55 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: Everolimus trough: ka between-subject</span></span>
@@ -1337,7 +1347,7 @@ endpoint and is fitted a time course.</p>
 <div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">onc_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-3f27c09be0c60bb52829" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-3f27c09be0c60bb52829">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5b","D1"],["Doses per patient","Values landing in the same range"],["both","both"],["327 -&gt; 265","sd x1.1 on SLD (furthest of 4)"],["review","review"],["pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Read the tumour endpoint against what it is: a PD time course here is
+<script type="application/json" data-for="htmlwidget-3f27c09be0c60bb52829">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5b","D1"],["Doses per patient","Values landing in the same range"],["both","both"],["327 -&gt; 274","sd x1.1 on SLD (furthest of 4)"],["review","review"],["pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Read the tumour endpoint against what it is: a PD time course here is
 a function of time with no exposure term and no dose term, pooled across
 arms unless <code>pd_by_arm = TRUE</code>. The source’s placebo and 10
 mg arms diverge because the dose drives the tumour; the generated ones
@@ -1590,11 +1600,15 @@ does not reach their response. <code>mad</code> is the worked case in
 the demo, and <code>onc_sim</code> shows why it matters for an
 exposure-driven tumour response.</li>
 <li>
-<strong>Differences between arms in attendance, dose changes and
-discrete responses.</strong> All three are pooled over the arms, the
-discrete responses unless <code>pd_by_arm = TRUE</code>, so an arm whose
+<strong>When patients missed visits or responded, and differences
+between arms.</strong> Attendance is one rate for the study, a binary or
+ordinal endpoint one set of level frequencies (one per arm under
+<code>pd_by_arm = TRUE</code>), and the dose changes three rates pooled
+over the arms. A late visit few patients reached is drawn as often as an
+early one, a response does not change over the visits, and an arm whose
 patients dropped out, reduced or responded more often than the others’
-takes the study’s average. <code>onc_sim</code> is the worked case.</li>
+takes the study’s average. <code>onc_sim</code> and <code>mad</code> are
+the worked cases.</li>
 <li>
 <strong>Per-patient dose schedules, and multiple periods.</strong>
 One planned schedule per arm. <code>mavoglurant</code> is the worked

@@ -36,12 +36,13 @@ for fitting population models.
 The generator also summarizes the study’s design as it was carried out:
 the number of patients in each treatment group (**arm**), each arm’s
 dose schedule, how often doses were reduced, skipped or stopped, the
-share of patients measured at each scheduled visit, the distribution of
-each baseline covariate such as body weight, age or sex, and, for an
-endpoint recorded in levels such as a yes/no response or a toxicity
-grade, how often each level was recorded at each visit. Everything in
-that list read from how patients behaved, rather than from the protocol,
-is pooled over the arms, as the PD time courses are.
+share of scheduled visits at which patients were measured, the
+distribution of each baseline covariate such as body weight, age or sex,
+and, for an endpoint recorded in levels such as a yes/no response or a
+toxicity grade, how often each level was recorded. Everything in that
+list read from how patients behaved, rather than from the protocol, is
+one set of numbers for the whole study, pooled over the arms and the
+visits, as the PD time courses are pooled over the arms.
 
 What leaves the environment that holds the study is the **release**:
 these numbers, assembled by
@@ -50,7 +51,9 @@ from a list of permitted fields, together with a description of the
 table to generate. Synthetic data is simulated from the release and from
 random numbers alone, so it discloses nothing the release does not, and
 the release travels with the synthetic data as an attribute. A reviewer
-can read every number in a release with `str(unclass(release))`.
+can read every number in a release with `str(unclass(release))`, and
+[Released Parameters at a Glance](#released-parameters-at-a-glance)
+counts them for each public study.
 
 ### What Is Protected, and What Is Not
 
@@ -83,12 +86,14 @@ population ranks a study member above a non-member with probability 0.74
 when the population model is fitted to 12 patients and 0.61 when it is
 fitted to 60. This probability is the area under the curve (AUC), where
 0.5 is chance and 1 is certainty. A reference off by 20% brings the two
-to 0.62 and 0.52. Per-visit shares are more exposed where few patients
-stand behind them: 0.83 for 20 visits shared by 10 patients, falling to
-0.63 when 100 share them, which pooling over arms makes the usual case.
-Rounding moves these numbers by at most 0.002 and the three-patient
-floor by at most 0.02; cohort size and the number of released
-frequencies decide them. [Membership inference against the PMX model
+to 0.62 and 0.52. The release holds no table per visit, because one
+would be more exposed: a share of patients sampled at each of 20 visits
+gives 0.83 when 10 patients stand behind each share and 0.63 when 100
+do. Attendance is one rate for the study instead, and each binary or
+ordinal endpoint one set of level frequencies. Rounding moves these
+numbers by at most 0.002 and the three-patient floor by at most 0.02;
+cohort size and the number of released numbers decide them. [Membership
+inference against the PMX model
 release](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy-simulation.html)
 shows how each number is computed.
 
@@ -196,9 +201,9 @@ left out.
 | pd | per other continuous endpoint: a time-course shape and its parameters, the spread of patients’ baselines, residual error | 5 |
 | arms | the arms and the number of patients in each | 1 |
 | dosing | per arm: the planned dose at each scheduled time; pooled over arms: the levels doses were reduced to, and the rates of reducing, skipping and stopping | 9 |
-| visits | per visit: the share of patients measured there, pooled over the arms that have the visit, and listed for each arm | 44 |
+| visits | the visits each arm has, and one attendance rate for the study, listed at each of them | 44 |
 | cells | the scheduled visits kept, as endpoint and nominal time | 44 |
-| discrete | per visit: the frequency of each level of a binary or ordinal endpoint, pooled over the arms that have the visit, and listed for each arm | 0 |
+| discrete | per binary or ordinal endpoint: one set of level frequencies for the study, listed at each visit | 0 |
 | covariates | per baseline covariate: a trimmed mean and SD, or level frequencies | 6 |
 | covariate_effects | body-weight scaling, where requested: a reference weight | 0 |
 | schema | the table to generate: columns and their types, compartment numbers, assay limits, values copied onto each arm, each endpoint’s value type | 1 |
@@ -284,14 +289,13 @@ one patient says about the one who came. Here *k* is 3 by default:
   where at least `min_arm_patients` patients reached them, and an arm
   has a visit only where at least that many of its patients were
   observed there;
-- attendance at a visit, pooled over the arms that have it, with fewer
-  than `min_arm_patients` patients attending or missing is rounded to 0
-  or 1;
+- attendance is one rate for the study, and is 1 where fewer than
+  `min_arm_patients` patients missed any visit;
 - a dose-change rate, pooled over every arm, whose events fewer than
   `min_arm_patients` patients had is zero;
 - a categorical covariate level, and a binary or ordinal endpoint’s
-  level at a visit, below `min_category_patients` patients is excluded,
-  or folded into the most common level;
+  level, below `min_category_patients` patients is excluded, or folded
+  into the most common level;
 - a `keep` value of any type, copied from the arm’s first patient as
   `keep` declares, is written as missing where fewer than
   `min_category_patients` patients in the arm hold it;
@@ -304,11 +308,12 @@ one patient says about the one who came. Here *k* is 3 by default:
 The rule stops a frequency from singling out one or two patients. It
 does not stop membership inference, which adds up small signals over
 many frequencies ([Membership Inference Against the
-Release](#membership-inference-against-the-release)). Pooling over arms
-is what weakens that: attendance, the dose-change rates, and a binary or
-ordinal endpoint’s frequencies at each visit rest on every patient in
-the arms that share them, rather than on one arm’s. `pd_by_arm = TRUE`
-reads the endpoint frequencies per arm again, with the PD time courses.
+Release](#membership-inference-against-the-release)). Pooling is what
+weakens that: attendance is one rate, the dose-change rates are three,
+and a binary or ordinal endpoint is one set of level frequencies, each
+resting on every patient rather than on one arm at one visit.
+`pd_by_arm = TRUE` reads the endpoint frequencies per arm again, with
+the PD time courses.
 
 ### 6. Covariate Summaries Without Their Extremes
 
@@ -433,7 +438,7 @@ as.data.frame(checks)[, c("check", "verdict", "result")]
 #> 1                                                                                                                                                             none
 #> 2                                                                                                                                                             none
 #> 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored, no factor level beyond what the arms carry
-#> 4                                            smallest group: 3, patients on either side of an attendance fraction; adjusted to meet it: 5 (an attendance fraction)
+#> 4                                                                                                smallest group: 5, patients holding a categorical covariate level
 #> 5                                                                                                                    largest: cp: ka between-subject SD, 10 points
 ```
 
@@ -491,12 +496,12 @@ meet it.
 
 attr(checks, "frequencies")[, c("quantity", "smallest", "threshold",
                                 "adjusted")]
-#>                                            quantity smallest threshold adjusted
-#> 1                                patients in an arm       32         3        0
-#> 2 patients on either side of an attendance fraction        3         3        5
-#> 3       patients with the dose change behind a rate       NA         3        0
-#> 4    patients holding a categorical covariate level        5         3        0
-#> 5       patients holding a level of a factor column       32         3        0
+#>                                         quantity smallest threshold adjusted
+#> 1                             patients in an arm       32         3        0
+#> 2 patients on either side of the attendance rate       32         3        0
+#> 3    patients with the dose change behind a rate       NA         3        0
+#> 4 patients holding a categorical covariate level        5         3        0
+#> 5    patients holding a level of a factor column       32         3        0
 ```
 
 The same checks on the release report P5 as a verdict only. A passing
@@ -592,7 +597,7 @@ as.data.frame(kept_checks)[, c("check", "verdict", "result")]
 #> 1                                                                                                                                                             none
 #> 2                                                                                                                                                             none
 #> 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored, no factor level beyond what the arms carry
-#> 4                                            smallest group: 3, patients on either side of an attendance fraction; adjusted to meet it: 5 (an attendance fraction)
+#> 4                                                                                                smallest group: 5, patients holding a categorical covariate level
 #> 5                                                                                                                  largest: cp: v2 between-subject SD, 70.7 points
 digits3(attr(kept_checks, "influence"))
 #>        group   name            quantity released   change   unit patients
@@ -658,7 +663,7 @@ as.data.frame(model_privacy_checks(misdosed_fit))[, c("check", "verdict",
 #> 1                                                                                                                                                             none
 #> 2                                                                                                                                                             none
 #> 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored, no factor level beyond what the arms carry
-#> 4                                            smallest group: 3, patients on either side of an attendance fraction; adjusted to meet it: 5 (an attendance fraction)
+#> 4                                                                                                smallest group: 4, patients holding a categorical covariate level
 #> 5                                                                 largest: cp: ka between-subject SD, 9.32 points; after leaving 1 patient(s) out of the estimates
 ```
 
@@ -887,7 +892,7 @@ as.data.frame(card)[substr(card$check, 1, 1) %in% c("B", "E"),
 #> 8                                                 no run record not applicable
 #> 9                                                 no run record not applicable
 #> 10 not applicable: profiles simulated, not built from a patient not applicable
-#> 11                                      0.688 in [0.288, 0.743]           pass
+#> 11                                      0.594 in [0.344, 0.688]           pass
 #> 12                   not applicable: attendance drawn per visit not applicable
 #> 13                                                            0           pass
 #> 14                                               0 of 0 exposed           pass
@@ -915,8 +920,8 @@ identification. The attacker modelled holds the candidate’s own
 measurements and reference values for the population, and does not know
 the other patients. The release is reduced to its two kinds of number: a
 population model of five parameters, each released as a typical value
-and a between-subject variance, and the share of patients with a yes/no
-outcome at each visit. [Membership inference against the PMX model
+and a between-subject variance, and the share of patients sampled at
+each scheduled visit. [Membership inference against the PMX model
 release](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy-simulation.html)
 works through the calculation on one small study, shows both tables in
 full, and places each public study’s release against them. Three
@@ -929,14 +934,13 @@ readings:
   simulated studies before and after rounding, the AUC moves by at most
   0.002, because an estimate’s sampling variation is larger than one
   rounding step.
-- **A per-visit share is exposed in proportion to how few patients stand
-  behind it.** The AUC grows with the number of visits and falls with
-  the patients behind each share: 0.83 for 20 visits shared by 10
-  patients, 0.72 by 30, and 0.63 by 100. Pooling over arms puts every
-  patient in the arms that have a visit behind its share, so in a
-  six-arm study of 60 the group is 60 rather than 10. The three-patient
-  rule moves the AUC by at most 0.02, because the rule acts only on
-  shares near 0 or 1.
+- **A table per visit would be the most exposed part of a release, so
+  the release holds none.** A share of patients sampled at each of 20
+  visits gives 0.83 with 10 patients behind each share, 0.72 with 30 and
+  0.63 with 100, and the three-patient rule moves it by at most 0.02,
+  because the rule acts only on shares near 0 or 1. Attendance is one
+  rate for the study instead, and a binary or ordinal endpoint one set
+  of level frequencies, each resting on every patient.
 
 An AUC averages over members, and the most exposed member is the one far
 from the typical values: that patient moves the release furthest toward
@@ -962,10 +966,8 @@ releasing estimates without noise, or a limit of the checks.
 - **An attacker who holds a candidate’s own trial data can infer
   membership.** [Membership Inference Against the
   Release](#membership-inference-against-the-release) measures how well.
-  Pooling over arms puts the cohort behind each per-visit share, so what
-  remains is a small cohort measured at many visits. A time course with
-  a few parameters for a binary or ordinal endpoint, as continuous PD
-  endpoints already have, or added noise, would reduce it further.
+  The release holds no per-visit table, so what remains is chiefly the
+  population model of a small cohort, which only noise would reduce.
 - **An attacker who knows every other patient is not stopped.** Such an
   attacker can compute the exact effect of the one patient they do not
   know, so any move at all is detectable, however far under a threshold
@@ -1061,6 +1063,116 @@ three released and the rest taken from a public prior, it reaches about
 evaluation](https://iamstein.github.io/synpmx/articles/calibrated-public-data-examples.html)
 finds that a release is worse than generating from the public prior
 alone. Subsample-and-aggregate is not implemented.
+
+## Released Parameters at a Glance
+
+Every number in a release that was estimated from patients, counted
+once, for the stored fit of each public study. A rate pooled over the
+arms is listed in the release once per arm and counts once here, and the
+planned dose schedule, which is the protocol, is counted apart.
+
+``` r
+
+# An arm's dosing model, or one per drug where the study declared which doses
+# drive which endpoint.
+per_drug <- function(entry) if (!is.null(entry$planned)) list(entry) else entry
+parameter_count <- function(release) {
+  arms <- names(release$arms$sizes)
+  shape <- function(s) length(s$typical) + 2
+  rates <- unique(unlist(lapply(release$dosing, function(entry) {
+    lapply(per_drug(entry), function(d) {
+      paste(d$reduction, d$interruption, d$discontinuation,
+            paste(d$levels, collapse = "/"))
+    })
+  })))
+  attendance <- unique(unlist(lapply(release$visits, function(v) {
+    as.numeric(v$probability)
+  })))
+  marginals <- unique(Filter(Negate(is.null),
+                             unlist(release$discrete, recursive = FALSE)))
+  counts <- c(
+    `PK model` = sum(vapply(release$pk_models, function(m) {
+      length(m$parameters$fixed) + nrow(m$parameters$omega) + 1
+    }, numeric(1))),
+    `PD time courses` = sum(vapply(release$pd, function(s) {
+      if (length(s$arms)) sum(vapply(s$arms, shape, numeric(1))) else shape(s)
+    }, numeric(1))),
+    covariates = sum(vapply(release$covariates, function(c) {
+      switch(c$kind, lognormal = 2, normal = 2,
+             categorical = length(c$levels) - 1, 0)
+    }, numeric(1))),
+    `dose changes` = sum(vapply(strsplit(rates, " "), function(r) {
+      3 + length(strsplit(r[[4]], "/")[[1]]) - 1
+    }, numeric(1))),
+    attendance = sum(attendance > 0 & attendance < 1),
+    `discrete endpoints` = sum(vapply(marginals, function(m) {
+      max(0, length(m$levels) - 1)
+    }, numeric(1))),
+    `counts and floors` = length(arms) + 1 +
+      length(release$quantification_floor) +
+      length(unique(unlist(lapply(release$covariate_effects,
+                                  function(e) e$reference)))))
+  c(counts, total = sum(counts),
+    `planned cycles (protocol)` = sum(vapply(release$dosing, function(entry) {
+      sum(vapply(per_drug(entry), function(d) nrow(d$planned), numeric(1)))
+    }, numeric(1))))
+}
+studies <- c(warfarin = "warfarin-model-fit.rds",
+             theo_md = "theo-md-model-fit.rds",
+             mad = "mad-model-fit.rds",
+             case1_pkpd = "case1-pkpd-model-fit.rds",
+             wbcSim = "wbcsim-model-fit.rds",
+             mavoglurant = "mavoglurant-model-fit.rds",
+             nimoData = "nimo-model-fit.rds",
+             pheno_sd = "pheno-model-fit.rds",
+             mixroute_sim = "mixroute-sim-model-fit.rds",
+             onc_sim = "onc-sim-model-fit.rds")
+counted <- do.call(rbind, lapply(names(studies), function(study) {
+  release <- model_release(stored_fit(studies[[study]]))
+  data.frame(study = study, patients = release$n_source,
+             t(parameter_count(release)), check.names = FALSE)
+}))
+knitr::kable(counted, row.names = FALSE)
+```
+
+| study | patients | PK model | PD time courses | covariates | dose changes | attendance | discrete endpoints | counts and floors | total | planned cycles (protocol) |
+|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| warfarin | 32 | 11 | 5 | 5 | 3 | 1 | 0 | 4 | 29 | 1 |
+| theo_md | 12 | 11 | 0 | 2 | 3 | 1 | 0 | 3 | 20 | 7 |
+| mad | 60 | 11 | 10 | 3 | 3 | 0 | 3 | 9 | 39 | 36 |
+| case1_pkpd | 180 | 11 | 5 | 2 | 3 | 0 | 0 | 7 | 28 | 510 |
+| wbcSim | 45 | 0 | 4 | 0 | 3 | 1 | 0 | 3 | 11 | 1 |
+| mavoglurant | 120 | 9 | 0 | 8 | 3 | 1 | 0 | 3 | 24 | 1 |
+| nimoData | 12 | 9 | 0 | 6 | 3 | 1 | 0 | 3 | 22 | 10 |
+| pheno_sd | 59 | 9 | 0 | 4 | 8 | 1 | 0 | 3 | 25 | 14 |
+| mixroute_sim | 90 | 12 | 0 | 2 | 3 | 0 | 0 | 4 | 21 | 9 |
+| onc_sim | 200 | 11 | 4 | 5 | 4 | 1 | 0 | 4 | 29 | 842 |
+
+What each column holds:
+
+- **PK model**: a typical value and a between-subject variance for each
+  PK parameter, and one residual error: 11 numbers for the five
+  parameters of a two-compartment oral model. A parameter fitted without
+  between-subject variability, such as a bioavailability, adds its
+  typical value alone.
+- **PD time courses**: for each other continuous endpoint, one to three
+  shape parameters, the spread of the patients’ baselines, and a
+  residual error.
+- **Covariates**: a trimmed mean and SD for each continuous covariate,
+  and one fewer frequency than levels for each categorical one.
+- **Dose changes**: the three pooled rates of reducing, skipping and
+  stopping, and each level of the dose ladder below the full dose.
+- **Attendance**: one rate for the study, or none where every patient
+  attended every visit their arm had.
+- **Discrete endpoints**: one fewer level frequency than levels, for
+  each binary or ordinal endpoint.
+- **Counts and floors**: the size of each arm and of the cohort, an
+  emission floor for each endpoint without a declared assay limit, and
+  the reference weight where body-weight scaling was requested.
+- **Planned cycles**: each arm’s planned dose times and amounts, which
+  are the protocol rather than estimates. The nominal visit grid and the
+  description of the table to generate are the protocol too, and are not
+  counted.
 
 ## References
 

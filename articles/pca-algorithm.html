@@ -149,9 +149,9 @@ that model’s residual.</p>
 patient, nothing weights one, and no number a patient measured reaches
 the generated table. What leaves the source data is a mean, a scale, a
 set of loadings, one mean score vector per arm, a residual covariance, a
-planned dose schedule per arm, and dose-change rates and visit
-probabilities pooled over the arms. <code><a href="../reference/pca_report.html">pca_report()</a></code>
-inventories all of it.</p>
+planned dose schedule per arm, and dose-change rates and one attendance
+rate pooled over the arms. <code><a href="../reference/pca_report.html">pca_report()</a></code> inventories all of
+it.</p>
 </div>
 <div class="section level2">
 <h2 id="overview-of-algorithm">Overview of Algorithm<a class="anchor" aria-label="anchor" href="#overview-of-algorithm"></a>
@@ -181,8 +181,8 @@ back.</li>
 <li>
 <strong>Fit a dosing model and a visit model</strong>: a planned
 dose schedule per arm, rates for reduction, interruption and
-discontinuation pooled over the arms, and the probability of a visit at
-each nominal time, pooled over the arms that have the visit.</li>
+discontinuation pooled over the arms, the visits each arm has, and one
+attendance rate for the study.</li>
 <li>
 <strong>Place the drawn values</strong> on that skeleton, snapping a
 discrete endpoint back onto its levels and putting the assay limit back
@@ -439,17 +439,18 @@ the PCA generator on public data</a>.</p>
 </h3>
 <p><code><a href="../reference/pca_visits.html">pca_visits()</a></code> reports it: one row per arm, endpoint and
 modelled nominal time, giving the probability that a generated subject
-in that arm has an observation there. It is the share of patients who
-did, pooled over the arms that have that visit, so every arm with the
-visit has the same probability; an arm has a visit where at least
-<code>min_arm_patients</code> of its patients were observed there. A
-share with fewer than <code>min_arm_patients</code> patients on either
-side, attending or missing, is rounded to 0 or 1, whichever is nearer:
-“one patient missed this visit” discloses as much as “one patient came”,
-and the threshold rule of statistical disclosure control asks for enough
-patients on both sides.</p>
-<p>Attendance is drawn independently per visit from that probability, so
-no real patient’s set of attended visits is reused.</p>
+in that arm has an observation there. It is one attendance rate for the
+study, the share of scheduled visits at which a patient was observed, at
+every visit an arm has; an arm has a visit where at least
+<code>min_arm_patients</code> of its patients were observed there. Where
+fewer than <code>min_arm_patients</code> patients missed any visit the
+rate is 1: “one patient missed a visit” discloses as much as “one
+patient came”, and the threshold rule of statistical disclosure control
+asks for enough patients on both sides. One rate loses when in the study
+visits were missed, and keeps the number of observations per patient on
+average.</p>
+<p>Attendance is drawn independently per visit at that rate, so no real
+patient’s set of attended visits is reused.</p>
 </div>
 <div class="section level3">
 <h3 id="why-the-timing-survives">Why the timing survives<a class="anchor" aria-label="anchor" href="#why-the-timing-survives"></a>
@@ -506,8 +507,7 @@ and three rates</td>
 </tr>
 <tr class="even">
 <td>Visit model</td>
-<td>Per endpoint and time, the probability of an observation, pooled
-over the arms that have the visit</td>
+<td>The visits each arm has, and one attendance rate for the study</td>
 </tr>
 <tr class="odd">
 <td>Schema</td>
@@ -621,10 +621,10 @@ was reused, and this generator draws both from a model of the cohort.
 fitted population model, and this generator fits none.</p>
 <p>For B1a and B1b the guarantee is structural rather than unrecorded.
 No individual’s visit set and no individual’s dose schedule exists in
-the model to be copied, because the model holds a per-visit probability
-and one shared schedule per arm. <strong>B4b</strong> asks the copy
-question directly, on the finished tables, and is the row that carries
-the claim.</p>
+the model to be copied, because the model holds one attendance rate and
+one shared schedule per arm. <strong>B4b</strong> asks the copy question
+directly, on the finished tables, and is the row that carries the
+claim.</p>
 <p>C2 is the one to be careful about, because a blank row is at its most
 misleading exactly where the loss is largest. C2 asks how many of the
 study’s distinct dose-time schedules survived, and this algorithm

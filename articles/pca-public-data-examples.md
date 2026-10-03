@@ -294,8 +294,8 @@ windows.
 
 A5a reads `review`: 30.7 observations per patient in the source against
 29 in the synthetic cohort. Attendance is drawn independently per visit
-from the arm’s probability, so the count is right on average and not
-exactly.
+at the study’s one attendance rate, so the count is right on average and
+not exactly.
 
 ## mad: five endpoints, including ordinal, count and binary
 
@@ -449,11 +449,11 @@ c(source_times = length(unique(wbcSim$TIME[wbcSim$EVID == 0])),
 #>             38             21            648
 ```
 
-A5a and A5b read `review` for the same reason: dropping the long tail
-shortens both the observation record and the dosing. **This is the cost
-of the guard rather than a defect**, and it is the number to judge — a
-study whose late follow-up matters is one to run at a lower
-`min_column_patients` and re-read this row.
+A5a and A5b read 3.91 -\> 3.11 and 1.16 -\> 1 for the same reason:
+dropping the long tail shortens both the observation record and the
+dosing. **This is the cost of the guard rather than a defect**, and it
+is the number to judge — a study whose late follow-up matters is one to
+run at a lower `min_column_patients` and re-read this row.
 
 ## theo_md: seven oral doses on a constructible grid
 
@@ -656,10 +656,10 @@ synpmx_scorecard_datatable(mavo_run$card, report = "minimal")
 ```
 
 **This is the most expensive construction in the vignette, and A5a says
-so**: 20.2 observations per patient in the source against 11.2 in the
-synthetic cohort. Snapping 117 distinct recorded times onto 15 nominal
-ones collapses several real samples into one cell, and a cell holds one
-value per subject.
+so**: 20.2 -\> 11 observations per patient, source against synthetic.
+Snapping 117 distinct recorded times onto 15 nominal ones collapses
+several real samples into one cell, and a cell holds one value per
+subject.
 
 ``` r
 
@@ -668,7 +668,7 @@ c(source_rows = nrow(mavoglurant),
   recorded_times = length(unique(mavoglurant$TIME[mavoglurant$EVID == 0])),
   nominal_times = length(unique(mavoglurant$NTIME[mavoglurant$EVID == 0])))
 #>    source_rows synthetic_rows recorded_times  nominal_times 
-#>           2678           1463            117             15
+#>           2678           1440            117             15
 ```
 
 That is a property of the grid supplied, not of the generator: a wider
@@ -916,7 +916,7 @@ knitr::kable(verdicts, row.names = FALSE,
 | warfarin     |   12 |      1 |    0 |              8 |         |
 | wbcSim       |   10 |      3 |    0 |              8 |         |
 | theo_md      |   12 |      1 |    0 |              8 |         |
-| nimoData     |   12 |      1 |    0 |              8 |         |
+| nimoData     |   11 |      2 |    0 |              8 |         |
 | mavoglurant  |   10 |      3 |    0 |              8 |         |
 | mixroute_sim |   12 |      1 |    0 |              8 |         |
 | onc_sim      |   11 |      2 |    0 |              8 |         |
@@ -992,7 +992,7 @@ B4b across the nine runs, beside how long a source patient’s record is.
 
 **B4a, the same question asked of the list of observation times, does
 not apply to this generator.** Attendance is drawn independently per
-visit from the arm’s probability, onto the declared grid, so a generated
+visit at one rate for the study, onto the declared grid, so a generated
 list that equals a real patient’s is a coincidence with a computable
 chance rather than a copy. On a study whose patients’ visit lists are
 nearly all unique, which short records make likely, that chance is high,
@@ -1030,10 +1030,12 @@ Not preserved, and each is a decision rather than a defect:
   `not applicable`;
   [`pca_dosing()`](https://iamstein.github.io/synpmx/reference/pca_dosing.md)
   reports the same quantity per arm.
-- **Differences between arms in attendance and dose changes.** Both are
-  pooled over the arms, so an arm whose patients dropped out or reduced
-  more often than the others’ takes the study’s rates. `onc_sim` is the
-  worked case.
+- **When patients missed visits, and differences between arms in
+  attendance and dose changes.** Attendance is one rate for the study
+  and the dose changes three rates pooled over the arms, so a late visit
+  few patients reached is drawn as often as an early one, and an arm
+  whose patients dropped out or reduced more often than the others’
+  takes the study’s rates. `onc_sim` is the worked case.
 - **Anything the grid construction merged.** `mavoglurant` is the worked
   case: 117 recorded times onto 15 nominal ones costs nine observations
   per patient.

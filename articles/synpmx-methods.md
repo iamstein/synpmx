@@ -172,8 +172,8 @@ model_fit
 #>                      all (12)
 #>   dose changes       none
 #>   visit grid         1 endpoint(s) at 25 nominal time(s), 25 slot(s) in all
-#>   visit attendance   median 100% of patients attend a slot, pooled over
-#>                      arms (33% to 100%)
+#>   visit attendance   87% of scheduled slots attended, one rate for the
+#>                      study
 #>   covariates         WT lognormal, drawn once for the whole study,
 #>                      independently of the profiles
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT
@@ -204,8 +204,8 @@ model_fit
 #>   fixed effects      cl 2.8, v 29, q 1.9, v2 4.2, ka 1.2 
 #>   between-subject    cl 0.19, v 0.141, ka 0.52, q 0.237, v2 0.274 (as SD on the log scale)
 #>   residual error     proportional 0.22 
-#>   time to fit        1 min 0 s
-#>   whole call         1 min 0 s, against 1 min 0 s in the fitter
+#>   time to fit        52.4 s
+#>   whole call         52.4 s, against 52.4 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: DV: ka typical value, 9.92 %;
@@ -213,9 +213,10 @@ model_fit
 model_data <- synpmx_model_generate(model_fit, n_subjects = 12, seed = 11)
 ```
 
-What leaves the study is the printed object and nothing else: a
-structural model, three fixed effects, a covariance matrix, a residual
-error, and a per-arm dosing and visit model.
+What leaves the study is the release and nothing else: a structural
+model, three fixed effects, a covariance matrix, a residual error, a
+planned dose schedule per arm, three dose-change rates and one
+attendance rate for the study.
 [`vignette("pmxmodel-fingerprint")`](https://iamstein.github.io/synpmx/articles/pmxmodel-fingerprint.md)
 is the itemised list, and the parameters are not estimates to report.
 
@@ -411,7 +412,7 @@ pca_summary
 #>   pca_report()      what it read out of the source data
 #>   pca_dosing()      the planned dose schedule, per arm
 #>   pca_dose_rates()  reduction, interruption and discontinuation
-#>   pca_visits()      the probability of a visit, per arm
+#>   pca_visits()      the attendance rate, at each visit an arm has
 #>   pca_components()  the loadings, over time
 pca_data <- synpmx_pca_generate(pca_summary, seed = 22)
 ```
@@ -729,9 +730,9 @@ knitr::kable(
 |                 | n_observations | median |  p10 |  p90 |
 |:----------------|---------------:|-------:|-----:|-----:|
 | Source          |            264 |   5.74 | 1.25 | 9.30 |
-| 1\. PMX model   |            266 |   5.43 | 1.89 | 9.56 |
+| 1\. PMX model   |            243 |   5.70 | 1.73 | 9.80 |
 | 2\. AVATAR      |            264 |   5.21 | 1.21 | 8.33 |
-| 3\. PCA         |            262 |   5.97 | 1.32 | 9.30 |
+| 3\. PCA         |            268 |   6.12 | 1.30 | 9.37 |
 | 4\. Prior only  |            240 |   3.16 | 0.28 | 6.43 |
 | 5\. Calibration |            240 |   4.05 | 0.36 | 7.54 |
 

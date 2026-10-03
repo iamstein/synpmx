@@ -61,7 +61,7 @@ pca_report(synpmx_pca(data, pmx_generated_roles(), seed = 1))
 #>                                    Log or identity, per endpoint       2
 #>                                 Censoring boundary, per endpoint       0
 #>  Planned cycles per arm; the dose ladder and three rates, pooled       8
-#>  Probability of a visit, per endpoint and time, pooled over arms      14
+#>                  One attendance rate, at the visits each arm has      14
 #>                       Strata and kept columns, one value per arm       0
 #>  min_patients
 #>            60

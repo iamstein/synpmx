@@ -24,8 +24,8 @@ That is what makes the output fully synthetic. Nothing selects a real
 patient, nothing weights one, and no number a patient measured reaches
 the generated table. What leaves the source data is a mean, a scale, a
 set of loadings, one mean score vector per arm, a residual covariance, a
-planned dose schedule per arm, and dose-change rates and visit
-probabilities pooled over the arms.
+planned dose schedule per arm, and dose-change rates and one attendance
+rate pooled over the arms.
 [`pca_report()`](https://iamstein.github.io/synpmx/reference/pca_report.md)
 inventories all of it.
 
@@ -48,8 +48,8 @@ inventories all of it.
     and invert the standardization to get a feature vector back.
 6.  **Fit a dosing model and a visit model**: a planned dose schedule
     per arm, rates for reduction, interruption and discontinuation
-    pooled over the arms, and the probability of a visit at each nominal
-    time, pooled over the arms that have the visit.
+    pooled over the arms, the visits each arm has, and one attendance
+    rate for the study.
 7.  **Place the drawn values** on that skeleton, snapping a discrete
     endpoint back onto its levels and putting the assay limit back where
     the source had one.
@@ -293,17 +293,18 @@ data](https://iamstein.github.io/synpmx/articles/pca-public-data-examples.html).
 [`pca_visits()`](https://iamstein.github.io/synpmx/reference/pca_visits.md)
 reports it: one row per arm, endpoint and modelled nominal time, giving
 the probability that a generated subject in that arm has an observation
-there. It is the share of patients who did, pooled over the arms that
-have that visit, so every arm with the visit has the same probability;
-an arm has a visit where at least `min_arm_patients` of its patients
-were observed there. A share with fewer than `min_arm_patients` patients
-on either side, attending or missing, is rounded to 0 or 1, whichever is
-nearer: “one patient missed this visit” discloses as much as “one
-patient came”, and the threshold rule of statistical disclosure control
-asks for enough patients on both sides.
+there. It is one attendance rate for the study, the share of scheduled
+visits at which a patient was observed, at every visit an arm has; an
+arm has a visit where at least `min_arm_patients` of its patients were
+observed there. Where fewer than `min_arm_patients` patients missed any
+visit the rate is 1: “one patient missed a visit” discloses as much as
+“one patient came”, and the threshold rule of statistical disclosure
+control asks for enough patients on both sides. One rate loses when in
+the study visits were missed, and keeps the number of observations per
+patient on average.
 
-Attendance is drawn independently per visit from that probability, so no
-real patient’s set of attended visits is reused.
+Attendance is drawn independently per visit at that rate, so no real
+patient’s set of attended visits is reused.
 
 ### Why the timing survives
 
@@ -338,7 +339,7 @@ The object holds, and this is all of it:
 | Basis | Column means, column standard deviations, and the component loadings |
 | Scores | One mean score vector per arm, and one residual covariance per arm |
 | Dosing model | Per arm, the planned cycles; pooled over the arms, the dose ladder and three rates |
-| Visit model | Per endpoint and time, the probability of an observation, pooled over the arms that have the visit |
+| Visit model | The visits each arm has, and one attendance rate for the study |
 | Schema | Column order, column types as empty prototypes, the discrete endpoints’ level sets, the log-or-identity choice and assay limit per endpoint, and one value per arm for the strata and kept columns, a kept one that fewer than `min_category_patients` of the arm’s patients hold written as missing. No factor level or discrete endpoint level fewer than that many patients hold is stored |
 | Arms | The number of patients in each |
 
@@ -448,9 +449,9 @@ this generator fits none.
 
 For B1a and B1b the guarantee is structural rather than unrecorded. No
 individual’s visit set and no individual’s dose schedule exists in the
-model to be copied, because the model holds a per-visit probability and
-one shared schedule per arm. **B4b** asks the copy question directly, on
-the finished tables, and is the row that carries the claim.
+model to be copied, because the model holds one attendance rate and one
+shared schedule per arm. **B4b** asks the copy question directly, on the
+finished tables, and is the row that carries the claim.
 
 C2 is the one to be careful about, because a blank row is at its most
 misleading exactly where the loss is largest. C2 asks how many of the

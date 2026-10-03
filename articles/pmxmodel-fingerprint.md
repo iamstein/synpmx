@@ -87,8 +87,8 @@ model_report(fit)
 #>                      all (32)
 #>   dose changes       none
 #>   visit grid         2 endpoint(s) at 16 nominal time(s), 22 slot(s) in all
-#>   visit attendance   median 100% of patients attend a slot, pooled over
-#>                      arms (9% to 100%)
+#>   visit attendance   68% of scheduled slots attended, one rate for the
+#>                      study
 #>   covariates         wt lognormal, age lognormal, sex categorical, drawn
 #>                      once for the whole study, independently of the
 #>                      profiles
@@ -126,8 +126,8 @@ model_report(fit)
 #>   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 
 #>   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)
 #>   residual error     proportional 0.21 
-#>   time to fit        1 min 5 s
-#>   whole call         1 min 5 s, against 1 min 5 s in the fitter
+#>   time to fit        57.1 s
+#>   whole call         57.3 s, against 57.1 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;
@@ -201,7 +201,7 @@ fit$structural
 #> [1] "2cmt_oral"
 model_candidates(fit)
 #>       model converged accepted      aic seconds note
-#> 1 2cmt_oral      TRUE     TRUE 922.2948   65.14
+#> 1 2cmt_oral      TRUE     TRUE 922.2948  57.132
 ```
 
 Each row is an attempted fit. The default stops when two compartments
@@ -434,34 +434,17 @@ subject who steps down has the lower exposure that implies.
 
 ## The visit model
 
-Per endpoint and per retained nominal time, the share of patients
-holding an observation there, pooled over the arms that have the visit.
-Attendance is drawn per visit at generation.
+The visits each arm has, and one attendance rate for the study, applied
+at every one of them. Attendance is drawn per visit at generation.
 
 ``` r
 
-cells <- fit$cells
-cells$probability <- as.numeric(fit$visits[[fit$arms$arms[[1L]]]]$probability)
-show(cells[, c("endpoint", "time", "probability")],
-     "Attendance, per grid cell", paged = TRUE)
+rate <- unlist(lapply(fit$visits, function(v) as.numeric(v$probability)))
+c(attendance_rate = signif(unique(rate[rate > 0]), 3),
+  visits = nrow(fit$cells))
+#> attendance_rate          visits 
+#>            0.68           22.00
 ```
-
-``` r
-
-library(ggplot2)
-library(xgxr)
-xgx_theme_set()
-
-ggplot(cells, aes(time, probability, colour = endpoint)) +
-  geom_line() + geom_point(size = 1.5) +
-  ylim(0, 1) +
-  xgx_scale_x_time_units("hours", breaks = seq(0, 120, by = 24)) +
-  labs(x = "Nominal time (hours)", y = "Fraction of the arm observed",
-       colour = NULL) +
-  theme(legend.position = "top")
-```
-
-![](pmxmodel-fingerprint_files/figure-html/visits-plot-1.png)
 
 A cell is kept only where at least `min_arm_patients` distinct patients
 hold an observation there. A nominal time one patient attended is that
@@ -513,7 +496,7 @@ c(rows = nrow(synthetic),
   subjects = length(unique(synthetic$id)),
   valid = validate_pmx(synthetic, roles)$valid)
 #>     rows subjects    valid 
-#>      525       32        1
+#>      519       32        1
 ```
 
 ## Where to go next

@@ -281,8 +281,8 @@ so this article reads a stored result of
 <span><span class="co">#&gt;                      all (12)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         1 endpoint(s) at 25 nominal time(s), 25 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   median 100% of patients attend a slot, pooled over</span></span>
-<span><span class="co">#&gt;                      arms (33% to 100%)</span></span>
+<span><span class="co">#&gt;   visit attendance   87% of scheduled slots attended, one rate for the</span></span>
+<span><span class="co">#&gt;                      study</span></span>
 <span><span class="co">#&gt;   covariates         WT lognormal, drawn once for the whole study,</span></span>
 <span><span class="co">#&gt;                      independently of the profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT</span></span>
@@ -313,16 +313,17 @@ so this article reads a stored result of
 <span><span class="co">#&gt;   fixed effects      cl 2.8, v 29, q 1.9, v2 4.2, ka 1.2 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.19, v 0.141, ka 0.52, q 0.237, v2 0.274 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.22 </span></span>
-<span><span class="co">#&gt;   time to fit        1 min 0 s</span></span>
-<span><span class="co">#&gt;   whole call         1 min 0 s, against 1 min 0 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        52.4 s</span></span>
+<span><span class="co">#&gt;   whole call         52.4 s, against 52.4 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: DV: ka typical value, 9.92 %;</span></span>
 <span><span class="co">#&gt;                      `model_privacy_checks()` has every check</span></span>
 <span><span class="va">model_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">model_fit</span>, n_subjects <span class="op">=</span> <span class="fl">12</span>, seed <span class="op">=</span> <span class="fl">11</span><span class="op">)</span></span></code></pre></div>
-<p>What leaves the study is the printed object and nothing else: a
-structural model, three fixed effects, a covariance matrix, a residual
-error, and a per-arm dosing and visit model.
+<p>What leaves the study is the release and nothing else: a structural
+model, three fixed effects, a covariance matrix, a residual error, a
+planned dose schedule per arm, three dose-change rates and one
+attendance rate for the study.
 <code><a href="../articles/pmxmodel-fingerprint.html">vignette("pmxmodel-fingerprint")</a></code> is the itemised list, and
 the parameters are not estimates to report.</p>
 </div>
@@ -503,7 +504,7 @@ holding on to any subject’s values.</p>
 <span><span class="co">#&gt;   pca_report()      what it read out of the source data</span></span>
 <span><span class="co">#&gt;   pca_dosing()      the planned dose schedule, per arm</span></span>
 <span><span class="co">#&gt;   pca_dose_rates()  reduction, interruption and discontinuation</span></span>
-<span><span class="co">#&gt;   pca_visits()      the probability of a visit, per arm</span></span>
+<span><span class="co">#&gt;   pca_visits()      the attendance rate, at each visit an arm has</span></span>
 <span><span class="co">#&gt;   pca_components()  the loadings, over time</span></span>
 <span><span class="va">pca_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_pca_generate.html">synpmx_pca_generate</a></span><span class="op">(</span><span class="va">pca_summary</span>, seed <span class="op">=</span> <span class="fl">22</span><span class="op">)</span></span></code></pre></div>
 <p>Twelve subjects buy two components, holding 78% of the variance, as
@@ -776,10 +777,10 @@ against each other.</p>
 </tr>
 <tr class="even">
 <td align="left">1. PMX model</td>
-<td align="right">266</td>
-<td align="right">5.43</td>
-<td align="right">1.89</td>
-<td align="right">9.56</td>
+<td align="right">243</td>
+<td align="right">5.70</td>
+<td align="right">1.73</td>
+<td align="right">9.80</td>
 </tr>
 <tr class="odd">
 <td align="left">2. AVATAR</td>
@@ -790,10 +791,10 @@ against each other.</p>
 </tr>
 <tr class="even">
 <td align="left">3. PCA</td>
-<td align="right">262</td>
-<td align="right">5.97</td>
-<td align="right">1.32</td>
-<td align="right">9.30</td>
+<td align="right">268</td>
+<td align="right">6.12</td>
+<td align="right">1.30</td>
+<td align="right">9.37</td>
 </tr>
 <tr class="odd">
 <td align="left">4. Prior only</td>

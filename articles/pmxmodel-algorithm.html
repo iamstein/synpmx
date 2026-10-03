@@ -232,8 +232,8 @@ several, which is how a search of your own choosing is asked for.</td>
 <td><code>pd_by_arm</code></td>
 <td><code>FALSE</code></td>
 <td>Fit each PD endpoint’s shape, and read each binary or ordinal
-endpoint’s per-visit level frequencies, per arm rather than once over
-the pooled cohort.</td>
+endpoint’s level frequencies, per arm rather than once over the pooled
+cohort.</td>
 </tr>
 <tr class="even">
 <td><code>endpoint_roles</code></td>
@@ -360,8 +360,8 @@ endpoint’s time course by least squares.</li>
 <li>
 <strong>Fit a dosing model and a visit model</strong>: a planned
 dose schedule per arm, rates for reduction, interruption and
-discontinuation pooled over the arms, and the probability of a visit at
-each nominal time, pooled over the arms that have the visit.</li>
+discontinuation pooled over the arms, the visits each arm has, and one
+attendance rate for the study.</li>
 <li>
 <strong>Store the fit</strong>: the structural model, the
 parameters, the arm models and the schema, and no per-subject
@@ -815,7 +815,7 @@ checks.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged accepted      aic seconds note</span></span>
-<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948   65.14</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  57.132</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="covariates">Covariates<a class="anchor" aria-label="anchor" href="#covariates"></a>
@@ -904,14 +904,13 @@ candidate where the search compiled more than one. A search that spent
 nine of its ten minutes in a second candidate is a run whose answer is
 to name <code>pk</code>.</p>
 <p>Binary and ordinal endpoints are not fitted at all. They are drawn
-from the level frequencies recorded at each nominal time, which is what
-the visit model already does for attendance, pooled over the arms that
-have the visit as the shapes are pooled, or per arm under
-<code>pd_by_arm = TRUE</code>. A level fewer than
-<code>min_category_patients</code> patients held at that visit is folded
-into the visit’s most common level first, as a rare categorical
-covariate level is excluded; a visit at which no level is held by that
-many patients is not drawn at all.</p>
+from one set of level frequencies over the whole study, as the shapes
+are one time course, or one set per arm under
+<code>pd_by_arm = TRUE</code>, so the response does not change over the
+visits. A level fewer than <code>min_category_patients</code> patients
+held is folded into the endpoint’s most common level first, as a rare
+categorical covariate level is excluded; an endpoint at which no level
+is held by that many patients is not drawn at all.</p>
 </div>
 </div>
 <div class="section level2">
@@ -976,20 +975,22 @@ pooled over arms</td>
 </tr>
 <tr class="even">
 <td>Visit model</td>
-<td>Per endpoint and per retained nominal time, the share of patients
-holding an observation there, over the arms that have that visit. An arm
-has a visit where at least <code>min_arm_patients</code> of its patients
-were observed there</td>
-<td>Attendance, drawn per visit</td>
+<td>The visits each arm has, where at least
+<code>min_arm_patients</code> of its patients were observed, and one
+attendance rate for the study: the share of those scheduled visits at
+which a patient was observed</td>
+<td>Attendance, drawn per visit at that one rate</td>
 </tr>
 </tbody>
 </table>
-<p>Pooling puts every arm’s patients behind each rate and each visit’s
-share. Its cost is that an arm whose patients reduced, stopped or missed
-visits more often than the others’ takes the study’s rates, so a
-dose-dependent discontinuation is not reproduced. An arm that never has
-a visit, such as a placebo arm without drug sampling, still has
-none.</p>
+<p>Pooling puts every patient behind each rate. Its cost is that an arm
+whose patients reduced, stopped or missed visits more often than the
+others’ takes the study’s rates, so a dose-dependent discontinuation is
+not reproduced, and that attendance no longer depends on when in the
+study a visit falls: a late visit few patients reached is generated as
+often as an early one, though the number of observations per patient is
+kept on average. An arm that never has a visit, such as a placebo arm
+without drug sampling, still has none.</p>
 <p>A study where nobody reduces, skips or stops early has all three
 rates at zero and one level, and the model then reproduces the planned
 schedule exactly. No detector decides which kind of study this is,
@@ -1007,11 +1008,10 @@ patient came”:</p>
 <li>A dose-change rate whose events fewer than
 <code>min_arm_patients</code> patients had, across every arm, is
 zero.</li>
-<li>A visit’s attendance share with fewer than
-<code>min_arm_patients</code> patients on either side, attending or
-missing, is rounded to 0 or 1, whichever is nearer, and a tie keeps the
-visit. An arm with fewer than <code>min_arm_patients</code> of its
-patients observed at a visit does not have that visit.</li>
+<li>Where fewer than <code>min_arm_patients</code> patients missed any
+visit, the attendance rate is 1, since a rate below 1 would describe
+their misses. An arm with fewer than <code>min_arm_patients</code> of
+its patients observed at a visit does not have that visit.</li>
 </ul>
 <p>Each arm also carries the values of its <code>strata</code> and
 <code>keep</code> columns, copied from the arm’s first patient as
@@ -1140,8 +1140,8 @@ seen.</p>
 <span><span class="co">#&gt;                      all (32)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         2 endpoint(s) at 16 nominal time(s), 22 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   median 100% of patients attend a slot, pooled over</span></span>
-<span><span class="co">#&gt;                      arms (9% to 100%)</span></span>
+<span><span class="co">#&gt;   visit attendance   68% of scheduled slots attended, one rate for the</span></span>
+<span><span class="co">#&gt;                      study</span></span>
 <span><span class="co">#&gt;   covariates         wt lognormal, age lognormal, sex categorical, drawn</span></span>
 <span><span class="co">#&gt;                      once for the whole study, independently of the</span></span>
 <span><span class="co">#&gt;                      profiles</span></span>
@@ -1179,8 +1179,8 @@ seen.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
-<span><span class="co">#&gt;   time to fit        1 min 5 s</span></span>
-<span><span class="co">#&gt;   whole call         1 min 5 s, against 1 min 5 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        57.1 s</span></span>
+<span><span class="co">#&gt;   whole call         57.3 s, against 57.1 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;</span></span>
@@ -1313,11 +1313,11 @@ to 1 to retain all observed levels.</td>
 <tr class="even">
 <td>Rare discrete-endpoint level</td>
 <td>
-<code>min_category_patients</code> = 3 per visit, over the arms that
-have it, or per arm under <code>pd_by_arm</code>
+<code>min_category_patients</code> = 3 over the whole study, or per
+arm under <code>pd_by_arm</code>
 </td>
-<td>Fold the level into the visit’s most common level. A visit at which
-no level is held by that many patients is not drawn.</td>
+<td>Fold the level into the endpoint’s most common level. An endpoint
+with no level held by that many patients is not drawn.</td>
 </tr>
 <tr class="odd">
 <td>Single-patient influence</td>
@@ -1336,12 +1336,12 @@ over every arm</td>
 <td>The rate, pooled over arms, is zero.</td>
 </tr>
 <tr class="odd">
-<td>Thin attendance share</td>
-<td>fewer than <code>min_arm_patients</code> patients attending or
-missing a visit, over the arms that have it; fewer than
-<code>min_arm_patients</code> of an arm’s patients at a visit</td>
-<td>Rounded to 0 or 1, whichever is nearer; a tie keeps the visit. An
-arm with too few of its patients at a visit does not have it.</td>
+<td>Attendance rate</td>
+<td>fewer than <code>min_arm_patients</code> patients who missed any
+visit; fewer than <code>min_arm_patients</code> of an arm’s patients at
+a visit</td>
+<td>The rate is 1. An arm with too few of its patients at a visit does
+not have it.</td>
 </tr>
 <tr class="even">
 <td>Rare kept value</td>

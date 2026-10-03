@@ -64,7 +64,7 @@ trial_summary
 #>   pca_report()      what it read out of the source data
 #>   pca_dosing()      the planned dose schedule, per arm
 #>   pca_dose_rates()  reduction, interruption and discontinuation
-#>   pca_visits()      the probability of a visit, per arm
+#>   pca_visits()      the attendance rate, at each visit an arm has
 #>   pca_components()  the loadings, over time
 ```
 
@@ -497,26 +497,18 @@ then differ from one another as the source patients did.
 
 ## The visit model
 
-One probability per endpoint and modelled time, pooled over the arms
-that have the visit, and listed for each arm. Attendance is drawn
-independently per visit, so no real patient’s set of attended visits is
-reused.
+One attendance rate for the study, listed for each arm, endpoint and
+modelled time it applies at. Attendance is drawn independently per
+visit, so no real patient’s set of attended visits is reused.
 
 ``` r
 
-ggplot(pca_visits(trial_summary), aes(time, probability, colour = arm)) +
-  geom_line() +
-  facet_wrap(~endpoint, scales = "free_x") +
-  labs(x = "Nominal time (hours)", y = "P(observation)", colour = NULL) +
-  theme(legend.position = "top")
-```
-
-![](pca-fingerprint_files/figure-html/visits-plot-1.png)
-
-``` r
-
-show(pca_visits(trial_summary),
-     "Probability of an observation, per arm, endpoint and time", paged = TRUE)
+visits <- pca_visits(trial_summary)
+c(attendance_rate = signif(unique(visits$probability[visits$probability > 0]),
+                           3),
+  visits = nrow(unique(visits[, c("endpoint", "time")])))
+#> attendance_rate          visits 
+#>               1              33
 ```
 
 ## The schema
