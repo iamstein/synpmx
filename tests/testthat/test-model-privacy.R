@@ -394,16 +394,34 @@ test_that("the PCA summary's log offset is not one patient's value (REV-064)", {
   expect_false(isTRUE(all.equal(offsets[["cp"]], min(data$dv[observed]) / 2)))
 })
 
-test_that("an attendance fraction resting on one or two patients is rounded (REV-065)", {
-  rounded <- .round_thin_attendance(c(0, 1, 2, 3, 29, 30, 31, 32), 32, 3L)
-  expect_equal(rounded$probability,
-               c(0, 0, 0, 3 / 32, 29 / 32, 1, 1, 1))
-  expect_equal(rounded$rounded,
-               c(FALSE, TRUE, TRUE, FALSE, FALSE, TRUE, TRUE, FALSE))
-  # In an arm too small for both sides to reach three, the nearer end wins and
-  # a tie keeps the visit.
-  small <- .round_thin_attendance(c(1, 2, 3), 4, 3L)
-  expect_equal(small$probability, c(0, 1, 1))
+test_that("attendance is one rate for the study, left at 1 where one or two patients missed a visit (REV-065, REV-072)", {
+  roles <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",
+                     dv = "DV", amt = "AMT", evid = "EVID", dvid = "NAME")
+  # Twenty patients dosed at time 0 and sampled at times 1 to 5, the patients
+  # in `missing` each missing the sample at time 3.
+  study <- function(missing) {
+    do.call(rbind, lapply(1:20, function(id) {
+      times <- setdiff(1:5, if (id %in% missing) 3)
+      rbind(data.frame(ID = id, TIME = 0, NTIME = 0, DV = NA_real_, AMT = 100,
+                       EVID = 1L, NAME = NA_character_),
+            data.frame(ID = id, TIME = times, NTIME = times, DV = 10 / times,
+                       AMT = 0, EVID = 0L, NAME = "cp"))
+    }))
+  }
+  rate <- function(data) {
+    group <- .model_subject_arms(data, roles)
+    cells <- .model_cells(data, roles, "cp", 3L)
+    models <- .arm_models(data, roles, cells, group, 3L)
+    list(rate = unique(as.numeric(models$visits[[1L]]$probability)),
+         audit = models$audit$attendance)
+  }
+  two <- rate(study(1:2))
+  expect_equal(two$rate, 1)
+  expect_true(two$audit$rounded)
+  five <- rate(study(1:5))
+  expect_equal(five$rate, 95 / 100)
+  expect_false(five$audit$rounded)
+  expect_equal(five$audit$misses, 5)
 })
 
 test_that("dose-change rates and the ladder are pooled over arms, and zero below the floor (REV-065, REV-071)", {
@@ -442,7 +460,7 @@ test_that("dose-change rates and the ladder are pooled over arms, and zero below
   expect_equal(alone$dosing$A$interruption, 0)
 })
 
-test_that("attendance and discrete frequencies are pooled over the arms that have the visit (REV-071)", {
+test_that("attendance and discrete frequencies are pooled over the arms and visits (REV-071, REV-072)", {
   roles <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",
                      dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT",
                      dvid = "NAME", strata = "ARM", addl = "ADDL", ii = "II")
@@ -483,8 +501,9 @@ test_that("attendance and discrete frequencies are pooled over the arms that hav
   expect_equal(p[both, "Everolimus 10 mg"], p[both, "Placebo"])
   # The day-56 visit is not a cell at all: two patients.
   expect_false(any(cells$endpoint == "RESP" & cells$time == 56))
+  # One rate for the study, at every visit an arm has.
+  expect_length(unique(p[p > 0]), 1L)
   day28 <- which(cells$endpoint == "RESP" & cells$time == 28)
-  expect_equal(unname(p[day28, ]), rep(60 / 200, 2))
 
   pooled <- .discrete_model(data, roles, cells, group, "RESP", 3L,
                             visits = models$visits)

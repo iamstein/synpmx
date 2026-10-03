@@ -186,15 +186,13 @@
   })
 }
 
-# Per-visit marginals for the endpoints that are not time courses. A binary or
-# ordinal endpoint is drawn from the level frequencies recorded at that nominal
-# time, which is the same thing the visit model does for attendance.
-#
-# Pooled over the arms that have the visit (REV-071), as the PD shapes and the
-# visit model are, unless `by_arm` asks for one marginal per arm, as
-# `pd_by_arm = TRUE` does for the shapes. Pooled, each frequency rests on every
-# patient in those arms rather than on one arm's, and an arm's response at a
-# visit becomes the study's.
+# The level frequencies for the endpoints that are not time courses. A binary
+# or ordinal endpoint is drawn from one set of level frequencies over the whole
+# study (REV-072), as the PD shapes are one time course, unless `by_arm` asks
+# for one set per arm, as `pd_by_arm = TRUE` does for the shapes. One set rests
+# on every patient, where a set per visit and arm gave an attacker who knows a
+# candidate's responses a table to match; what is lost is how the response
+# changes over the visits.
 #
 # `drawn` is the set of endpoints `.model_generate()` will actually look up
 # here: everything that is neither a concentration nor a fitted shape. Without
@@ -202,15 +200,15 @@
 # marginal is the source's own values with their frequencies, a fit whose
 # endpoints were all time courses carried thousands of real measurements that
 # nothing could ever read -- 5219 of them on `case1_pkpd` (`SIM-083`). The
-# entry stays `NULL` at its own index rather than being dropped, because
-# generation indexes this list by cell, and it is `NULL` too in an arm that
-# does not have the visit.
+# marginal is written at the index of every visit of its endpoint, because
+# generation looks it up by visit, and is `NULL` at a visit an arm does not
+# have.
 #
 # pmxmodel-algorithm.Rmd, Step 4 (REV-062): a level fewer than
-# `min_category_patients` patients held at that visit is folded into the
-# visit's most common level before the frequencies are taken, as a categorical
-# covariate's rare level is excluded. A level one patient held is that patient,
-# and drawing from it would put them back.
+# `min_category_patients` patients held is folded into the endpoint's most
+# common level before the frequencies are taken, as a categorical covariate's
+# rare level is excluded. A level one patient held is that patient, and drawing
+# from it would put them back.
 .discrete_model <- function(source, roles, cells, subject_group, drawn,
                             min_category_patients = 3L, by_arm = FALSE,
                             visits = NULL) {
@@ -226,26 +224,36 @@
   ids <- as.character(source[[roles$id]])
 
   arms <- unique(subject_group)
+  has <- function(arm, i) {
+    is.null(visits) || isTRUE(visits[[arm]]$probability[[i]] > 0)
+  }
+  at_cell <- function(i) {
+    endpoint == cells$endpoint[i] &
+      abs(aligned - cells$time[i]) < sqrt(.Machine$double.eps)
+  }
   out <- stats::setNames(lapply(arms, function(arm) {
     vector("list", nrow(cells))
   }), arms)
-  for (i in seq_len(nrow(cells))) {
-    if (!cells$endpoint[i] %in% drawn) next
-    with_visit <- if (is.null(visits)) arms else arms[vapply(arms, function(arm) {
-      isTRUE(visits[[arm]]$probability[[i]] > 0)
-    }, logical(1))]
-    groups <- if (by_arm) as.list(with_visit) else list(with_visit)
+  groups <- if (by_arm) as.list(arms) else list(arms)
+  for (name in intersect(unique(cells$endpoint), drawn)) {
+    index <- which(cells$endpoint == name)
     for (group in groups) {
-      if (!length(group)) next
-      at <- observed & row_arm %in% group & endpoint == cells$endpoint[i] &
-        abs(aligned - cells$time[i]) < sqrt(.Machine$double.eps)
+      # Every observation of the endpoint at a visit some arm of the group has.
+      at <- observed & Reduce(`|`, lapply(index, function(i) {
+        with_visit <- group[vapply(group, has, logical(1), i = i)]
+        at_cell(i) & row_arm %in% with_visit
+      }), FALSE)
       values <- source[[roles$dv]][at]
       holders <- ids[at][!is.na(values)]
       values <- values[!is.na(values)]
       marginal <- if (length(values)) {
         .fold_rare_levels(values, holders, min_category_patients)
       } else NULL
-      for (arm in group) out[[arm]][i] <- list(marginal)
+      for (arm in group) {
+        for (i in index) {
+          if (has(arm, i)) out[[arm]][i] <- list(marginal)
+        }
+      }
     }
   }
   out

@@ -607,21 +607,22 @@ print.pmx_model_report <- function(x, ...) {
     field("dose changes", "none")
   }
 
-  # Attendance is the model of a missed observation, and it is one probability
-  # per endpoint per nominal time -- the share of patients with an observation
-  # there, pooled over the arms that have the slot (REV-071). Said in those
-  # words: the first readers of this report took "cell(s) of the visit grid"
-  # for a count of nominal times, which it is not, because endpoints are not all
-  # measured at the same times. The spread is what a reader needs beside the
-  # median, because a slot nobody misses and a slot half the patients miss are
-  # the same line otherwise. An arm without the slot is not read as missing it.
+  # Attendance is the model of a missed observation: one rate for the study,
+  # the share of scheduled slots at which a patient was observed, at every slot
+  # an arm has (REV-072). The grid line says "slot(s)" in those words because
+  # the first readers of this report took "cell(s) of the visit grid" for a
+  # count of nominal times, which it is not, because endpoints are not all
+  # measured at the same times. An arm without the slot is not read as missing
+  # it. A fit stored before the rate was one number still prints its range.
   attendance <- unlist(lapply(x$visits, function(v) as.numeric(v$probability)))
-  attendance <- attendance[attendance > 0]
+  attendance <- unique(attendance[attendance > 0])
   field("visit grid", length(unique(x$cells$endpoint)), " endpoint(s) at ",
         length(unique(x$cells$time)), " nominal time(s), ", nrow(x$cells),
         " slot(s) in all")
-  field("visit attendance", if (length(attendance)) sprintf(
-    "median %.0f%% of patients attend a slot, pooled over arms (%.0f%% to %.0f%%)",
+  field("visit attendance", if (length(attendance) == 1L) sprintf(
+    "%.0f%% of scheduled slots attended, one rate for the study",
+    100 * attendance) else if (length(attendance)) sprintf(
+    "median %.0f%% of patients attend a slot (%.0f%% to %.0f%%)",
     100 * stats::median(attendance), 100 * min(attendance),
     100 * max(attendance)) else "no attendance model")
 

@@ -274,10 +274,10 @@ mad_fails <- run && any(mad_run$card$verdict == "FAIL")
 
 `r if (mad_fails) "A row fails" else "Nothing fails"`,
 and A3 reads `r mad_reading("A3")`: every
-endpoint survives, including the three discrete ones, which are drawn from the
-level frequencies recorded at each visit, pooled over the six arms, rather than
-modelled. Pooled, a discrete endpoint's response no longer differs by dose
-group, as the continuous PD time course already does not. D1 reads
+endpoint survives, including the three discrete ones, which are drawn from one
+set of level frequencies for the whole study rather than modelled. Pooled, a
+discrete endpoint's response differs neither by dose group, as the continuous
+PD time course already does not, nor over the visits. D1 reads
 `r mad_reading("D1")`, the variable whose
 synthetic spread sits furthest from the source's.
 
@@ -843,11 +843,14 @@ Not preserved, with the study that shows each:
   with no exposure term, so a synthetic patient's arm does not reach their
   response. `mad` is the worked case in the demo, and `onc_sim` shows why
   it matters for an exposure-driven tumour response.
-- **Differences between arms in attendance, dose changes and discrete
-  responses.** All three are pooled over the arms, the discrete responses
-  unless `pd_by_arm = TRUE`, so an arm whose patients dropped out, reduced or
-  responded more often than the others' takes the study's average. `onc_sim`
-  is the worked case.
+- **When patients missed visits or responded, and differences between arms.**
+  Attendance is one rate for the study, a binary or ordinal endpoint one set of
+  level frequencies (one per arm under `pd_by_arm = TRUE`), and the dose
+  changes three rates pooled over the arms. A late visit few patients reached
+  is drawn as often as an early one, a response does not change over the
+  visits, and an arm whose patients dropped out, reduced or responded more
+  often than the others' takes the study's average. `onc_sim` and `mad` are
+  the worked cases.
 - **Per-patient dose schedules, and multiple periods.** One planned schedule
   per arm. `mavoglurant` is the worked case: occasions per patient fall from
   1.65 to 1. `pheno_sd` is the other half of it — every neonate is dosed to

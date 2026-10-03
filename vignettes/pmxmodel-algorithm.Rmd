@@ -75,7 +75,7 @@ Beyond the roles and the seed:
 |---|---|---|
 | `pk` | `NULL` | One of the built-in models, forcing it and skipping the search; or several, which is how a search of your own choosing is asked for. |
 | `pd` | `NULL` | Named vector of PD shapes per endpoint. Skips that search. |
-| `pd_by_arm` | `FALSE` | Fit each PD endpoint's shape, and read each binary or ordinal endpoint's per-visit level frequencies, per arm rather than once over the pooled cohort. |
+| `pd_by_arm` | `FALSE` | Fit each PD endpoint's shape, and read each binary or ordinal endpoint's level frequencies, per arm rather than once over the pooled cohort. |
 | `endpoint_roles` | `NULL` | Declares concentration endpoints with `pk`, or a PD-only study with `c(pd = "response")`. More than one concentration may be named. |
 | `start_param` | `NULL` | Starting values for the population fit, keyed by endpoint where more than one concentration is fitted. The escape hatch where the non-compartmental read of the median profile starts the optimizer somewhere it cannot move from. |
 | `covariate_effects` | `"none"` | `"none"` puts no covariate in the structural model; `"auto"` applies allometric scaling on clearance and volume where a weight-like covariate is declared. |
@@ -137,8 +137,7 @@ encoding its source used.
    by least squares.
 4. **Fit a dosing model and a visit model**: a planned dose schedule per arm,
    rates for reduction, interruption and discontinuation pooled over the arms,
-   and the probability of a visit at each nominal time, pooled over the arms
-   that have the visit.
+   the visits each arm has, and one attendance rate for the study.
 5. **Store the fit**: the structural model, the parameters, the arm models and
    the schema, and no per-subject quantity.
 6. **Generate new subjects.** Draw covariates and random effects, draw the dose
@@ -638,13 +637,13 @@ fit: each concentration's block carries what that fit took, one line per
 candidate where the search compiled more than one. A search that spent nine of
 its ten minutes in a second candidate is a run whose answer is to name `pk`.
 
-Binary and ordinal endpoints are not fitted at all. They are drawn from the level
-frequencies recorded at each nominal time, which is what the visit model already
-does for attendance, pooled over the arms that have the visit as the shapes are
-pooled, or per arm under `pd_by_arm = TRUE`. A level fewer than `min_category_patients`
-patients held at that visit is folded into the visit's most common level first,
-as a rare categorical covariate level is excluded; a visit at which no level is
-held by that many patients is not drawn at all.
+Binary and ordinal endpoints are not fitted at all. They are drawn from one set
+of level frequencies over the whole study, as the shapes are one time course,
+or one set per arm under `pd_by_arm = TRUE`, so the response does not change
+over the visits. A level fewer than `min_category_patients` patients held is
+folded into the endpoint's most common level first, as a rare categorical
+covariate level is excluded; an endpoint at which no level is held by that many
+patients is not drawn at all.
 
 ## Step 4: Fit the Dosing Model and the Visit Model
 
@@ -669,13 +668,15 @@ arms, as the PD shapes are:
 | Reduction rate | Discrete-time hazard of stepping down a level, pooled over arms | Decided before the cycle is dosed |
 | Interruption rate | Discrete-time hazard of skipping a cycle without ending treatment, pooled over arms | Decided at the cycle |
 | Discontinuation rate | Discrete-time hazard of stopping treatment, pooled over arms | Decided after the cycle is dosed |
-| Visit model | Per endpoint and per retained nominal time, the share of patients holding an observation there, over the arms that have that visit. An arm has a visit where at least `min_arm_patients` of its patients were observed there | Attendance, drawn per visit |
+| Visit model | The visits each arm has, where at least `min_arm_patients` of its patients were observed, and one attendance rate for the study: the share of those scheduled visits at which a patient was observed | Attendance, drawn per visit at that one rate |
 
-Pooling puts every arm's patients behind each rate and each visit's share. Its
-cost is that an arm whose patients reduced, stopped or missed visits more often
-than the others' takes the study's rates, so a dose-dependent discontinuation
-is not reproduced. An arm that never has a visit, such as a placebo arm without
-drug sampling, still has none.
+Pooling puts every patient behind each rate. Its cost is that an arm whose
+patients reduced, stopped or missed visits more often than the others' takes
+the study's rates, so a dose-dependent discontinuation is not reproduced, and
+that attendance no longer depends on when in the study a visit falls: a late
+visit few patients reached is generated as often as an early one, though the
+number of observations per patient is kept on average. An arm that never has a
+visit, such as a placebo arm without drug sampling, still has none.
 
 A study where nobody reduces, skips or stops early has all three rates at zero
 and one level, and the model then reproduces the planned schedule exactly. No
@@ -692,10 +693,10 @@ patient came":
 
 - A dose-change rate whose events fewer than `min_arm_patients` patients had,
   across every arm, is zero.
-- A visit's attendance share with fewer than `min_arm_patients` patients on
-  either side, attending or missing, is rounded to 0 or 1, whichever is nearer,
-  and a tie keeps the visit. An arm with fewer than `min_arm_patients` of its
-  patients observed at a visit does not have that visit.
+- Where fewer than `min_arm_patients` patients missed any visit, the
+  attendance rate is 1, since a rate below 1 would describe their misses. An
+  arm with fewer than `min_arm_patients` of its patients observed at a visit
+  does not have that visit.
 
 Each arm also carries the values of its `strata` and `keep` columns, copied from
 the arm's first patient as declared. A `keep` value of any type that fewer than
@@ -873,10 +874,10 @@ badly is fitted, and told about.
 | Arm size | 3 patients | Warns and drops those patients before anything is fitted, so the arm is absent from the model and from the data generated from it. Inherited from the dosing and visit models, which are summaries of an arm: an arm of one or two has no rates to pool. |
 | `nominal_time` undeclared | — | Errors. The grid is a statement about the protocol only the caller can make. |
 | Rare categorical level | `min_category_patients` = 3 | Exclude levels held by fewer distinct patients; renormalize remaining counts. If none remain, warn and generate missing values. Set to 1 to retain all observed levels. |
-| Rare discrete-endpoint level | `min_category_patients` = 3 per visit, over the arms that have it, or per arm under `pd_by_arm` | Fold the level into the visit's most common level. A visit at which no level is held by that many patients is not drawn. |
+| Rare discrete-endpoint level | `min_category_patients` = 3 over the whole study, or per arm under `pd_by_arm` | Fold the level into the endpoint's most common level. An endpoint with no level held by that many patients is not drawn. |
 | Single-patient influence | a move of 15 or more, in % or points | Leaves the patient out of the PK, PD and covariate estimates and estimates again, at most a tenth of the cohort, naming them on the console. A move still at 15 is a review and at 30 a failure that warns; `drop_influential = FALSE` skips the leaving out. Read by `model_privacy_checks()` and scorecard row E3; nothing per patient is stored. |
 | Thin dose-change rate | fewer than `min_arm_patients` patients with the event, over every arm | The rate, pooled over arms, is zero. |
-| Thin attendance share | fewer than `min_arm_patients` patients attending or missing a visit, over the arms that have it; fewer than `min_arm_patients` of an arm's patients at a visit | Rounded to 0 or 1, whichever is nearer; a tie keeps the visit. An arm with too few of its patients at a visit does not have it. |
+| Attendance rate | fewer than `min_arm_patients` patients who missed any visit; fewer than `min_arm_patients` of an arm's patients at a visit | The rate is 1. An arm with too few of its patients at a visit does not have it. |
 | Rare kept value | a `keep` value of any type fewer than `min_category_patients` patients in the arm hold | Written as missing, with a warning. `strata` columns are carried unchanged. |
 | Rare level in the schema | a factor column's level, or a binary or ordinal endpoint's level, fewer than `min_category_patients` patients hold | Not stored. A column copied onto arms keeps the values its arms carry. An inferred binary or ordinal type left with fewer than two levels is stored as whole numbers. |
 | No grid cell shared | `min_arm_patients` | The cell is dropped. A nominal time one patient attended is that patient. |

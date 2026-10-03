@@ -308,7 +308,7 @@
 }
 
 # The dosing model and the visit model, one of each per arm, with everything
-# read from patients pooled over the arms (REV-071).
+# read from patients pooled over the arms (REV-071, REV-072).
 #
 # `cells` is the grid attendance is measured on: one row per endpoint and
 # nominal time, carrying the `index` the caller knows that cell by. Passing the
@@ -317,10 +317,9 @@
 #
 # Both are summaries of the study rather than facts about a patient. The dosing
 # model is built above: a planned schedule per arm, which is the protocol, and
-# three rates and a ladder, pooled over the arms. The visit model is, per
-# endpoint and per retained nominal time, the share of patients with an
-# observation there, pooled over the arms that have that visit, so attendance
-# is drawn per visit rather than a real patient's set of attended visits being
+# three rates and a ladder, pooled over the arms. The visit model is the
+# visits each arm has and one attendance rate for the study, so attendance is
+# drawn per visit rather than a real patient's set of attended visits being
 # reused.
 .arm_models <- function(source, roles, cells, subject_group, floor,
                         dose_groups = NULL) {
@@ -379,58 +378,61 @@
       }), .unique_in_order(dose_groups[!is.na(dose_groups)]))
     }
 
-    attenders[[arm]] <- vapply(seq_len(nrow(cells)), function(row) {
-      sum(vapply(member_rows, function(rows) {
+    # Which visits each patient was observed at: one row per patient.
+    attenders[[arm]] <- matrix(vapply(seq_len(nrow(cells)), function(row) {
+      vapply(member_rows, function(rows) {
         selected <- rows & observed & endpoint == cells$endpoint[row]
         any(is.finite(aligned[selected]) &
               abs(aligned[selected] - cells$time[row]) <
                 sqrt(.Machine$double.eps))
-      }, logical(1)))
-    }, numeric(1))
+      }, logical(1))
+    }, logical(length(members))), nrow = length(members))
   }
 
-  # Attendance pooled over arms (REV-071), as the PD shapes are. An arm has a
-  # visit where at least `floor` of its patients were observed there, which is
-  # the protocol's schedule for that arm and keeps a placebo arm from being
-  # sampled for drug; the share at a visit is then the share of every patient
-  # in the arms that have it. One share per visit rests on all of those
-  # patients rather than on one arm's, and an arm whose patients missed more
-  # visits than the others' takes the study's attendance.
-  counts <- matrix(unlist(attenders, use.names = FALSE), nrow = nrow(cells),
-                   dimnames = list(NULL, arms))
+  # One attendance rate for the study (REV-071, REV-072), as the PD shapes are
+  # one time course. An arm has a visit where at least `floor` of its patients
+  # were observed there, which is the protocol's schedule for that arm and keeps
+  # a placebo arm from being sampled for drug; the rate is the share of those
+  # scheduled visits, over every arm, at which a patient was observed. One
+  # number rests on every patient, where a share per visit gave an attacker who
+  # knows a candidate's attendance one more thing to match; what is lost is
+  # when in the study visits were missed. The threshold rule applies to the
+  # patients on each side: fewer than `floor` patients who missed any visit
+  # leaves the rate at 1.
+  counts <- vapply(arms, function(arm) colSums(attenders[[arm]]),
+                   numeric(nrow(cells)))
+  if (!is.matrix(counts)) {
+    counts <- matrix(counts, nrow = nrow(cells), dimnames = list(NULL, arms))
+  }
   has <- counts >= floor
-  held <- rowSums(counts * has)
-  of <- as.numeric(has %*% as.numeric(sizes[arms]))
-  rounded <- .round_thin_attendance(held, of, floor)
+  seen <- sum(vapply(arms, function(arm) {
+    sum(attenders[[arm]][, has[, arm], drop = FALSE])
+  }, numeric(1)))
+  scheduled <- sum(vapply(arms, function(arm) {
+    nrow(attenders[[arm]]) * sum(has[, arm])
+  }, numeric(1)))
+  missed_any <- sum(vapply(arms, function(arm) {
+    sum(rowSums(!attenders[[arm]][, has[, arm], drop = FALSE]) > 0)
+  }, numeric(1)))
+  seen_any <- sum(vapply(arms, function(arm) {
+    sum(rowSums(attenders[[arm]][, has[, arm], drop = FALSE]) > 0)
+  }, numeric(1)))
+  rate <- if (scheduled > 0) seen / scheduled else 0
+  thin <- min(missed_any, seen_any) > 0 && min(missed_any, seen_any) < floor
+  if (thin) rate <- as.numeric(rate >= 0.5)
   for (arm in arms) {
     visits[[arm]] <- list(cells = index, probability = .named(
-      ifelse(has[, arm], rounded$probability, 0), cells$name))
+      ifelse(has[, arm], rate, 0), cells$name))
   }
   attendance <- data.frame(
-    arm = "pooled", cell = seq_len(nrow(cells)), attenders = held,
-    misses = of - held, rounded = rounded$rounded,
-    # Arms whose one or two patients at a visit were left out of it.
-    masked = rowSums(counts > 0 & !has), stringsAsFactors = FALSE)
+    arm = "pooled", cell = NA_integer_, attenders = seen_any,
+    misses = missed_any, rounded = thin,
+    # Arm visits whose one or two patients were left out of them.
+    masked = sum(counts > 0 & !has), stringsAsFactors = FALSE)
   pooled <- .pool_rates(dosing, floor)
   list(dosing = pooled$dosing, visits = visits, sizes = sizes, arms = arms,
        cells = index,
        audit = list(rates = pooled$audit, attendance = attendance))
-}
-
-# pmxmodel-algorithm.Rmd, Step 4, and pca-algorithm.Rmd, Step 6 (REV-065).
-# Attendance at a visit is a share of patients, and a share one or two patients
-# decide -- the one who came, or the one who missed it -- is that patient.
-# Statistical disclosure control's threshold rule, applied to both sides: a
-# share with fewer than `floor` patients on either side is rounded to 0 or to
-# 1, whichever it is nearer, and a tie goes to 1 so a small group keeps the
-# visit. `n` is one count, or one per visit.
-.round_thin_attendance <- function(attenders, n, floor) {
-  misses <- n - attenders
-  thin <- pmin(attenders, misses) > 0 & pmin(attenders, misses) < floor
-  probability <- attenders / pmax(n, 1)
-  probability[n <= 0] <- 0
-  probability[thin] <- as.numeric(probability[thin] >= 0.5)
-  list(probability = probability, rounded = thin)
 }
 
 # pmxmodel-algorithm.Rmd, Step 4, and pca-algorithm.Rmd, Step 6 (REV-065,

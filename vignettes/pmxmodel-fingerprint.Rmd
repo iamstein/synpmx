@@ -328,29 +328,13 @@ from it, a synthetic subject who steps down has the lower exposure that implies.
 
 ## The visit model
 
-Per endpoint and per retained nominal time, the share of patients holding an
-observation there, pooled over the arms that have the visit. Attendance is drawn
-per visit at generation.
+The visits each arm has, and one attendance rate for the study, applied at
+every one of them. Attendance is drawn per visit at generation.
 
-```{r visits, eval=tables}
-cells <- fit$cells
-cells$probability <- as.numeric(fit$visits[[fit$arms$arms[[1L]]]]$probability)
-show(cells[, c("endpoint", "time", "probability")],
-     "Attendance, per grid cell", paged = TRUE)
-```
-
-```{r visits-plot, eval=plots, fig.height=3.5}
-library(ggplot2)
-library(xgxr)
-xgx_theme_set()
-
-ggplot(cells, aes(time, probability, colour = endpoint)) +
-  geom_line() + geom_point(size = 1.5) +
-  ylim(0, 1) +
-  xgx_scale_x_time_units("hours", breaks = seq(0, 120, by = 24)) +
-  labs(x = "Nominal time (hours)", y = "Fraction of the arm observed",
-       colour = NULL) +
-  theme(legend.position = "top")
+```{r visits, eval=run}
+rate <- unlist(lapply(fit$visits, function(v) as.numeric(v$probability)))
+c(attendance_rate = signif(unique(rate[rate > 0]), 3),
+  visits = nrow(fit$cells))
 ```
 
 A cell is kept only where at least `min_arm_patients` distinct patients hold an

@@ -289,8 +289,8 @@ value and `CENS` are rebuilt from it together. `vignette("pca-demo")` shows the
 same thing as a log-scale figure over the day-1 and last-dose windows.
 
 A5a reads `review`: 30.7 observations per patient in the source against 29 in
-the synthetic cohort. Attendance is drawn independently per visit from the
-arm's probability, so the count is right on average and not exactly.
+the synthetic cohort. Attendance is drawn independently per visit at the
+study's one attendance rate, so the count is right on average and not exactly.
 
 ## mad: five endpoints, including ordinal, count and binary
 
@@ -428,8 +428,10 @@ c(source_times = length(unique(wbcSim$TIME[wbcSim$EVID == 0])),
   last_modelled = max(features$time, na.rm = TRUE))
 ```
 
-A5a and A5b read `review` for the same reason: dropping the long tail shortens
-both the observation record and the dosing. **This is the cost of the guard
+A5a and A5b read
+`r if (has_nlmixr2data) paste(wbc_run$card$result[wbc_run$card$check %in% c("A5a", "A5b")], collapse = " and ") else "fewer"`
+for the same reason: dropping the long tail shortens both the observation
+record and the dosing. **This is the cost of the guard
 rather than a defect**, and it is the number to judge — a study whose late
 follow-up matters is one to run at a lower `min_column_patients` and re-read
 this row.
@@ -600,8 +602,8 @@ synpmx_scorecard_datatable(mavo_run$card, report = "minimal")
 ```
 
 **This is the most expensive construction in the vignette, and A5a says so**:
-20.2 observations per patient in the source against 11.2 in the synthetic
-cohort. Snapping 117 distinct recorded times onto 15 nominal ones collapses
+`r if (has_nlmixr2data) mavo_run$card$result[mavo_run$card$check == "A5a"] else "fewer"`
+observations per patient, source against synthetic. Snapping 117 distinct recorded times onto 15 nominal ones collapses
 several real samples into one cell, and a cell holds one value per subject.
 
 ```{r mavo-cost, eval=has_nlmixr2data}
@@ -857,8 +859,8 @@ knitr::kable(copies, row.names = FALSE,
 ```
 
 **B4a, the same question asked of the list of observation times, does not apply
-to this generator.** Attendance is drawn independently per visit from the arm's
-probability, onto the declared grid, so a generated list that equals a real
+to this generator.** Attendance is drawn independently per visit at one rate
+for the study, onto the declared grid, so a generated list that equals a real
 patient's is a coincidence with a computable chance rather than a copy. On a
 study whose patients' visit lists are nearly all unique, which short records
 make likely, that chance is high, and a row firing on it would measure the width
@@ -891,9 +893,12 @@ Not preserved, and each is a decision rather than a defect:
 - **The variety of dose schedules.** One schedule per arm, against one per
   patient on a study recording actuals. C2 would report it and reads
   `not applicable`; `pca_dosing()` reports the same quantity per arm.
-- **Differences between arms in attendance and dose changes.** Both are pooled
-  over the arms, so an arm whose patients dropped out or reduced more often
-  than the others' takes the study's rates. `onc_sim` is the worked case.
+- **When patients missed visits, and differences between arms in attendance
+  and dose changes.** Attendance is one rate for the study and the dose changes
+  three rates pooled over the arms, so a late visit few patients reached is
+  drawn as often as an early one, and an arm whose patients dropped out or
+  reduced more often than the others' takes the study's rates. `onc_sim` is the
+  worked case.
 - **Anything the grid construction merged.** `mavoglurant` is the worked case:
   117 recorded times onto 15 nominal ones costs nine observations per patient.
 - **Late follow-up held by few patients**, which the column guard drops.

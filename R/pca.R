@@ -910,11 +910,11 @@ pca_dose_rates <- function(x) {
 #' The visit model each arm was generated from
 #'
 #' One row per arm, endpoint and modelled nominal time, giving the probability
-#' that a generated subject in that arm has an observation there. It is the
-#' share of patients who did, pooled over the arms that have the visit, so
-#' every such arm shows the same probability; an arm has a visit where at least
-#' `min_arm_patients` of its patients were observed there. Attendance is drawn
-#' per visit rather than a real patient's visit set being reused.
+#' that a generated subject in that arm has an observation there. It is one
+#' attendance rate for the study, the share of scheduled visits at which a
+#' patient was observed, at every visit an arm has; an arm has a visit where at
+#' least `min_arm_patients` of its patients were observed there. Attendance is
+#' drawn per visit rather than a real patient's visit set being reused.
 #'
 #' @param x A dataset from [synpmx_pca()], or its trial summary.
 #'
@@ -989,7 +989,7 @@ print.pmx_trial_summary <- function(x, ...) {
   cat("  pca_report()      what it read out of the source data\n")
   cat("  pca_dosing()      the planned dose schedule, per arm\n")
   cat("  pca_dose_rates()  reduction, interruption and discontinuation\n")
-  cat("  pca_visits()      the probability of a visit, per arm\n")
+  cat("  pca_visits()      the attendance rate, at each visit an arm has\n")
   cat("  pca_components()  the loadings, over time\n")
   invisible(x)
 }
@@ -1042,14 +1042,13 @@ pca_report <- function(x) {
     vapply(fit$members, function(m) as.numeric(m$patients %||% NA),
            numeric(1))), na.rm = TRUE))
   if (!is.finite(feature_patients)) feature_patients <- NA_real_
-  # A visit's probability is pooled over the arms that have the visit, so it
-  # rests on every patient in them (REV-071).
+  # One attendance rate rests on every patient in the arms that have a visit
+  # (REV-071, REV-072).
   sizes <- trial_summary$arms$sizes
-  visit_groups <- Reduce(`+`, lapply(names(sizes), function(arm) {
-    sizes[[arm]] * (as.numeric(trial_summary$visits[[arm]]$probability) > 0)
-  }))
-  visit_patients <- if (any(visit_groups > 0)) min(visit_groups[visit_groups > 0]) else
-    NA_real_
+  attending <- vapply(names(sizes), function(arm) {
+    any(as.numeric(trial_summary$visits[[arm]]$probability) > 0)
+  }, logical(1))
+  visit_patients <- if (any(attending)) sum(sizes[attending]) else NA_real_
   p <- length(fit$columns)
   rows <- data.frame(
     quantity = c("visit grid", "feature centers", "feature scales",
@@ -1067,7 +1066,7 @@ pca_report <- function(x) {
       "Log or identity, per endpoint",
       "Censoring boundary, per endpoint",
       "Planned cycles per arm; the dose ladder and three rates, pooled",
-      "Probability of a visit, per endpoint and time, pooled over arms",
+      "One attendance rate, at the visits each arm has",
       "Strata and kept columns, one value per arm"
     ),
     numbers = c(

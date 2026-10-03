@@ -700,11 +700,11 @@ print.pmx_privacy_checks <- function(x, ...) {
                          attendance$misses > 0, , drop = FALSE]
     masked <- attendance$masked %||% rep(0, nrow(attendance))
     rows[[length(rows) + 1L]] <- row(
-      "patients on either side of an attendance fraction",
+      "patients on either side of the attendance rate",
       smallest_of(pmin(open$attenders, open$misses)),
-      sum(attendance$rounded | masked > 0), k_arm,
-      paste("pooled over arms; a fraction resting on fewer is rounded to 0",
-            "or 1, and an arm with fewer at a visit does not have it"))
+      sum(attendance$rounded) + sum(masked), k_arm,
+      paste("one rate for the study; fewer patients missing any visit leaves",
+            "it at 1, and an arm with fewer at a visit does not have it"))
   }
   rates <- arm_models$audit$rates
   if (!is.null(rates)) {
@@ -753,20 +753,25 @@ print.pmx_privacy_checks <- function(x, ...) {
     row_arm <- arm_of[ids]
     discrete_holders <- numeric()
     folded <- 0L
-    # One marginal per visit, read over the arms that share it, or one per
-    # arm under `pd_by_arm` (REV-071).
+    # One marginal per endpoint, read over every visit and every arm that
+    # shares it, or one per arm under `pd_by_arm` (REV-071, REV-072).
     groups <- if (discrete_by_arm) as.list(names(discrete)) else
       list(names(discrete))
     for (group in groups) {
-      for (i in seq_along(discrete[[group[[1L]]]])) {
-        sharing <- group[!vapply(group, function(arm) {
-          is.null(discrete[[arm]][[i]])
-        }, logical(1))]
-        if (!length(sharing)) next
-        marginal <- discrete[[sharing[[1L]]]][[i]]
-        at <- observed & row_arm %in% sharing &
-          endpoint == cells$endpoint[i] &
-          abs(aligned - cells$time[i]) < sqrt(.Machine$double.eps)
+      for (name in unique(cells$endpoint)) {
+        index <- which(cells$endpoint == name)
+        at <- rep(FALSE, nrow(source))
+        marginal <- NULL
+        for (i in index) {
+          sharing <- group[!vapply(group, function(arm) {
+            is.null(discrete[[arm]][[i]])
+          }, logical(1))]
+          if (!length(sharing)) next
+          marginal <- discrete[[sharing[[1L]]]][[i]]
+          at <- at | (observed & row_arm %in% sharing & endpoint == name &
+                        abs(aligned - cells$time[i]) < sqrt(.Machine$double.eps))
+        }
+        if (is.null(marginal)) next
         values <- suppressWarnings(as.numeric(source[[roles$dv]][at]))
         holders <- ids[at]
         present <- !is.na(values)
@@ -779,9 +784,9 @@ print.pmx_privacy_checks <- function(x, ...) {
       }
     }
     rows[[length(rows) + 1L]] <- row(
-      "patients holding a discrete endpoint's level at a visit",
+      "patients holding a discrete endpoint's level",
       smallest_of(discrete_holders), folded, k_level,
-      "a rarer level is folded into the visit's most common one")
+      "a rarer level is folded into the endpoint's most common one")
   }
 
   carried <- intersect(setdiff(roles$keep, roles$strata), names(source))
