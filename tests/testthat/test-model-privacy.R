@@ -675,6 +675,46 @@ test_that("PCA leaves out a covariate level one or two patients hold (REV-070)",
                                         function(m) m$level)))
 })
 
+test_that("a dose-ladder level is a fraction to one significant figure (REV-073)", {
+  # Three patients reduced to 0.75, 0.76 and 0.78 of their starting dose, and
+  # a fourth never reduced. Two decimals made three fractions one patient each
+  # held, and so no level; one significant figure makes one level three hold.
+  ids <- rep(1:4, each = 3)
+  amount <- c(100, 75, 75, 100, 76, 76, 100, 78, 78, 100, 100, 100)
+  model <- .dose_model(lapply(1:4, function(i) ids == i),
+                       rep(c(0, 21, 42), 4), amount, rep(TRUE, 12), 3L)
+  expect_equal(model$levels, c(1, 0.8))
+  expect_equal(signif(model$levels, 1L), model$levels)
+})
+
+test_that("released PK and PD estimates have one significant figure, and the fit keeps them whole (REV-074)", {
+  rounded <- .round_parameters(list(
+    fixed = c(cl = 1.46, v = 31.7), omega = matrix(c(0.153, 0, 0, 0.088), 2,
+                                                   dimnames = list(c("cl", "v"), c("cl", "v"))),
+    residual = list(kind = "proportional", cv = 0.164)))
+  expect_equal(unname(rounded$fixed), c(1, 30))
+  expect_equal(diag(rounded$omega), c(cl = 0.2, v = 0.09))
+  expect_equal(rounded$residual$cv, 0.2)
+  shape <- .round_shape(list(typical = c(baseline = 98.4, slope = 0.0234),
+                             baseline_cv = 0.27, residual = list(sd = 4.6)))
+  expect_equal(unname(shape$typical), c(100, 0.02))
+  fits <- .stored_fits()
+  skip_if(!length(fits), "no stored fits")
+  one_figure <- function(x) all(abs(x - signif(x, 1L)) <= 1e-12 * abs(x))
+  for (name in names(fits)) {
+    release <- model_release(fits[[name]])
+    for (model in release$pk_models) {
+      expect_true(one_figure(model$parameters$fixed), info = name)
+      expect_true(one_figure(diag(model$parameters$omega)), info = name)
+      expect_null(model$estimated, info = name)
+    }
+    for (model in fits[[name]]$pk_models) {
+      expect_false(is.null(model$estimated), info = name)
+    }
+    for (pd in release$pd) expect_true(one_figure(pd$typical), info = name)
+  }
+})
+
 test_that("P4 recounts the smallest group behind every kind of released frequency", {
   stored <- system.file("extdata", "warfarin-model-fit.rds", package = "synpmx")
   skip_if(!nzchar(stored), "stored fit unavailable")

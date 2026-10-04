@@ -1982,9 +1982,13 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   covariates <- .covariate_model(source[in_estimates, , drop = FALSE], roles,
                                  min_category_patients)
 
-  # Two significant figures on every released estimate (REV-063), applied once
-  # the acceptance checks have run on the full-precision fit.
+  # One significant figure on every released PK and PD estimate (REV-063,
+  # REV-074), applied once the acceptance checks have run on the full-precision
+  # fit. The full-precision estimates stay on the fit as `estimated`, which the
+  # release's allowlist leaves behind, for whoever ran it to grade a fit
+  # against a known truth.
   pk_models <- lapply(pk_models, function(model) {
+    model$estimated <- model$parameters
     model$parameters <- .round_parameters(model$parameters)
     model
   })

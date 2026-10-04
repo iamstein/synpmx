@@ -513,10 +513,11 @@ test_that("dose reductions and interruptions are recovered as rates", {
 
   # The ladder is the one the fixture used, and nothing else: reductions are
   # within-patient decreases, so ordinary between-patient amount differences
-  # cannot invent a level.
+  # cannot invent a level. The fixture's 0.75 is released at one significant
+  # figure, as 0.8 (REV-073).
   for (arm in rates$arm) {
     levels <- as.numeric(strsplit(rates$levels[rates$arm == arm], ", ")[[1L]])
-    expect_equal(levels, c(1, 0.75, 0.5), tolerance = 0.02, info = arm)
+    expect_equal(levels, c(1, 0.8, 0.5), tolerance = 0.02, info = arm)
   }
   expect_true(all(abs(rates$reduction - 0.10) < 0.06))
   expect_true(all(abs(rates$interruption - 0.12) < 0.06))

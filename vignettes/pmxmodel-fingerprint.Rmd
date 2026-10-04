@@ -195,8 +195,8 @@ quantities, and an object carrying them would be a description of each real
 patient. They are read for the correlations below and for how far one patient
 moves each estimate, and then dropped. This matrix is what stands in for them,
 and it is a statement about the population rather than about anybody in it.
-Like every estimate in the fingerprint, it is rounded to two significant
-figures.
+Like every PK and PD estimate in the fingerprint, it is rounded to one
+significant figure.
 
 ## The residual error
 

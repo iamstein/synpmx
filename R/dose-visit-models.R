@@ -179,6 +179,11 @@
   # variation. A dose reduction is something else: the same patient receiving
   # less than they did at the previous cycle. Where no patient's amount ever
   # falls, there are no reductions and the ladder is a single level.
+  #
+  # A level is the fraction dropped to, to one significant figure (REV-073):
+  # 0.74, 0.75 and 0.78 are one level, 0.8, rather than three that each one or
+  # two patients hold. Fewer, coarser levels are fewer released numbers, and
+  # more patients stand behind each.
   drop_tolerance <- 0.05
   dropped_to <- unlist(lapply(ratios, function(r) {
     finite <- which(is.finite(r))
@@ -190,7 +195,7 @@
   }))
   levels <- 1
   if (length(dropped_to)) {
-    counts <- table(round(dropped_to, 2))
+    counts <- table(signif(dropped_to, 1L))
     holders <- vapply(names(counts), function(value) {
       sum(vapply(ratios, function(r) {
         finite <- which(is.finite(r))
@@ -198,7 +203,7 @@
         values <- r[finite]
         fell <- which(diff(values) < -drop_tolerance * utils::head(values, -1L))
         length(fell) > 0 &&
-          any(abs(round(values[fell + 1L], 2) - as.numeric(value)) < 1e-8)
+          any(abs(signif(values[fell + 1L], 1L) - as.numeric(value)) < 1e-8)
       }, logical(1)))
     }, integer(1))
     shared <- as.numeric(names(counts))[holders >= floor]

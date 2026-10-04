@@ -581,19 +581,25 @@ print.pmx_privacy_checks <- function(x, ...) {
 
 # Rounding -------------------------------------------------------------------
 #
-# pmxmodel-algorithm.Rmd, Step 5 (REV-063). Every released estimate is carried
-# to two significant figures. Leaving out a typical patient moves a typical
-# value by less than one rounding step, so for most patients the released
-# number is the same with or without them; an outlier moves a variance by more
-# than a step, which is what the influence reading above is for. Applied after
-# the acceptance checks, which run on the fit as estimated.
+# pmxmodel-algorithm.Rmd, Step 5 (REV-063, REV-074). Every released PK and PD
+# estimate is carried to one significant figure, and every covariate summary to
+# two. Two figures moved a parameter by 1% on average and changed nothing an
+# attacker could measure; one moves it by 9% on average and 33% at worst, and
+# takes a quarter to half of a membership-inference attack's edge over chance,
+# because its step is as wide as an estimate's sampling variation. Covariates
+# keep two, because one would put a mean height of 172 cm at 200. Applied after
+# the acceptance checks, which run on the fit as estimated, and the estimates
+# at full precision stay on the fit, outside the release.
+.release_digits <- 1L
+
 .round_parameters <- function(parameters) {
   if (is.null(parameters)) return(parameters)
-  parameters$fixed <- signif(parameters$fixed, 2L)
-  parameters$omega[] <- signif(parameters$omega, 2L)
+  parameters$fixed <- signif(parameters$fixed, .release_digits)
+  parameters$omega[] <- signif(parameters$omega, .release_digits)
   for (field in c("cv", "sd")) {
     if (!is.null(parameters$residual[[field]])) {
-      parameters$residual[[field]] <- signif(parameters$residual[[field]], 2L)
+      parameters$residual[[field]] <- signif(parameters$residual[[field]],
+                                             .release_digits)
     }
   }
   parameters
@@ -601,12 +607,12 @@ print.pmx_privacy_checks <- function(x, ...) {
 
 .round_shape <- function(shape) {
   if (is.null(shape)) return(shape)
-  shape$typical <- signif(shape$typical, 2L)
+  shape$typical <- signif(shape$typical, .release_digits)
   if (!is.null(shape$baseline_cv)) {
-    shape$baseline_cv <- signif(shape$baseline_cv, 2L)
+    shape$baseline_cv <- signif(shape$baseline_cv, .release_digits)
   }
   if (!is.null(shape$residual$sd)) {
-    shape$residual$sd <- signif(shape$residual$sd, 2L)
+    shape$residual$sd <- signif(shape$residual$sd, .release_digits)
   }
   if (length(shape$arms)) shape$arms <- lapply(shape$arms, .round_shape)
   shape

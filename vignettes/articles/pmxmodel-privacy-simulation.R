@@ -89,33 +89,36 @@ attendance_attack <- function(patients, visits, correlation, draws = 1500) {
 # a typical value is close to the mean of the patients' random effects and the
 # variance close to the mean of their squares. The attacker holds the
 # candidate's own random effects, and `off_by` is the SD, on the log scale, of
-# the error in the attacker's reference values. The same studies are scored
-# with the release unrounded and at two significant figures.
+# the error in the attacker's reference values. Each study's own typical values
+# vary around the population's, so rounding boundaries fall where they would in
+# a real study. The same studies are scored with the release unrounded, at two
+# significant figures, and at the one it is released at.
 population_attack <- function(patients, off_by, draws = 2000) {
   typical <- c(cl = 4.3, v = 31, q = 2.1, v2 = 55, ka = 1.2)
   omega <- c(cl = 0.3, v = 0.25, q = 0.4, v2 = 0.35, ka = 0.6)^2
   scores <- vapply(seq_len(draws), function(draw) {
+    centre <- typical * exp(rnorm(5, 0, 0.3))
     eta <- vapply(omega, function(w) rnorm(patients, 0, sqrt(w)),
                   numeric(patients))
     outsider <- vapply(omega, function(w) rnorm(1, 0, sqrt(w)), numeric(1))
-    reference_typical <- typical * exp(rnorm(5, 0, off_by))
+    reference_typical <- centre * exp(rnorm(5, 0, off_by))
     reference_omega <- omega * exp(rnorm(5, 0, 2 * off_by))
     score <- function(e, released_typical, released_omega) {
       sum(e * log(released_typical / reference_typical) / reference_omega) +
         sum((e^2 / reference_omega - 1) *
               (released_omega / reference_omega - 1)) / 2
     }
-    exact_typical <- typical * exp(colMeans(eta))
+    exact_typical <- centre * exp(colMeans(eta))
     exact_omega <- colMeans(eta^2)
-    rounded_typical <- signif(exact_typical, 2)
-    rounded_omega <- signif(exact_omega, 2)
-    c(score(eta[1, ], exact_typical, exact_omega),
-      score(outsider, exact_typical, exact_omega),
-      score(eta[1, ], rounded_typical, rounded_omega),
-      score(outsider, rounded_typical, rounded_omega))
-  }, numeric(4))
+    unlist(lapply(c(Inf, 2, 1), function(digits) {
+      shown <- function(x) if (is.finite(digits)) signif(x, digits) else x
+      c(score(eta[1, ], shown(exact_typical), shown(exact_omega)),
+        score(outsider, shown(exact_typical), shown(exact_omega)))
+    }))
+  }, numeric(6))
   c(unrounded = auc(scores[1, ], scores[2, ]),
-    released = auc(scores[3, ], scores[4, ]))
+    two_figures = auc(scores[3, ], scores[4, ]),
+    released = auc(scores[5, ], scores[6, ]))
 }
 
 # Both tables, from one seed, so that every article quoting them quotes the

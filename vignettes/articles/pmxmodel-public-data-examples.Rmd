@@ -149,6 +149,17 @@ model_run <- function(label, source, roles, file, seed) {
   invisible(runs[[label]])
 }
 
+# A scorecard row as the prose quotes it, read from the run, so a sentence
+# cannot quote a number the run no longer gives.
+reading <- function(label, check) {
+  if (!run || is.null(runs[[label]])) return("not run here")
+  card <- runs[[label]]$card
+  card$result[card$check == check]
+}
+fails <- function(label) {
+  run && !is.null(runs[[label]]) && any(runs[[label]]$card$verdict == "FAIL")
+}
+
 # Nearest-neighbour snapping onto a stated design grid, as in the PCA survey:
 # which grid to snap to is a statement about the study and is written out at
 # each call.
@@ -265,20 +276,13 @@ overlay_plot(mad_run$source, mad_run$synthetic, mad_roles,
 synpmx_scorecard_datatable(mad_run$card, report = "minimal")
 ```
 
-```{r mad-readings, include=FALSE}
-mad_reading <- function(check) {
-  if (run) mad_run$card$result[mad_run$card$check == check] else "not run here"
-}
-mad_fails <- run && any(mad_run$card$verdict == "FAIL")
-```
-
-`r if (mad_fails) "A row fails" else "Nothing fails"`,
-and A3 reads `r mad_reading("A3")`: every
+`r if (fails("mad")) "A row fails" else "Nothing fails"`,
+and A3 reads `r reading("mad", "A3")`: every
 endpoint survives, including the three discrete ones, which are drawn from one
 set of level frequencies for the whole study rather than modelled. Pooled, a
 discrete endpoint's response differs neither by dose group, as the continuous
 PD time course already does not, nor over the visits. D1 reads
-`r mad_reading("D1")`, the variable whose
+`r reading("mad", "D1")`, the variable whose
 synthetic spread sits furthest from the source's.
 
 This is also the study that found a defect: a visit where every patient
@@ -330,8 +334,8 @@ telling you how much it had to go on. `proportional` reads `NA` for the same
 kind of reason: every patient gets the same dose, so there are no dose levels
 to compare and the residual error falls back to additive.
 
-Nothing fails; D1 at 1.2 times the source's spread on `cp` is the only row to
-read. The concentration panel of the figure is the generator at its best on
+`r if (fails("warfarin")) "A row fails" else "Nothing fails"`; D1 reads
+`r reading("warfarin", "D1")`. The concentration panel of the figure is the generator at its best on
 this survey — the shape, the spread and the decline all land.
 
 The `pca` panel below it is the generator at its documented limit. The source's
@@ -416,8 +420,9 @@ overlay_plot(mavo_run$source, mavo_run$synthetic, mavo_roles,
 synpmx_scorecard_datatable(mavo_run$card, report = "minimal")
 ```
 
-Three rows to read, and two findings. A5b reports occasions per patient falling
-from 1.65 to 1 and A5a observations per patient from 20.2 to 11.3:
+Three rows to read, and two findings. A5b reports occasions per patient at
+`r reading("mavoglurant", "A5b")` and A5a observations per patient at
+`r reading("mavoglurant", "A5a")`:
 `mavoglurant` is one- and two-period, and the dosing model carries one planned
 schedule per arm, so the patients who had a second period do not get it back.
 A study whose periods matter needs them declared as arms, or a generator that
@@ -434,8 +439,8 @@ phase was fitted a one-compartment model, which took a proportional residual of
 in the set and tried first by default. The report above gives the accepted
 model, its residual error, and any fallback reason.
 
-**The scorecard moves less than the fit does.** D1 still reads a synthetic
-spread well below the source's, and A5a and A5b do not move at all, because
+**The scorecard moves less than the fit does.** D1 reads
+`r reading("mavoglurant", "D1")`, and A5a and A5b do not move at all, because
 what they measure is the visit and dosing models rather than the structural
 one. A better-fitting structural model is a fit-quality argument here rather
 than a scorecard one.
@@ -703,8 +708,14 @@ mixroute_run$fit
 ```
 
 ```{r mixroute-truth, eval=run}
+# The fit's estimates at full precision: the release carries them at one
+# significant figure, which would grade the rounding rather than the fit.
+full_precision <- function(fit) {
+  estimated <- fit$pk_models[[1L]]$estimated
+  (if (is.null(estimated)) fit$parameters else estimated)$fixed
+}
 truth <- c(cl = 2, v = 10, ka = 0.5, f = 0.7)
-fitted <- mixroute_run$fit$parameters$fixed[names(truth)]
+fitted <- full_precision(mixroute_run$fit)[names(truth)]
 data.frame(truth = truth, fitted = round(fitted, 3),
            ratio = round(fitted / truth, 2))
 ```
@@ -762,7 +773,7 @@ Tumour size becomes the PD endpoint and is fitted a time course.
 
 ```{r onc-truth, eval=run}
 truth <- c(cl = 0.470, v = 0.850, ka = 5)
-fitted <- onc_run$fit$parameters$fixed[names(truth)]
+fitted <- full_precision(onc_run$fit)[names(truth)]
 data.frame(truth = truth, fitted = round(fitted, 3),
            ratio = round(fitted / truth, 2))
 ```

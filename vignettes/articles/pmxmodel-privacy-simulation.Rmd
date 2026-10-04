@@ -262,6 +262,7 @@ population <- tables$population
 data.frame(patients = population$patients,
            reference_off_by = sprintf("%.0f%%", 100 * population$off_by),
            auc_unrounded = two(population$unrounded),
+           auc_two_figures = two(population$two_figures),
            auc_released = two(population$released))
 ```
 
@@ -271,8 +272,9 @@ data.frame(patients = population$patients,
   comes from another study of the same drug, whose population differs from this
   one's.
 - `auc_unrounded` releases every estimate at full precision.
-- `auc_released` rounds every estimate to two significant figures, as
-  `synpmx_model()` releases them. Both columns score the same simulated
+- `auc_two_figures` rounds every estimate to two significant figures.
+- `auc_released` rounds every estimate to one significant figure, as
+  `synpmx_model()` releases them. All three columns score the same simulated
   studies.
 
 Read across one row: for a model fitted to `r population$patients[[1]]`
@@ -282,7 +284,11 @@ population's true values picks the member over the non-member with probability
 `r two(population$released[population$patients == population$patients[[1]] & population$off_by == 0.2])`.
 The AUC falls with cohort size and with the reference's error. Rounding to two
 significant figures leaves it where it was, because an estimate's sampling
-variation from one study to the next is larger than one rounding step.
+variation from one study to the next is larger than a two-figure step. One
+figure lowers it, because a one-figure step, from a tenth of the value to all
+of it, is as wide as that variation, so the released value is often the same
+with the candidate in the study or out; that is why the release rounds to
+one.
 
 ## What Each Public Study Releases
 
