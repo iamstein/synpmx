@@ -100,11 +100,11 @@ model_report(fit)
 #> 
 #> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   pca                exponential
-#>                        plateau          27
-#>                        baseline         96
-#>                        rate             0.099
-#>                        between-subject  0.15 (SD on the log baseline)
-#>                        residual         additive 12
+#>                        plateau          30
+#>                        baseline         100
+#>                        rate             0.1
+#>                        between-subject  0.1 (SD on the log baseline)
+#>                        residual         additive 10
 #>                        chosen on AIC from constant, linear, exponential
 #> 
 #> PK endpoint for the PopPK model
@@ -123,14 +123,14 @@ model_report(fit)
 #>   structural model   2cmt_oral 
 #>   selected by        two-compartment model passed acceptance checks
 #>   fitted on          all 32 patients with a concentration
-#>   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 
-#>   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)
-#>   residual error     proportional 0.21 
-#>   time to fit        57.1 s
-#>   whole call         57.3 s, against 57.1 s in the fitter
+#>   fixed effects      cl 0.1, v 7, q 0.1, v2 2, ka 0.4 
+#>   between-subject    cl 0.265, v 0.2, ka 0.548, q 0.0775, v2 0.632 (as SD on the log scale)
+#>   residual error     proportional 0.2 
+#>   time to fit        56.7 s
+#>   whole call         56.9 s, against 56.7 s in the fitter
 #> 
 #> Privacy
-#>   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;
+#>   one patient's pull pass: largest: cp: ka between-subject SD, 9.84 points;
 #>                      `model_privacy_checks()` has every check
 ```
 
@@ -201,7 +201,7 @@ fit$structural
 #> [1] "2cmt_oral"
 model_candidates(fit)
 #>       model converged accepted      aic seconds note
-#> 1 2cmt_oral      TRUE     TRUE 922.2948  57.132
+#> 1 2cmt_oral      TRUE     TRUE 922.2948  56.676
 ```
 
 Each row is an attempted fit. The default stops when two compartments
@@ -222,8 +222,8 @@ look most like a result and are least entitled to be read as one.
 ``` r
 
 model_parameters(fit)$fixed
-#>    cl     v     q    v2    ka 
-#> 0.130 6.600 0.098 1.600 0.420
+#>  cl   v   q  v2  ka 
+#> 0.1 7.0 0.1 2.0 0.4
 ```
 
 ## Between-subject variability
@@ -235,15 +235,15 @@ this matrix.
 ``` r
 
 model_parameters(fit)$omega
-#>       cl     v   ka      q   v2
-#> cl 0.072 0.000 0.00 0.0000 0.00
-#> v  0.000 0.037 0.00 0.0000 0.00
-#> ka 0.000 0.000 0.31 0.0000 0.00
-#> q  0.000 0.000 0.00 0.0056 0.00
-#> v2 0.000 0.000 0.00 0.0000 0.41
+#>      cl    v  ka     q  v2
+#> cl 0.07 0.00 0.0 0.000 0.0
+#> v  0.00 0.04 0.0 0.000 0.0
+#> ka 0.00 0.00 0.3 0.000 0.0
+#> q  0.00 0.00 0.0 0.006 0.0
+#> v2 0.00 0.00 0.0 0.000 0.4
 sqrt(diag(model_parameters(fit)$omega))  # as CV on the log scale
 #>         cl          v         ka          q         v2 
-#> 0.26832816 0.19235384 0.55677644 0.07483315 0.64031242
+#> 0.26457513 0.20000000 0.54772256 0.07745967 0.63245553
 ```
 
 **No individual estimates.** Empirical Bayes estimates are per-subject
@@ -251,8 +251,8 @@ quantities, and an object carrying them would be a description of each
 real patient. They are read for the correlations below and for how far
 one patient moves each estimate, and then dropped. This matrix is what
 stands in for them, and it is a statement about the population rather
-than about anybody in it. Like every estimate in the fingerprint, it is
-rounded to two significant figures.
+than about anybody in it. Like every PK and PD estimate in the
+fingerprint, it is rounded to one significant figure.
 
 ## The residual error
 
@@ -263,7 +263,7 @@ model_parameters(fit)$residual
 #> [1] "proportional"
 #> 
 #> $cv
-#> [1] 0.21
+#> [1] 0.2
 ```
 
 Proportional, with the kind recorded on the object. `warfarin` reports a
@@ -340,7 +340,7 @@ the object.
 lapply(fit$pd, function(shape) c(shape = shape$pd, round(shape$typical, 3)))
 #> $pca
 #>         shape       plateau      baseline          rate 
-#> "exponential"          "27"          "96"       "0.099"
+#> "exponential"          "30"         "100"         "0.1"
 ```
 
 ``` r

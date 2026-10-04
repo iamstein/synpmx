@@ -237,8 +237,9 @@ pooled spread of amounts scatters continuously and any threshold on it
 would invent a ladder out of ordinary between-patient variation. A
 reduction is something else: the same patient receiving less than they
 did at the previous cycle. The ladder is the set of fractions, of a
-patient’s **own** starting dose, that several patients of some arm
-dropped to, one ladder for the study.
+patient’s **own** starting dose and to one significant figure, that
+several patients of some arm dropped to, one ladder for the study: 0.74,
+0.75 and 0.78 are one level, 0.8.
 
 ### Why there is no detector
 

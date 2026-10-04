@@ -604,7 +604,7 @@ and acceptance checks.
 
 model_candidates(fit)
 #>       model converged accepted      aic seconds note
-#> 1 2cmt_oral      TRUE     TRUE 922.2948  57.132
+#> 1 2cmt_oral      TRUE     TRUE 922.2948  56.676
 ```
 
 ### Covariates
@@ -726,7 +726,7 @@ over the arms, as the PD shapes are:
 | Model | What it holds | Drawn at generation as |
 |----|----|----|
 | Planned schedule, per arm | The nominal dose times enough of the arm reached, and the modal amount and infusion rate at each cycle among patients still on their starting dose. Where no amount is shared by `min_arm_patients` patients, as on a study dosed per kilogram, the arm’s mean to two significant figures | The cycle grid every subject starts from |
-| Dose ladder | The levels patients dropped to, as ratios to their own starting dose, built from within-patient decreases: every level `min_arm_patients` patients of some arm share, one ladder for the study | The amount multiplier in force at a cycle |
+| Dose ladder | The levels patients dropped to, as ratios to their own starting dose to one significant figure, built from within-patient decreases: every level `min_arm_patients` patients of some arm share, one ladder for the study | The amount multiplier in force at a cycle |
 | Reduction rate | Discrete-time hazard of stepping down a level, pooled over arms | Decided before the cycle is dosed |
 | Interruption rate | Discrete-time hazard of skipping a cycle without ending treatment, pooled over arms | Decided at the cycle |
 | Discontinuation rate | Discrete-time hazard of stopping treatment, pooled over arms | Decided after the cycle is dosed |
@@ -832,13 +832,16 @@ attaches that to its output rather than the fit. An allowlist, so that a
 field added to the fit later stays behind unless someone adds it to the
 list.
 
-**Every released estimate is rounded to two significant figures**: the
-PK fixed effects, the between-subject variances, the residual error, the
-PD shape parameters and the covariate summaries. The acceptance checks
-of Step 3 run on the fit as estimated, before the rounding. Leaving out
-a typical patient moves a typical value by less than one rounding step;
-an outlier moves a variance by more, which is what the next reading is
-for.
+**Every released PK and PD estimate is rounded to one significant
+figure**: the PK fixed effects, the between-subject variances, the
+residual error and the PD shape parameters. The covariate summaries are
+rounded to two, because one would put a mean height of 172 cm at 200.
+The acceptance checks of Step 3 run on the fit as estimated, before the
+rounding, and the full-precision PK estimates stay on the fit as
+`estimated`, outside the release. One figure moves an estimate by 9% on
+average and 33% at worst; in exchange a typical patient leaves the
+released value unchanged, and an outlier’s effect on a variance is what
+the next reading is for.
 
 **How far one patient moves each estimate is read before the random
 effects are dropped.** A typical value on the log scale sits close to
@@ -911,11 +914,11 @@ model_report(fit)
 #> 
 #> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   pca                exponential
-#>                        plateau          27
-#>                        baseline         96
-#>                        rate             0.099
-#>                        between-subject  0.15 (SD on the log baseline)
-#>                        residual         additive 12
+#>                        plateau          30
+#>                        baseline         100
+#>                        rate             0.1
+#>                        between-subject  0.1 (SD on the log baseline)
+#>                        residual         additive 10
 #>                        chosen on AIC from constant, linear, exponential
 #> 
 #> PK endpoint for the PopPK model
@@ -934,14 +937,14 @@ model_report(fit)
 #>   structural model   2cmt_oral 
 #>   selected by        two-compartment model passed acceptance checks
 #>   fitted on          all 32 patients with a concentration
-#>   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 
-#>   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)
-#>   residual error     proportional 0.21 
-#>   time to fit        57.1 s
-#>   whole call         57.3 s, against 57.1 s in the fitter
+#>   fixed effects      cl 0.1, v 7, q 0.1, v2 2, ka 0.4 
+#>   between-subject    cl 0.265, v 0.2, ka 0.548, q 0.0775, v2 0.632 (as SD on the log scale)
+#>   residual error     proportional 0.2 
+#>   time to fit        56.7 s
+#>   whole call         56.9 s, against 56.7 s in the fitter
 #> 
 #> Privacy
-#>   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;
+#>   one patient's pull pass: largest: cp: ka between-subject SD, 9.84 points;
 #>                      `model_privacy_checks()` has every check
 ```
 

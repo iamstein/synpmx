@@ -201,11 +201,11 @@ model_fit
 #>                      confirmed. Check that the synthetic data reasonably
 #>                      reproduces the source data's patterns and variability.
 #>   fitted on          all 12 patients with a concentration
-#>   fixed effects      cl 2.8, v 29, q 1.9, v2 4.2, ka 1.2 
-#>   between-subject    cl 0.19, v 0.141, ka 0.52, q 0.237, v2 0.274 (as SD on the log scale)
-#>   residual error     proportional 0.22 
-#>   time to fit        52.4 s
-#>   whole call         52.4 s, against 52.4 s in the fitter
+#>   fixed effects      cl 3, v 30, q 2, v2 4, ka 1 
+#>   between-subject    cl 0.2, v 0.141, ka 0.548, q 0.245, v2 0.283 (as SD on the log scale)
+#>   residual error     proportional 0.2 
+#>   time to fit        51.6 s
+#>   whole call         51.6 s, against 51.6 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: DV: ka typical value, 9.92 %;
@@ -730,7 +730,7 @@ knitr::kable(
 |                 | n_observations | median |  p10 |  p90 |
 |:----------------|---------------:|-------:|-----:|-----:|
 | Source          |            264 |   5.74 | 1.25 | 9.30 |
-| 1\. PMX model   |            243 |   5.70 | 1.73 | 9.80 |
+| 1\. PMX model   |            243 |   5.43 | 1.46 | 8.97 |
 | 2\. AVATAR      |            264 |   5.21 | 1.21 | 8.33 |
 | 3\. PCA         |            268 |   6.12 | 1.30 | 9.37 |
 | 4\. Prior only  |            240 |   3.16 | 0.28 | 6.43 |

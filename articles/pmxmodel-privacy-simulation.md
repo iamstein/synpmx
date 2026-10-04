@@ -208,43 +208,43 @@ data.frame(visits = attendance$visits,
            auc_without_floor = two(attendance$without_floor),
            auc_released = two(attendance$released))
 #>    visits patients_behind_share correlation_within_patient auc_without_floor
-#> 1       5                    10                        0.0              0.70
-#> 2      20                    10                        0.0              0.85
+#> 1       5                    10                        0.0              0.68
+#> 2      20                    10                        0.0              0.84
 #> 3      60                    10                        0.0              0.96
-#> 4       5                    30                        0.0              0.63
+#> 4       5                    30                        0.0              0.61
 #> 5      20                    30                        0.0              0.72
 #> 6      60                    30                        0.0              0.84
-#> 7       5                   100                        0.0              0.57
-#> 8      20                   100                        0.0              0.63
-#> 9      60                   100                        0.0              0.72
-#> 10      5                    10                        0.6              0.64
-#> 11     20                    10                        0.6              0.72
+#> 7       5                   100                        0.0              0.58
+#> 8      20                   100                        0.0              0.62
+#> 9      60                   100                        0.0              0.70
+#> 10      5                    10                        0.6              0.68
+#> 11     20                    10                        0.6              0.73
 #> 12     60                    10                        0.6              0.75
-#> 13      5                    30                        0.6              0.58
+#> 13      5                    30                        0.6              0.59
 #> 14     20                    30                        0.6              0.63
-#> 15     60                    30                        0.6              0.63
-#> 16      5                   100                        0.6              0.56
-#> 17     20                   100                        0.6              0.56
-#> 18     60                   100                        0.6              0.58
+#> 15     60                    30                        0.6              0.64
+#> 16      5                   100                        0.6              0.54
+#> 17     20                   100                        0.6              0.58
+#> 18     60                   100                        0.6              0.57
 #>    auc_released
-#> 1          0.70
+#> 1          0.67
 #> 2          0.83
 #> 3          0.95
-#> 4          0.63
+#> 4          0.61
 #> 5          0.72
 #> 6          0.84
-#> 7          0.57
-#> 8          0.63
-#> 9          0.72
-#> 10         0.64
+#> 7          0.58
+#> 8          0.62
+#> 9          0.70
+#> 10         0.67
 #> 11         0.72
 #> 12         0.75
-#> 13         0.58
+#> 13         0.59
 #> 14         0.63
-#> 15         0.63
-#> 16         0.56
-#> 17         0.56
-#> 18         0.58
+#> 15         0.64
+#> 16         0.54
+#> 17         0.58
+#> 18         0.57
 ```
 
 Each row is one setting of the experiment above, repeated 1,500 times,
@@ -316,17 +316,18 @@ population <- tables$population
 data.frame(patients = population$patients,
            reference_off_by = sprintf("%.0f%%", 100 * population$off_by),
            auc_unrounded = two(population$unrounded),
+           auc_two_figures = two(population$two_figures),
            auc_released = two(population$released))
-#>   patients reference_off_by auc_unrounded auc_released
-#> 1       12               0%          0.74         0.74
-#> 2       32               0%          0.66         0.66
-#> 3       60               0%          0.61         0.61
-#> 4       12              10%          0.67         0.67
-#> 5       32              10%          0.59         0.59
-#> 6       60              10%          0.55         0.55
-#> 7       12              20%          0.62         0.62
-#> 8       32              20%          0.54         0.54
-#> 9       60              20%          0.52         0.52
+#>   patients reference_off_by auc_unrounded auc_two_figures auc_released
+#> 1       12               0%          0.74            0.74         0.70
+#> 2       32               0%          0.66            0.66         0.60
+#> 3       60               0%          0.60            0.60         0.56
+#> 4       12              10%          0.66            0.66         0.64
+#> 5       32              10%          0.58            0.57         0.57
+#> 6       60              10%          0.55            0.55         0.54
+#> 7       12              20%          0.61            0.61         0.59
+#> 8       32              20%          0.54            0.54         0.54
+#> 9       60              20%          0.53            0.53         0.53
 ```
 
 - `patients` is the cohort the model is fitted to.
@@ -335,17 +336,21 @@ data.frame(patients = population$patients,
   reference comes from another study of the same drug, whose population
   differs from this one’s.
 - `auc_unrounded` releases every estimate at full precision.
-- `auc_released` rounds every estimate to two significant figures, as
+- `auc_two_figures` rounds every estimate to two significant figures.
+- `auc_released` rounds every estimate to one significant figure, as
   [`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md)
-  releases them. Both columns score the same simulated studies.
+  releases them. All three columns score the same simulated studies.
 
 Read across one row: for a model fitted to 12 patients, an attacker who
 holds a candidate’s random effects and the population’s true values
-picks the member over the non-member with probability 0.74, and with a
-reference off by 20%, 0.62. The AUC falls with cohort size and with the
+picks the member over the non-member with probability 0.70, and with a
+reference off by 20%, 0.59. The AUC falls with cohort size and with the
 reference’s error. Rounding to two significant figures leaves it where
 it was, because an estimate’s sampling variation from one study to the
-next is larger than one rounding step.
+next is larger than a two-figure step. One figure lowers it, because a
+one-figure step, from a tenth of the value to all of it, is as wide as
+that variation, so the released value is often the same with the
+candidate in the study or out; that is why the release rounds to one.
 
 ## What Each Public Study Releases
 
@@ -529,33 +534,36 @@ attendance_attack <- function(patients, visits, correlation, draws = 1500) {
 # a typical value is close to the mean of the patients' random effects and the
 # variance close to the mean of their squares. The attacker holds the
 # candidate's own random effects, and `off_by` is the SD, on the log scale, of
-# the error in the attacker's reference values. The same studies are scored
-# with the release unrounded and at two significant figures.
+# the error in the attacker's reference values. Each study's own typical values
+# vary around the population's, so rounding boundaries fall where they would in
+# a real study. The same studies are scored with the release unrounded, at two
+# significant figures, and at the one it is released at.
 population_attack <- function(patients, off_by, draws = 2000) {
   typical <- c(cl = 4.3, v = 31, q = 2.1, v2 = 55, ka = 1.2)
   omega <- c(cl = 0.3, v = 0.25, q = 0.4, v2 = 0.35, ka = 0.6)^2
   scores <- vapply(seq_len(draws), function(draw) {
+    centre <- typical * exp(rnorm(5, 0, 0.3))
     eta <- vapply(omega, function(w) rnorm(patients, 0, sqrt(w)),
                   numeric(patients))
     outsider <- vapply(omega, function(w) rnorm(1, 0, sqrt(w)), numeric(1))
-    reference_typical <- typical * exp(rnorm(5, 0, off_by))
+    reference_typical <- centre * exp(rnorm(5, 0, off_by))
     reference_omega <- omega * exp(rnorm(5, 0, 2 * off_by))
     score <- function(e, released_typical, released_omega) {
       sum(e * log(released_typical / reference_typical) / reference_omega) +
         sum((e^2 / reference_omega - 1) *
               (released_omega / reference_omega - 1)) / 2
     }
-    exact_typical <- typical * exp(colMeans(eta))
+    exact_typical <- centre * exp(colMeans(eta))
     exact_omega <- colMeans(eta^2)
-    rounded_typical <- signif(exact_typical, 2)
-    rounded_omega <- signif(exact_omega, 2)
-    c(score(eta[1, ], exact_typical, exact_omega),
-      score(outsider, exact_typical, exact_omega),
-      score(eta[1, ], rounded_typical, rounded_omega),
-      score(outsider, rounded_typical, rounded_omega))
-  }, numeric(4))
+    unlist(lapply(c(Inf, 2, 1), function(digits) {
+      shown <- function(x) if (is.finite(digits)) signif(x, digits) else x
+      c(score(eta[1, ], shown(exact_typical), shown(exact_omega)),
+        score(outsider, shown(exact_typical), shown(exact_omega)))
+    }))
+  }, numeric(6))
   c(unrounded = auc(scores[1, ], scores[2, ]),
-    released = auc(scores[3, ], scores[4, ]))
+    two_figures = auc(scores[3, ], scores[4, ]),
+    released = auc(scores[5, ], scores[6, ]))
 }
 
 # Both tables, from one seed, so that every article quoting them quotes the

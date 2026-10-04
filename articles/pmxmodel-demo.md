@@ -83,7 +83,7 @@ subject.
 must pass the same convergence, parameter and generation checks, and is
 never replaced by another model automatically.
 
-A clearance of 6.3 L/h and a volume of 49 L. Whether those are the right
+A clearance of 6 L/h and a volume of 50 L. Whether those are the right
 numbers for this compound is not the question the generator asks: they
 exist to put the simulated profiles where the source’s are, and the
 object prints that warning with itself.
@@ -125,18 +125,18 @@ model_report(fit)
 #> 
 #> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   PD - Continuous    exponential
-#>                        plateau          32
-#>                        baseline         1.7
-#>                        rate             0.013
-#>                        between-subject  1.1 (SD on the log baseline)
-#>                        residual         additive 8.2
+#>                        plateau          30
+#>                        baseline         2
+#>                        rate             0.01
+#>                        between-subject  1 (SD on the log baseline)
+#>                        residual         additive 8
 #>                        chosen on AIC from constant, linear, exponential
 #>   PD - Count         exponential
-#>                        plateau          2.9
+#>                        plateau          3
 #>                        baseline         10
-#>                        rate             0.015
-#>                        between-subject  0.25 (SD on the log baseline)
-#>                        residual         additive 2.8
+#>                        rate             0.01
+#>                        between-subject  0.2 (SD on the log baseline)
+#>                        residual         additive 3
 #>                        chosen on AIC from constant, linear, exponential
 #> 
 #> PK endpoint for the PopPK model
@@ -157,11 +157,11 @@ model_report(fit)
 #>   structural model   2cmt_oral 
 #>   selected by        two-compartment model passed acceptance checks
 #>   fitted on          all 49 patients with a concentration
-#>   fixed effects      cl 6.3, v 49, q 5, v2 150, ka 1.2 
-#>   between-subject    cl 0.424, v 0.447, ka 0.387, q 0.529, v2 0.424 (as SD on the log scale)
-#>   residual error     proportional 0.37 
-#>   time to fit        3 min 19 s
-#>   whole call         3 min 20 s, against 3 min 19 s in the fitter
+#>   fixed effects      cl 6, v 50, q 5, v2 100, ka 1 
+#>   between-subject    cl 0.447, v 0.447, ka 0.316, q 0.548, v2 0.447 (as SD on the log scale)
+#>   residual error     proportional 0.4 
+#>   time to fit        3 min 8 s
+#>   whole call         3 min 8 s, against 3 min 8 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: PD - Continuous between-subject SD,

@@ -15,8 +15,9 @@ attacker can learn in the sense of differential privacy (DP), a property
 of a release procedure that limits how much any one person’s data can
 change what is released \[1\]. The protections below reduce what is
 released and measure how much one patient moves it. A release that has
-to withstand a determined attacker needs a DP mechanism, and the last
-section says what one would take for this generator.
+to withstand a determined attacker needs a DP mechanism; the closing
+sections make the case that this generator’s use does not, say where
+that case fails, and show what a mechanism would cost.
 
 ## Summary for a Privacy Reviewer
 
@@ -82,25 +83,28 @@ estimate; its limits are among the outstanding risks.
 **⚠️ Membership inference remains possible for an attacker who holds a
 candidate’s own trial data.** In simulation, an attacker with a
 candidate’s own measurements and exact reference values for the
-population ranks a study member above a non-member with probability 0.74
-when the population model is fitted to 12 patients and 0.61 when it is
+population ranks a study member above a non-member with probability 0.70
+when the population model is fitted to 12 patients and 0.56 when it is
 fitted to 60. This probability is the area under the curve (AUC), where
 0.5 is chance and 1 is certainty. A reference off by 20% brings the two
-to 0.62 and 0.52. The release holds no table per visit, because one
+to 0.59 and 0.53. The release holds no table per visit, because one
 would be more exposed: a share of patients sampled at each of 20 visits
-gives 0.83 when 10 patients stand behind each share and 0.63 when 100
+gives 0.83 when 10 patients stand behind each share and 0.62 when 100
 do. Attendance is one rate for the study instead, and each binary or
-ordinal endpoint one set of level frequencies. Rounding moves these
-numbers by at most 0.002 and the three-patient floor by at most 0.02;
-cohort size and the number of released numbers decide them. [Membership
-inference against the PMX model
+ordinal endpoint one set of level frequencies. Rounding the estimates to
+one significant figure lowers these numbers by up to 0.05, and the
+three-patient floor moves them by at most 0.01; cohort size and the
+number of released numbers decide them. [Membership inference against
+the PMX model
 release](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy-simulation.html)
 shows how each number is computed.
 
 **❌ No formal guarantee.** Nothing bounds what an attacker who knows
 every other patient learns about the remaining one. That attacker is the
 one DP is defined against, and no DP mechanism is implemented for this
-generator.
+generator. [Why the release is not differentially
+private](#why-the-release-is-not-differentially-private) makes the case
+for its use, and says where that case fails.
 
 ### How to Share a Release
 
@@ -333,20 +337,23 @@ how DP mean estimators bound one person’s influence \[10\], since no
 single value can then move the result by more than the trimmed range
 allows.
 
-### 7. Two Significant Figures
+### 7. One Significant Figure
 
-Every released estimate is rounded to two significant figures: PK fixed
-effects, between-subject variances, residual error, PD shape parameters
-and covariate summaries. Rounding is the other standard coarsening of
-SDC \[8\]. Leaving out a typical patient moves a typical value by less
-than one rounding step, so for most patients the released typical value
-is the same with or without them. Rounding does not hide an outlier’s
-effect on a variance, which protection 8 measures, and it does not
-weaken membership inference, because an estimate’s sampling variation is
-larger than one rounding step ([Membership Inference Against the
-Release](#membership-inference-against-the-release)). The frequencies
-are not rounded: each is an exact count over an arm, held to the floor
-of protection 5 instead.
+Every released PK and PD estimate is rounded to one significant figure:
+PK fixed effects, between-subject variances, residual error and PD shape
+parameters. Covariate summaries are rounded to two, because one would
+put a mean height of 172 cm at 200. Rounding is the other standard
+coarsening of SDC \[8\]. One significant figure moves an estimate by 9%
+on average and by 33% at worst, against 1% and 5% for two, and in
+exchange it weakens membership inference where two figures do not: its
+step is as wide as an estimate’s sampling variation, so the released
+value is usually the same with a given patient in the study or out
+([Membership Inference Against the
+Release](#membership-inference-against-the-release)). Rounding does not
+hide an outlier’s effect on a variance, which protection 8 measures. The
+full-precision estimates stay on the fit, outside the release, for
+whoever ran it. The frequencies are not rounded: each is an exact count
+over the study, held to the floor of protection 5 instead.
 
 ### 8. How Far One Patient Moves Each Estimate
 
@@ -439,7 +446,7 @@ as.data.frame(checks)[, c("check", "verdict", "result")]
 #> 2                                                                                                                                                             none
 #> 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored, no factor level beyond what the arms carry
 #> 4                                                                                                smallest group: 5, patients holding a categorical covariate level
-#> 5                                                                                                                    largest: cp: ka between-subject SD, 10 points
+#> 5                                                                                                                  largest: cp: ka between-subject SD, 9.84 points
 ```
 
 The reading behind P5 is the `influence` attribute of the full fit’s
@@ -452,33 +459,33 @@ verdict. No row is about a patient.
 
 digits3(attr(checks, "influence"))
 #>        group   name            quantity released change   unit patients
-#> 1         PK cp: cl       typical value     0.13   2.62      %       32
-#> 2         PK cp: cl  between-subject SD    0.268   4.19 points       32
-#> 3         PK  cp: v       typical value      6.6   1.01      %       32
-#> 4         PK  cp: v  between-subject SD    0.192   1.83 points       32
-#> 5         PK cp: ka       typical value     0.42    3.2      %       32
-#> 6         PK cp: ka  between-subject SD    0.557     10 points       32
-#> 7         PK  cp: q       typical value    0.098 0.0146      %       32
-#> 8         PK  cp: q  between-subject SD   0.0748  0.801 points       32
-#> 9         PK cp: v2       typical value      1.6   2.31      %       32
-#> 10        PK cp: v2  between-subject SD     0.64   3.68 points       32
-#> 11        PD    pca    typical baseline       96   2.11      %       32
-#> 12        PD    pca  between-subject SD     0.15   5.86 points       32
+#> 1         PK cp: cl       typical value      0.1   2.62      %       32
+#> 2         PK cp: cl  between-subject SD    0.265   4.13 points       32
+#> 3         PK  cp: v       typical value        7   1.01      %       32
+#> 4         PK  cp: v  between-subject SD      0.2    1.9 points       32
+#> 5         PK cp: ka       typical value      0.4    3.2      %       32
+#> 6         PK cp: ka  between-subject SD    0.548   9.84 points       32
+#> 7         PK  cp: q       typical value      0.1 0.0146      %       32
+#> 8         PK  cp: q  between-subject SD   0.0775  0.829 points       32
+#> 9         PK cp: v2       typical value        2   2.31      %       32
+#> 10        PK cp: v2  between-subject SD    0.632   3.63 points       32
+#> 11        PD    pca    typical baseline      100   2.11      %       32
+#> 12        PD    pca  between-subject SD      0.1   5.86 points       32
 #> 13 covariate     wt      geometric mean       69   1.22      %       32
 #> 14 covariate     wt SD on the log scale     0.18   1.71 points       32
 #> 15 covariate    age      geometric mean       29   2.05      %       32
 #> 16 covariate    age SD on the log scale     0.34    2.3 points       32
 #>    shrinkage verdict
-#> 1     0.0291    pass
-#> 2     0.0291    pass
-#> 3      0.333    pass
-#> 4      0.333    pass
-#> 5      0.456    pass
-#> 6      0.456    pass
-#> 7      0.976    pass
-#> 8      0.976    pass
-#> 9       0.48    pass
-#> 10      0.48    pass
+#> 1     0.0153    pass
+#> 2     0.0153    pass
+#> 3      0.359    pass
+#> 4      0.359    pass
+#> 5      0.447    pass
+#> 6      0.447    pass
+#> 7      0.977    pass
+#> 8      0.977    pass
+#> 9      0.474    pass
+#> 10     0.474    pass
 #> 11        NA    pass
 #> 12        NA    pass
 #> 13        NA    pass
@@ -601,18 +608,18 @@ as.data.frame(kept_checks)[, c("check", "verdict", "result")]
 #> 5                                                                                                                  largest: cp: v2 between-subject SD, 70.7 points
 digits3(attr(kept_checks, "influence"))
 #>        group   name            quantity released   change   unit patients
-#> 1         PK cp: cl       typical value     0.11     26.2      %       32
+#> 1         PK cp: cl       typical value      0.1     26.2      %       32
 #> 2         PK cp: cl  between-subject SD    0.707     51.8 points       32
-#> 3         PK  cp: v       typical value      6.6     25.5      %       32
+#> 3         PK  cp: v       typical value        7     25.5      %       32
 #> 4         PK  cp: v  between-subject SD    0.707     53.6 points       32
-#> 5         PK cp: ka       typical value     0.57     3.97      %       32
+#> 5         PK cp: ka       typical value      0.6     3.97      %       32
 #> 6         PK cp: ka  between-subject SD    0.707     12.9 points       32
-#> 7         PK  cp: q       typical value   0.0024 0.000055      %       32
-#> 8         PK  cp: q  between-subject SD    0.138     13.1 points       32
-#> 9         PK cp: v2       typical value 0.000055    0.122      %       32
+#> 7         PK  cp: q       typical value    0.002 0.000055      %       32
+#> 8         PK  cp: q  between-subject SD    0.141     13.4 points       32
+#> 9         PK cp: v2       typical value  0.00006    0.122      %       32
 #> 10        PK cp: v2  between-subject SD    0.707     70.7 points       32
-#> 11        PD    pca    typical baseline       96     2.11      %       32
-#> 12        PD    pca  between-subject SD     0.15     5.86 points       32
+#> 11        PD    pca    typical baseline      100     2.11      %       32
+#> 12        PD    pca  between-subject SD      0.1     5.86 points       32
 #> 13 covariate     wt      geometric mean       69     1.22      %       32
 #> 14 covariate     wt SD on the log scale     0.18     1.71 points       32
 #> 15 covariate    age      geometric mean       29     2.05      %       32
@@ -664,7 +671,7 @@ as.data.frame(model_privacy_checks(misdosed_fit))[, c("check", "verdict",
 #> 2                                                                                                                                                             none
 #> 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored, no factor level beyond what the arms carry
 #> 4                                                                                                smallest group: 4, patients holding a categorical covariate level
-#> 5                                                                 largest: cp: ka between-subject SD, 9.32 points; after leaving 1 patient(s) out of the estimates
+#> 5                                                                 largest: cp: ka between-subject SD, 9.02 points; after leaving 1 patient(s) out of the estimates
 ```
 
 The synthetic data shows the difference. Kept, the patient’s exposure
@@ -844,16 +851,16 @@ do.call(rbind, rows[!vapply(rows, is.null, logical(1))])
 #> 9  mixroute_sim       90        0 pass pass pass pass pass
 #> 10      onc_sim      200        0 pass pass pass pass pass
 #>                                                           largest
-#> 1                   largest: cp: ka between-subject SD, 10 points
+#> 1                 largest: cp: ka between-subject SD, 9.84 points
 #> 2                           largest: DV: ka typical value, 9.92 %
 #> 3        largest: PD - Continuous between-subject SD, 10.3 points
 #> 4        largest: PD - Continuous between-subject SD, 6.44 points
 #> 5                     largest: DV between-subject SD, 2.25 points
-#> 6                 largest: DV: v2 between-subject SD, 1.92 points
-#> 7                 largest: DV: v2 between-subject SD, 12.4 points
-#> 8                 largest: DV: cl between-subject SD, 4.55 points
-#> 9                 largest: DV: ka between-subject SD, 4.46 points
-#> 10 largest: Everolimus trough: ka between-subject SD, 3.21 points
+#> 6                 largest: DV: v2 between-subject SD, 2.09 points
+#> 7                 largest: DV: v2 between-subject SD, 12.7 points
+#> 8                  largest: APGR SD on the log scale, 4.32 points
+#> 9                 largest: DV: ka between-subject SD, 4.25 points
+#> 10 largest: Everolimus trough: ka between-subject SD, 3.39 points
 ```
 
 `left_out` counts the patients each study’s estimation left out for
@@ -928,16 +935,17 @@ full, and places each public study’s release against them. Three
 readings:
 
 - **Cohort size decides the population model’s exposure.** With an exact
-  reference the AUC falls from 0.74 at 12 patients to 0.61 at 60, and a
-  reference off by 20% brings the two to 0.62 and 0.52.
-- **Two significant figures do not change it.** Scored on the same
-  simulated studies before and after rounding, the AUC moves by at most
-  0.002, because an estimate’s sampling variation is larger than one
-  rounding step.
+  reference the AUC falls from 0.70 at 12 patients to 0.56 at 60, and a
+  reference off by 20% brings the two to 0.59 and 0.53.
+- **One significant figure lowers it; two would not.** Scored on the
+  same simulated studies, rounding to one figure, as the release does,
+  lowers the AUC by up to 0.05, while two figures move it by at most
+  0.001, because a one-figure step is as wide as an estimate’s sampling
+  variation and a two-figure step is not.
 - **A table per visit would be the most exposed part of a release, so
   the release holds none.** A share of patients sampled at each of 20
   visits gives 0.83 with 10 patients behind each share, 0.72 with 30 and
-  0.63 with 100, and the three-patient rule moves it by at most 0.02,
+  0.62 with 100, and the three-patient rule moves it by at most 0.01,
   because the rule acts only on shares near 0 or 1. Attendance is one
   rate for the study instead, and a binary or ordinal endpoint one set
   of level frequencies, each resting on every patient.
@@ -1015,54 +1023,158 @@ releasing estimates without noise, or a limit of the checks.
   many patients in this study can still identify someone if few people
   alive hold it.
 
+## Why the Release Is Not Differentially Private
+
+**For the use this generator is built for, a DP guarantee would drown
+the data it releases and protect against an attacker that use does not
+face.** That use is synthetic data for developing analysis code, shared
+with people who work under the study’s own access controls or an
+agreement like them. The case rests on four points, and the paragraph
+after them says where it fails.
+
+1.  **The release holds what the study’s own reports make public, more
+    coarsely.** A population PK report gives each typical value, its
+    between-subject variability and the residual error, with their
+    standard errors, and regulators ask for exactly that \[18, 19\]. The
+    study’s main publication gives each arm’s baseline characteristics
+    and how many patients discontinued \[20\]. This release holds the
+    same kinds of number at one significant figure, pooled over the arms
+    and the visits, without standard errors, and a few dozen at most
+    ([Released Parameters at a
+    Glance](#released-parameters-at-a-glance)).
+2.  **The attacker the remaining risk needs already holds the answer.**
+    Membership inference needs the candidate’s own measurements of the
+    kind the study made: their concentrations, which visits they
+    attended, how their dose changed. Outside the study these exist at
+    its sites, in a related study, or in routine care measuring the same
+    things. Whoever holds a candidate’s trial record knows the candidate
+    was in the trial, and learning it again from the release discloses
+    nothing.
+3.  **What remains is measured, and it is close to chance.** An attacker
+    holding a candidate’s own random effects and the population’s exact
+    values ranks a member above a non-member with probability 0.70 at 12
+    patients and 0.56 at 60. With the population’s values taken from
+    another study of the drug, off by 20%, that falls to 0.59 and 0.53.
+    Nothing released is one patient’s value, every frequency rests on at
+    least three patients, no patient moves an estimate by 15%, and the
+    release holds no table per visit.
+4.  **DP at these cohort sizes replaces the study with noise**, as the
+    next section computes, and for this use noise is worse than no data.
+    The [calibrated generator’s
+    evaluation](https://iamstein.github.io/synpmx/articles/calibrated-public-data-examples.html)
+    finds a DP release at phase 1 sizes worse than generating from a
+    public prior, which reads nothing.
+
+**Where the case fails.** It assumes the release reaches people who will
+not try to identify anyone in it, as the study’s own data would. A
+mechanism with a formal guarantee is needed when:
+
+- the release or the synthetic data will be published openly;
+- being in the study is itself sensitive, as in a trial for HIV, a
+  psychiatric condition or a rare disease, and someone outside the study
+  could hold a candidate’s measurements, such as drug levels from
+  therapeutic monitoring or routine laboratory tests;
+- the same study will be released more than once, since releases add up
+  and nothing here accounts for that;
+- a regulator or a data-use agreement asks for a formal guarantee.
+
+[What differential privacy does and does not
+guarantee](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html)
+sets out that choice.
+
 ## What a Formal Guarantee Would Take
 
-The DP method that fits a generator built on `nlmixr2` is
-subsample-and-aggregate \[17, 18\], because it treats the estimator as a
-black box:
+**A formal guarantee is possible, and at these cohort sizes its noise
+would be larger than what the study says.** Generation needs no change,
+because it reads only the release. The release would change in three
+ways:
 
-1.  Split the patients into *k* disjoint groups and fit the population
-    model in each.
-2.  Clip each group’s estimate of each log parameter to a public range
-    of width *S*.
-3.  Release the mean over the groups plus Laplace noise of scale
-    $`b = dS/(\varepsilon k)`$ per parameter, where *d* parameters share
-    the privacy budget $`\varepsilon`$.
+1.  **Each patient’s influence is bounded by construction rather than
+    measured.** A population fit has no such bound: one patient given a
+    thousand times the recorded dose moves its variances far past any
+    threshold. Subsample-and-aggregate bounds it while keeping the fit
+    as it is: the patients are split into disjoint groups of about
+    twenty, the model is fitted in each, and the mean of the groups’
+    estimates, each clipped to a public range, is released with noise
+    \[17, 21\]. The per-patient route estimates each patient’s
+    parameters from that patient’s own measurements, clips them to a
+    public range and releases their mean with noise, which is how
+    [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
+    releases its one number. The textbook DP methods for regression
+    perturb a convex loss with bounded gradients \[22\], and a
+    population likelihood has neither.
+2.  **Fewer numbers are released.** The privacy budget $`\varepsilon`$
+    is split across every released number, so the design, meaning the
+    arms, schedules, visits and endpoint types, would come from the
+    protocol rather than the data, as
+    [`pmx_trial_design()`](https://iamstein.github.io/synpmx/reference/pmx_trial_design.md)
+    already provides for the other generators.
+3.  **The noise comes from a vetted mechanism, with the budget
+    accounted.** The package already has both for
+    [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md),
+    through OpenDP.
 
-One patient is in one group, so the guarantee holds whatever the fit
-inside a group does. The textbook DP methods for regression perturb a
-convex loss with bounded gradients \[19\], and a population likelihood
-is neither, which rules them out here. The cost is the error law of the
-[privacy
-background](https://iamstein.github.io/synpmx/articles/privacy-background.html)
-with the cohort size replaced by the number of groups. At about twenty
-patients per group, and a median Laplace error of $`b \ln 2`$:
+**What the noise costs.** With $`\varepsilon = 1`$ split evenly over *d*
+released numbers, each clipped to a public range spanning sixteenfold on
+the log scale (fourfold either side of a prior, as
+[`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
+uses), each number gets Laplace noise of scale $`b = dS/(n\varepsilon)`$
+on the log scale by the per-patient route, and $`b = dS/(k\varepsilon)`$
+with $`k = n/20`$ groups by subsample-and-aggregate. The table gives the
+median fold error of one released number, $`e^{b \ln 2}`$, and the
+noise’s spread against the uncertainty an estimate already has from
+sampling, for a between-subject SD of 0.3:
 
 ``` r
 
-grid <- expand.grid(patients = c(60, 200, 1000), released = c(3, 11))
-grid$groups <- grid$patients / 20
-scale <- grid$released * log(10) / (1 * grid$groups)
-grid$median_fold_error <- signif(exp(log(2) * scale), 3)
-grid
-#>   patients released groups median_fold_error
-#> 1       60        3      3              4.93
-#> 2      200        3     10              1.61
-#> 3     1000        3     50              1.10
-#> 4       60       11      3            348.00
-#> 5      200       11     10              5.79
-#> 6     1000       11     50              1.42
+span <- log(16)
+dp_scale <- function(patients, released) released * span / patients
+dp_fold <- function(patients, released) {
+  exp(log(2) * dp_scale(patients, released))
+}
+dp_over_sampling <- function(patients, released) {
+  sqrt(2) * dp_scale(patients, released) / (0.3 / sqrt(patients))
+}
+grid <- expand.grid(patients = c(30, 60, 200, 1000), released = c(11, 30))
+fold_text <- function(x) {
+  ifelse(x > 100, "over 100-fold", sprintf("%.2f-fold", x))
+}
+knitr::kable(data.frame(
+  patients = grid$patients,
+  released_numbers = grid$released,
+  per_patient_median_error = fold_text(dp_fold(grid$patients, grid$released)),
+  noise_over_sampling_error = sprintf("%.0f times", dp_over_sampling(
+    grid$patients, grid$released)),
+  subsample_median_error = fold_text(dp_fold(grid$patients / 20,
+                                             grid$released))))
 ```
 
-That is with $`\varepsilon = 1`$ and a public range spanning tenfold for
-each parameter. With all eleven parameters of a two-compartment model
-released, the error stays above 40% even at a thousand patients; with
-three released and the rest taken from a public prior, it reaches about
-10% there. At the cohort sizes this generator usually sees, the
-[calibrated generator’s
-evaluation](https://iamstein.github.io/synpmx/articles/calibrated-public-data-examples.html)
-finds that a release is worse than generating from the public prior
-alone. Subsample-and-aggregate is not implemented.
+| patients | released_numbers | per_patient_median_error | noise_over_sampling_error | subsample_median_error |
+|---:|---:|:---|:---|:---|
+| 30 | 11 | 2.02-fold | 26 times | over 100-fold |
+| 60 | 11 | 1.42-fold | 19 times | over 100-fold |
+| 200 | 11 | 1.11-fold | 10 times | 8.28-fold |
+| 1000 | 11 | 1.02-fold | 5 times | 1.53-fold |
+| 30 | 30 | 6.83-fold | 72 times | over 100-fold |
+| 60 | 30 | 2.61-fold | 51 times | over 100-fold |
+| 200 | 30 | 1.33-fold | 28 times | over 100-fold |
+| 1000 | 30 | 1.06-fold | 12 times | 3.17-fold |
+
+Eleven numbers are a two-compartment population model alone, and thirty
+a whole release. At 60 patients the per-patient route leaves half of the
+population model’s numbers off by more than 1.42-fold, with noise 19
+times the sampling error each estimate already carries, and a whole
+release off by 2.6-fold. At 30 patients the population model alone is
+off by 2.0-fold. Even at 1,000 patients the noise is 4.5 times the
+sampling error. Subsample-and-aggregate, which keeps the fit as it is,
+is unusable below about a thousand patients. Gaussian noise with tighter
+accounting grows with the square root of the count rather than the
+count, and does not change this picture at these cohort sizes. At the 12
+to 200 patients this generator sees, a DP release would say less about
+the study than a public prior does. Neither route is implemented beyond
+the one number
+[`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
+releases.
 
 ## Released Parameters at a Glance
 
@@ -1144,7 +1256,7 @@ knitr::kable(counted, row.names = FALSE)
 | wbcSim | 45 | 0 | 4 | 0 | 3 | 1 | 0 | 3 | 11 | 1 |
 | mavoglurant | 120 | 9 | 0 | 8 | 3 | 1 | 0 | 3 | 24 | 1 |
 | nimoData | 12 | 9 | 0 | 6 | 3 | 1 | 0 | 3 | 22 | 10 |
-| pheno_sd | 59 | 9 | 0 | 4 | 8 | 1 | 0 | 3 | 25 | 14 |
+| pheno_sd | 59 | 9 | 0 | 4 | 6 | 1 | 0 | 3 | 23 | 14 |
 | mixroute_sim | 90 | 12 | 0 | 2 | 3 | 0 | 0 | 4 | 21 | 9 |
 | onc_sim | 200 | 11 | 4 | 5 | 4 | 1 | 0 | 4 | 29 | 842 |
 
@@ -1161,7 +1273,8 @@ What each column holds:
 - **Covariates**: a trimmed mean and SD for each continuous covariate,
   and one fewer frequency than levels for each categorical one.
 - **Dose changes**: the three pooled rates of reducing, skipping and
-  stopping, and each level of the dose ladder below the full dose.
+  stopping, and each level of the dose ladder below the full dose, a
+  fraction of the starting dose to one significant figure.
 - **Attendance**: one rate for the study, or none where every patient
   attended every visit their arm had.
 - **Discrete endpoints**: one fewer level frequency than levels, for
@@ -1222,9 +1335,16 @@ What each column holds:
 17. Nissim K, Raskhodnikova S, Smith A. Smooth sensitivity and sampling
     in private data analysis. *ACM Symposium on Theory of Computing
     (STOC).* 2007.
-18. Smith A. Privacy-preserving statistical estimation with optimal
+18. U.S. Food and Drug Administration. *Population Pharmacokinetics:
+    Guidance for Industry.* 2022.
+19. European Medicines Agency. *Guideline on Reporting the Results of
+    Population Pharmacokinetic Analyses.* CHMP/EWP/185990/06. 2007.
+20. Schulz KF, Altman DG, Moher D. CONSORT 2010 Statement: updated
+    guidelines for reporting parallel group randomised trials. *BMJ.*
+    2010;340:c332.
+21. Smith A. Privacy-preserving statistical estimation with optimal
     convergence rates. *ACM Symposium on Theory of Computing (STOC).*
     2011.
-19. Chaudhuri K, Monteleoni C, Sarwate AD. Differentially private
+22. Chaudhuri K, Monteleoni C, Sarwate AD. Differentially private
     empirical risk minimization. *Journal of Machine Learning Research.*
     2011;12:1069–1109.

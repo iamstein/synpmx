@@ -120,6 +120,17 @@ model_run <- function(label, source, roles, file, seed) {
   invisible(runs[[label]])
 }
 
+# A scorecard row as the prose quotes it, read from the run, so a sentence
+# cannot quote a number the run no longer gives.
+reading <- function(label, check) {
+  if (!run || is.null(runs[[label]])) return("not run here")
+  card <- runs[[label]]$card
+  card$result[card$check == check]
+}
+fails <- function(label) {
+  run && !is.null(runs[[label]]) && any(runs[[label]]$card$verdict == "FAIL")
+}
+
 # Nearest-neighbour snapping onto a stated design grid, as in the PCA survey:
 # which grid to snap to is a statement about the study and is written out at
 # each call.
@@ -186,11 +197,11 @@ if (inherits(case1_fit, "pmx_example_rejection")) {
 #> 
 #> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   PD - Continuous    exponential
-#>                        plateau          150
-#>                        baseline         52
-#>                        rate             0.049
-#>                        between-subject  0.98 (SD on the log baseline)
-#>                        residual         additive 220
+#>                        plateau          100
+#>                        baseline         50
+#>                        rate             0.05
+#>                        between-subject  1 (SD on the log baseline)
+#>                        residual         additive 200
 #>                        chosen on AIC from constant, linear, exponential
 #> 
 #> PK endpoint for the PopPK model
@@ -219,14 +230,14 @@ if (inherits(case1_fit, "pmx_example_rejection")) {
 #>                      proportion to the arms under `max_fit_subjects` = 60;
 #>                      the dosing, visit and covariate models below read the
 #>                      whole study
-#>   fixed effects      cl 13, v 65, q 7.9, v2 150, ka 2 
-#>   between-subject    cl 0.48, v 0.361, ka 0.118, q 0.105, v2 0.105 (as SD on the log scale)
+#>   fixed effects      cl 10, v 60, q 8, v2 200, ka 2 
+#>   between-subject    cl 0.447, v 0.316, ka 0.1, q 0.1, v2 0.1 (as SD on the log scale)
 #>   starting values    cl 13, v 65, q 8, v2 150, ka 2 declared through
 #>                      `start_param`; the rest were read off the cohort's
 #>                      median profile
-#>   residual error     proportional 0.31 
-#>   time to fit        21 min 21 s
-#>   whole call         21 min 23 s, against 21 min 21 s in the fitter
+#>   residual error     proportional 0.3 
+#>   time to fit        21 min 2 s
+#>   whole call         21 min 4 s, against 21 min 2 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: PD - Continuous between-subject SD,
@@ -321,18 +332,18 @@ mad_run$fit
 #> 
 #> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   PD - Continuous    exponential
-#>                        plateau          32
-#>                        baseline         1.7
-#>                        rate             0.013
-#>                        between-subject  1.1 (SD on the log baseline)
-#>                        residual         additive 8.2
+#>                        plateau          30
+#>                        baseline         2
+#>                        rate             0.01
+#>                        between-subject  1 (SD on the log baseline)
+#>                        residual         additive 8
 #>                        chosen on AIC from constant, linear, exponential
 #>   PD - Count         exponential
-#>                        plateau          2.9
+#>                        plateau          3
 #>                        baseline         10
-#>                        rate             0.015
-#>                        between-subject  0.25 (SD on the log baseline)
-#>                        residual         additive 2.8
+#>                        rate             0.01
+#>                        between-subject  0.2 (SD on the log baseline)
+#>                        residual         additive 3
 #>                        chosen on AIC from constant, linear, exponential
 #> 
 #> PK endpoint for the PopPK model
@@ -353,11 +364,11 @@ mad_run$fit
 #>   structural model   2cmt_oral 
 #>   selected by        two-compartment model passed acceptance checks
 #>   fitted on          all 49 patients with a concentration
-#>   fixed effects      cl 6.3, v 49, q 5, v2 150, ka 1.2 
-#>   between-subject    cl 0.424, v 0.447, ka 0.387, q 0.529, v2 0.424 (as SD on the log scale)
-#>   residual error     proportional 0.37 
-#>   time to fit        3 min 19 s
-#>   whole call         3 min 20 s, against 3 min 19 s in the fitter
+#>   fixed effects      cl 6, v 50, q 5, v2 100, ka 1 
+#>   between-subject    cl 0.447, v 0.447, ka 0.316, q 0.548, v2 0.447 (as SD on the log scale)
+#>   residual error     proportional 0.4 
+#>   time to fit        3 min 8 s
+#>   whole call         3 min 8 s, against 3 min 8 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: PD - Continuous between-subject SD,
@@ -379,7 +390,7 @@ Nothing fails, and A3 reads 5 of 5: every endpoint survives, including
 the three discrete ones, which are drawn from one set of level
 frequencies for the whole study rather than modelled. Pooled, a discrete
 endpoint’s response differs neither by dose group, as the continuous PD
-time course already does not, nor over the visits. D1 reads sd x0.77 on
+time course already does not, nor over the visits. D1 reads sd x0.74 on
 PK Concentration (furthest of 6), the variable whose synthetic spread
 sits furthest from the source’s.
 
@@ -425,11 +436,11 @@ model_report(warfarin_run$fit)
 #> 
 #> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   pca                exponential
-#>                        plateau          27
-#>                        baseline         96
-#>                        rate             0.099
-#>                        between-subject  0.15 (SD on the log baseline)
-#>                        residual         additive 12
+#>                        plateau          30
+#>                        baseline         100
+#>                        rate             0.1
+#>                        between-subject  0.1 (SD on the log baseline)
+#>                        residual         additive 10
 #>                        chosen on AIC from constant, linear, exponential
 #> 
 #> PK endpoint for the PopPK model
@@ -448,14 +459,14 @@ model_report(warfarin_run$fit)
 #>   structural model   2cmt_oral 
 #>   selected by        two-compartment model passed acceptance checks
 #>   fitted on          all 32 patients with a concentration
-#>   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 
-#>   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)
-#>   residual error     proportional 0.21 
-#>   time to fit        57.1 s
-#>   whole call         57.3 s, against 57.1 s in the fitter
+#>   fixed effects      cl 0.1, v 7, q 0.1, v2 2, ka 0.4 
+#>   between-subject    cl 0.265, v 0.2, ka 0.548, q 0.0775, v2 0.632 (as SD on the log scale)
+#>   residual error     proportional 0.2 
+#>   time to fit        56.7 s
+#>   whole call         56.9 s, against 56.7 s in the fitter
 #> 
 #> Privacy
-#>   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;
+#>   one patient's pull pass: largest: cp: ka between-subject SD, 9.84 points;
 #>                      `model_privacy_checks()` has every check
 ```
 
@@ -484,10 +495,9 @@ the low percentage is the fit telling you how much it had to go on.
 gets the same dose, so there are no dose levels to compare and the
 residual error falls back to additive.
 
-Nothing fails; D1 at 1.2 times the source’s spread on `cp` is the only
-row to read. The concentration panel of the figure is the generator at
-its best on this survey — the shape, the spread and the decline all
-land.
+Nothing fails; D1 reads sd x0.81 on wt (furthest of 4). The
+concentration panel of the figure is the generator at its best on this
+survey — the shape, the spread and the decline all land.
 
 The `pca` panel below it is the generator at its documented limit. The
 source’s prothrombin activity falls to a nadir and comes back: median
@@ -531,8 +541,8 @@ print(model_report(wbc_run$fit))
 #> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   DV                 linear
 #>                        baseline         7
-#>                        slope            -0.0012
-#>                        between-subject  0.34 (SD on the log baseline)
+#>                        slope            -0.001
+#>                        between-subject  0.3 (SD on the log baseline)
 #>                        residual         additive 3
 #>                        chosen on AIC from constant, linear
 #> 
@@ -589,7 +599,7 @@ mavo_roles <- pmx_roles(
 )
 mavo_run <- model_run("mavoglurant", mavoglurant, mavo_roles,
                       "mavoglurant-model-fit.rds", seed = 707)
-#> Warning: 9% of generated observations (119 of 1343) fell below the emission floor
+#> Warning: 9% of generated observations (116 of 1343) fell below the emission floor
 #> and were raised to it.
 #>   A floor catching this much is a fitted model that does not describe the
 #>   low end of the data, not an assay limit.
@@ -637,14 +647,14 @@ mavo_run$fit
 #>                      proportion to the arms under `max_fit_subjects` = 60;
 #>                      the dosing, visit and covariate models below read the
 #>                      whole study
-#>   fixed effects      cl 0.045, v 0.096, q 0.048, v2 0.24 
-#>   between-subject    cl 0.374, v 0.4, q 0.374, v2 0.412 (as SD on the log scale)
-#>   residual error     proportional 0.34 
-#>   time to fit        45.0 s
-#>   whole call         45.2 s, against 45.0 s in the fitter
+#>   fixed effects      cl 0.04, v 0.1, q 0.05, v2 0.2 
+#>   between-subject    cl 0.316, v 0.447, q 0.316, v2 0.447 (as SD on the log scale)
+#>   residual error     proportional 0.3 
+#>   time to fit        41.6 s
+#>   whole call         41.8 s, against 41.6 s in the fitter
 #> 
 #> Privacy
-#>   one patient's pull pass: largest: DV: v2 between-subject SD, 1.92 points;
+#>   one patient's pull pass: largest: DV: v2 between-subject SD, 2.09 points;
 #>                      `model_privacy_checks()` has every check
 ```
 
@@ -656,11 +666,11 @@ synpmx_scorecard_datatable(mavo_run$card, report = "minimal")
 ```
 
 Three rows to read, and two findings. A5b reports occasions per patient
-falling from 1.65 to 1 and A5a observations per patient from 20.2 to
-11.3: `mavoglurant` is one- and two-period, and the dosing model carries
-one planned schedule per arm, so the patients who had a second period do
-not get it back. A study whose periods matter needs them declared as
-arms, or a generator that keeps each patient’s own schedule.
+at 1.65 -\> 1 and A5a observations per patient at 20.2 -\> 11.2:
+`mavoglurant` is one- and two-period, and the dosing model carries one
+planned schedule per arm, so the patients who had a second period do not
+get it back. A study whose periods matter needs them declared as arms,
+or a generator that keeps each patient’s own schedule.
 
 The second finding used to be in the figure rather than the card, and
 this is the study that closed it. The source’s profiles are a tight
@@ -674,11 +684,11 @@ wrote that scatter into every generated value. `2cmt_infusion` is now in
 the set and tried first by default. The report above gives the accepted
 model, its residual error, and any fallback reason.
 
-**The scorecard moves less than the fit does.** D1 still reads a
-synthetic spread well below the source’s, and A5a and A5b do not move at
-all, because what they measure is the visit and dosing models rather
-than the structural one. A better-fitting structural model is a
-fit-quality argument here rather than a scorecard one.
+**The scorecard moves less than the fit does.** D1 reads sd x0.38 on DV
+(furthest of 5), and A5a and A5b do not move at all, because what they
+measure is the visit and dosing models rather than the structural one. A
+better-fitting structural model is a fit-quality argument here rather
+than a scorecard one.
 
 ## theo_md: twelve subjects, which is below the floor
 
@@ -766,11 +776,11 @@ theo_run$fit
 #>                      confirmed. Check that the synthetic data reasonably
 #>                      reproduces the source data's patterns and variability.
 #>   fitted on          all 12 patients with a concentration
-#>   fixed effects      cl 2.8, v 29, q 1.9, v2 4.2, ka 1.2 
-#>   between-subject    cl 0.19, v 0.141, ka 0.52, q 0.237, v2 0.274 (as SD on the log scale)
-#>   residual error     proportional 0.22 
-#>   time to fit        52.4 s
-#>   whole call         52.4 s, against 52.4 s in the fitter
+#>   fixed effects      cl 3, v 30, q 2, v2 4, ka 1 
+#>   between-subject    cl 0.2, v 0.141, ka 0.548, q 0.245, v2 0.283 (as SD on the log scale)
+#>   residual error     proportional 0.2 
+#>   time to fit        51.6 s
+#>   whole call         51.6 s, against 51.6 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: DV: ka typical value, 9.92 %;
@@ -882,14 +892,14 @@ nimo_run$fit
 #>   selected by        two-compartment model passed acceptance checks
 #>   fit checks         generated/source interquartile-range ratio 3.08
 #>   fitted on          all 12 patients with a concentration
-#>   fixed effects      cl 0.065, v 35, q 0.095, v2 320 
-#>   between-subject    cl 0.707, v 0.7, q 0.592, v2 0.436 (as SD on the log scale)
-#>   residual error     proportional 0.42 
-#>   time to fit        38.2 s
-#>   whole call         38.3 s, against 38.2 s in the fitter
+#>   fixed effects      cl 0.06, v 40, q 0.1, v2 300 
+#>   between-subject    cl 0.707, v 0.707, q 0.548, v2 0.447 (as SD on the log scale)
+#>   residual error     proportional 0.4 
+#>   time to fit        36.0 s
+#>   whole call         36.0 s, against 36.0 s in the fitter
 #> 
 #> Privacy
-#>   one patient's pull pass: largest: DV: v2 between-subject SD, 12.4 points;
+#>   one patient's pull pass: largest: DV: v2 between-subject SD, 12.7 points;
 #>                      `model_privacy_checks()` has every check
 ```
 
@@ -952,7 +962,7 @@ output is still nearly empty.**
 
 pheno_flat_fit <- stored_fit("pheno-flat-model-fit.rds")
 pheno_flat_synthetic <- synpmx_model_generate(pheno_flat_fit, seed = 707)
-#> Warning: 70% of generated observations (21 of 30) fell below the emission floor and
+#> Warning: 92% of generated observations (23 of 25) fell below the emission floor and
 #> were raised to it.
 #>   A floor catching this much is a fitted model that does not describe the
 #>   low end of the data, not an assay limit.
@@ -967,7 +977,7 @@ c(distinct_times = length(unique(pheno_sd$TIME[pheno_sd$EVID == 0])),
 #>            distinct_times                grid_cells    source_obs_per_patient 
 #>                    118.00                      5.00                      2.63 
 #> synthetic_obs_per_patient 
-#>                      0.55
+#>                      0.47
 ```
 
 118 distinct recorded times become a handful of grid cells. A cell has
@@ -1001,7 +1011,7 @@ pheno_sd$NTIME <- ifelse(
 
 pheno_run <- model_run("pheno_sd", pheno_sd, pheno_roles,
                        "pheno-model-fit.rds", seed = 707)
-#> Warning: 12% of generated observations (19 of 153) fell below the emission floor and
+#> Warning: 10% of generated observations (17 of 164) fell below the emission floor and
 #> were raised to it.
 #>   A floor catching this much is a fitted model that does not describe the
 #>   low end of the data, not an assay limit.
@@ -1015,8 +1025,8 @@ pheno_run$fit
 #> Summarized from the source, not estimated
 #>   cohort             59 patients in 1 arm(s)
 #>                      all (59)
-#>   dose changes       per planned cycle, pooled over arms: reduce 14%, skip
-#>                      1%, stop early 10% (6 dose level(s))
+#>   dose changes       per planned cycle, pooled over arms: reduce 29%, skip
+#>                      1%, stop early 10% (4 dose level(s))
 #>   visit grid         1 endpoint(s) at 9 nominal time(s), 9 slot(s) in all
 #>   visit attendance   28% of scheduled slots attended, one rate for the
 #>                      study
@@ -1040,16 +1050,16 @@ pheno_run$fit
 #>   selected by        two-compartment model passed acceptance checks; lowest
 #>                      AIC among accepted routes
 #>   fitted on          all 59 patients with a concentration
-#>   fixed effects      cl 0.0057, v 0.77, q 0.62, v2 0.63 
-#>   between-subject    cl 0.346, v 0.707, q 0.098, v2 0.241 (as SD on the log scale)
-#>   residual error     proportional 0.13 
-#>   time to fit        3 min 2 s
-#>                        2cmt_iv                    1 min 4 s
-#>                        2cmt_oral                  1 min 58 s
-#>   whole call         3 min 2 s, against 3 min 2 s in the fitter
+#>   fixed effects      cl 0.006, v 0.8, q 0.6, v2 0.6 
+#>   between-subject    cl 0.316, v 0.707, q 0.1, v2 0.245 (as SD on the log scale)
+#>   residual error     proportional 0.1 
+#>   time to fit        2 min 49 s
+#>                        2cmt_iv                    59.0 s
+#>                        2cmt_oral                  1 min 50 s
+#>   whole call         2 min 49 s, against 2 min 49 s in the fitter
 #> 
 #> Privacy
-#>   one patient's pull pass: largest: DV: cl between-subject SD, 4.55 points;
+#>   one patient's pull pass: largest: APGR SD on the log scale, 4.32 points;
 #>                      `model_privacy_checks()` has every check
 ```
 
@@ -1166,28 +1176,34 @@ mixroute_run$fit
 #>                      proportion to the arms under `max_fit_subjects` = 60;
 #>                      the dosing, visit and covariate models below read the
 #>                      whole study
-#>   fixed effects      cl 2.4, v 11, q 1.5, v2 0.14, ka 0.51, f 0.74 
-#>   between-subject    cl 0.316, v 0.266, q 0.31, v2 0.286, ka 0.332 (as SD on the log scale)
-#>   residual error     proportional 0.29 
-#>   time to fit        41.3 s
-#>   whole call         41.5 s, against 41.3 s in the fitter
+#>   fixed effects      cl 2, v 10, q 2, v2 0.1, ka 0.5, f 0.7 
+#>   between-subject    cl 0.316, v 0.265, q 0.316, v2 0.283, ka 0.316 (as SD on the log scale)
+#>   residual error     proportional 0.3 
+#>   time to fit        36.2 s
+#>   whole call         36.3 s, against 36.2 s in the fitter
 #> 
 #> Privacy
-#>   one patient's pull pass: largest: DV: ka between-subject SD, 4.46 points;
+#>   one patient's pull pass: largest: DV: ka between-subject SD, 4.25 points;
 #>                      `model_privacy_checks()` has every check
 ```
 
 ``` r
 
+# The fit's estimates at full precision: the release carries them at one
+# significant figure, which would grade the rounding rather than the fit.
+full_precision <- function(fit) {
+  estimated <- fit$pk_models[[1L]]$estimated
+  (if (is.null(estimated)) fit$parameters else estimated)$fixed
+}
 truth <- c(cl = 2, v = 10, ka = 0.5, f = 0.7)
-fitted <- mixroute_run$fit$parameters$fixed[names(truth)]
+fitted <- full_precision(mixroute_run$fit)[names(truth)]
 data.frame(truth = truth, fitted = round(fitted, 3),
            ratio = round(fitted / truth, 2))
 #>    truth fitted ratio
-#> cl   2.0   2.40  1.20
-#> v   10.0  11.00  1.10
-#> ka   0.5   0.51  1.02
-#> f    0.7   0.74  1.06
+#> cl   2.0  2.445  1.22
+#> v   10.0 11.490  1.15
+#> ka   0.5  0.515  1.03
+#> f    0.7  0.737  1.05
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/mixroute-plot-1.png)
@@ -1262,10 +1278,10 @@ onc_run$fit
 #> 
 #> Each non-PK continuous endpoint, fitted as constant, linear, or exponential
 #>   SLD                linear
-#>                        baseline         16
+#>                        baseline         20
 #>                        slope            -0.005
-#>                        between-subject  0.33 (SD on the log baseline)
-#>                        residual         additive 1.5
+#>                        between-subject  0.3 (SD on the log baseline)
+#>                        residual         additive 1
 #>                        chosen on AIC from constant, linear, exponential
 #> 
 #> PK endpoint for the PopPK model
@@ -1286,19 +1302,19 @@ onc_run$fit
 #>                      proportion to the arms under `max_fit_subjects` = 60;
 #>                      the dosing, visit and covariate models below read the
 #>                      whole study
-#>   fixed effects      cl 0.42, v 0.55, q 0.013, v2 0.47, ka 3.4 
-#>   between-subject    cl 0.4, v 0.0877, ka 0.164, q 0.0616, v2 0.155 (as SD on the log scale)
+#>   fixed effects      cl 0.4, v 0.6, q 0.01, v2 0.5, ka 3 
+#>   between-subject    cl 0.447, v 0.0894, ka 0.173, q 0.0632, v2 0.141 (as SD on the log scale)
 #>   starting values    ka 5 declared through `start_param`; the rest were
 #>                      read off the cohort's median profile
 #>   residual error     proportional 0.2 
-#>   time to fit        42 min 55 s
-#>                        2cmt_iv                    15 min 27 s
-#>                        2cmt_oral                  27 min 29 s
-#>   whole call         43 min 3 s, against 42 min 55 s in the fitter
+#>   time to fit        39 min 47 s
+#>                        2cmt_iv                    14 min 15 s
+#>                        2cmt_oral                  25 min 32 s
+#>   whole call         39 min 55 s, against 39 min 47 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: Everolimus trough: ka between-subject
-#>                      SD, 3.21 points; `model_privacy_checks()` has every
+#>                      SD, 3.39 points; `model_privacy_checks()` has every
 #>                      check
 ```
 
@@ -1310,13 +1326,13 @@ fitted a time course.
 ``` r
 
 truth <- c(cl = 0.470, v = 0.850, ka = 5)
-fitted <- onc_run$fit$parameters$fixed[names(truth)]
+fitted <- full_precision(onc_run$fit)[names(truth)]
 data.frame(truth = truth, fitted = round(fitted, 3),
            ratio = round(fitted / truth, 2))
 #>    truth fitted ratio
-#> cl  0.47   0.42  0.89
-#> v   0.85   0.55  0.65
-#> ka  5.00   3.40  0.68
+#> cl  0.47  0.423  0.90
+#> v   0.85  0.551  0.65
+#> ka  5.00  3.402  0.68
 ```
 
 ![](pmxmodel-public-data-examples_files/figure-html/onc-plot-1.png)
@@ -1363,16 +1379,16 @@ knitr::kable(inventory, row.names = FALSE,
 
 | Dataset | Patients | Model | Fixed effects | Residual |
 |:---|---:|:---|:---|:---|
-| case1_pkpd | 180 | 2cmt_oral | cl 13, v 65, q 7.9, v2 150, ka 2 | proportional 0.31 |
-| mad | 60 | 2cmt_oral | cl 6.3, v 49, q 5, v2 150, ka 1.2 | proportional 0.37 |
-| warfarin | 32 | 2cmt_oral | cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 | proportional 0.21 |
+| case1_pkpd | 180 | 2cmt_oral | cl 10, v 60, q 8, v2 200, ka 2 | proportional 0.3 |
+| mad | 60 | 2cmt_oral | cl 6, v 50, q 5, v2 100, ka 1 | proportional 0.4 |
+| warfarin | 32 | 2cmt_oral | cl 0.1, v 7, q 0.1, v2 2, ka 0.4 | proportional 0.2 |
 | wbcSim | 45 | PD only | PD parameters shown above | PD residuals shown above |
-| mavoglurant | 120 | 2cmt_infusion | cl 0.045, v 0.096, q 0.048, v2 0.24 | proportional 0.34 |
-| theo_md | 12 | 2cmt_oral | cl 2.8, v 29, q 1.9, v2 4.2, ka 1.2 | proportional 0.22 |
-| nimoData | 12 | 2cmt_infusion | cl 0.065, v 35, q 0.095, v2 320 | proportional 0.42 |
-| pheno_sd | 59 | 2cmt_iv | cl 0.0057, v 0.77, q 0.62, v2 0.63 | proportional 0.13 |
-| mixroute_sim | 90 | 2cmt_mixed | cl 2.4, v 11, q 1.5, v2 0.14, ka 0.51, f 0.74 | proportional 0.29 |
-| onc_sim | 200 | 2cmt_oral | cl 0.42, v 0.55, q 0.013, v2 0.47, ka 3.4 | proportional 0.2 |
+| mavoglurant | 120 | 2cmt_infusion | cl 0.04, v 0.1, q 0.05, v2 0.2 | proportional 0.3 |
+| theo_md | 12 | 2cmt_oral | cl 3, v 30, q 2, v2 4, ka 1 | proportional 0.2 |
+| nimoData | 12 | 2cmt_infusion | cl 0.06, v 40, q 0.1, v2 300 | proportional 0.4 |
+| pheno_sd | 59 | 2cmt_iv | cl 0.006, v 0.8, q 0.6, v2 0.6 | proportional 0.1 |
+| mixroute_sim | 90 | 2cmt_mixed | cl 2, v 10, q 2, v2 0.1, ka 0.5, f 0.7 | proportional 0.3 |
+| onc_sim | 200 | 2cmt_oral | cl 0.4, v 0.6, q 0.01, v2 0.5, ka 3 | proportional 0.2 |
 
 What each fit carries out of its study. {.table}
 
@@ -1401,7 +1417,7 @@ knitr::kable(verdicts, row.names = FALSE,
 | mavoglurant  |   13 |      3 |    0 |              5 |         |
 | theo_md      |   15 |      1 |    0 |              5 |         |
 | nimoData     |   15 |      1 |    0 |              5 |         |
-| pheno_sd     |   14 |      2 |    0 |              5 |         |
+| pheno_sd     |   13 |      3 |    0 |              5 |         |
 | mixroute_sim |   15 |      1 |    0 |              5 |         |
 | onc_sim      |   14 |      2 |    0 |              5 |         |
 

@@ -143,8 +143,9 @@ bounds what an attacker can learn in the sense of differential privacy
 person’s data can change what is released [1]. The protections below
 reduce what is released and measure how much one patient moves it. A
 release that has to withstand a determined attacker needs a DP
-mechanism, and the last section says what one would take for this
-generator.</p>
+mechanism; the closing sections make the case that this generator’s use
+does not, say where that case fails, and show what a mechanism would
+cost.</p>
 <div class="section level2">
 <h2 id="summary-for-a-privacy-reviewer">Summary for a Privacy Reviewer<a class="anchor" aria-label="anchor" href="#summary-for-a-privacy-reviewer"></a>
 </h2>
@@ -207,23 +208,26 @@ every estimate; its limits are among the outstanding risks.</p>
 <p><strong>⚠️ Membership inference remains possible for an attacker who
 holds a candidate’s own trial data.</strong> In simulation, an attacker
 with a candidate’s own measurements and exact reference values for the
-population ranks a study member above a non-member with probability 0.74
-when the population model is fitted to 12 patients and 0.61 when it is
+population ranks a study member above a non-member with probability 0.70
+when the population model is fitted to 12 patients and 0.56 when it is
 fitted to 60. This probability is the area under the curve (AUC), where
 0.5 is chance and 1 is certainty. A reference off by 20% brings the two
-to 0.62 and 0.52. The release holds no table per visit, because one
+to 0.59 and 0.53. The release holds no table per visit, because one
 would be more exposed: a share of patients sampled at each of 20 visits
-gives 0.83 when 10 patients stand behind each share and 0.63 when 100
+gives 0.83 when 10 patients stand behind each share and 0.62 when 100
 do. Attendance is one rate for the study instead, and each binary or
-ordinal endpoint one set of level frequencies. Rounding moves these
-numbers by at most 0.002 and the three-patient floor by at most 0.02;
-cohort size and the number of released numbers decide them. <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-privacy-simulation.html">Membership
+ordinal endpoint one set of level frequencies. Rounding the estimates to
+one significant figure lowers these numbers by up to 0.05, and the
+three-patient floor moves them by at most 0.01; cohort size and the
+number of released numbers decide them. <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-privacy-simulation.html">Membership
 inference against the PMX model release</a> shows how each number is
 computed.</p>
 <p><strong>❌ No formal guarantee.</strong> Nothing bounds what an
 attacker who knows every other patient learns about the remaining one.
 That attacker is the one DP is defined against, and no DP mechanism is
-implemented for this generator.</p>
+implemented for this generator. <a href="#why-the-release-is-not-differentially-private">Why the release is
+not differentially private</a> makes the case for its use, and says
+where that case fails.</p>
 </div>
 <div class="section level3">
 <h3 id="how-to-share-a-release">How to Share a Release<a class="anchor" aria-label="anchor" href="#how-to-share-a-release"></a>
@@ -604,19 +608,22 @@ single value can then move the result by more than the trimmed range
 allows.</p>
 </div>
 <div class="section level3">
-<h3 id="two-significant-figures">7. Two Significant Figures<a class="anchor" aria-label="anchor" href="#two-significant-figures"></a>
+<h3 id="one-significant-figure">7. One Significant Figure<a class="anchor" aria-label="anchor" href="#one-significant-figure"></a>
 </h3>
-<p>Every released estimate is rounded to two significant figures: PK
-fixed effects, between-subject variances, residual error, PD shape
-parameters and covariate summaries. Rounding is the other standard
-coarsening of SDC [8]. Leaving out a typical patient moves a typical
-value by less than one rounding step, so for most patients the released
-typical value is the same with or without them. Rounding does not hide
-an outlier’s effect on a variance, which protection 8 measures, and it
-does not weaken membership inference, because an estimate’s sampling
-variation is larger than one rounding step (<a href="#membership-inference-against-the-release">Membership Inference
-Against the Release</a>). The frequencies are not rounded: each is an
-exact count over an arm, held to the floor of protection 5 instead.</p>
+<p>Every released PK and PD estimate is rounded to one significant
+figure: PK fixed effects, between-subject variances, residual error and
+PD shape parameters. Covariate summaries are rounded to two, because one
+would put a mean height of 172 cm at 200. Rounding is the other standard
+coarsening of SDC [8]. One significant figure moves an estimate by 9% on
+average and by 33% at worst, against 1% and 5% for two, and in exchange
+it weakens membership inference where two figures do not: its step is as
+wide as an estimate’s sampling variation, so the released value is
+usually the same with a given patient in the study or out (<a href="#membership-inference-against-the-release">Membership Inference
+Against the Release</a>). Rounding does not hide an outlier’s effect on
+a variance, which protection 8 measures. The full-precision estimates
+stay on the fit, outside the release, for whoever ran it. The
+frequencies are not rounded: each is an exact count over the study, held
+to the floor of protection 5 instead.</p>
 </div>
 <div class="section level3">
 <h3 id="how-far-one-patient-moves-each-estimate">8. How Far One Patient Moves Each Estimate<a class="anchor" aria-label="anchor" href="#how-far-one-patient-moves-each-estimate"></a>
@@ -754,7 +761,7 @@ P5, and the fit the counts behind them.</p>
 <span><span class="co">#&gt; 2                                                                                                                                                             none</span></span>
 <span><span class="co">#&gt; 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored, no factor level beyond what the arms carry</span></span>
 <span><span class="co">#&gt; 4                                                                                                smallest group: 5, patients holding a categorical covariate level</span></span>
-<span><span class="co">#&gt; 5                                                                                                                    largest: cp: ka between-subject SD, 10 points</span></span></code></pre></div>
+<span><span class="co">#&gt; 5                                                                                                                  largest: cp: ka between-subject SD, 9.84 points</span></span></code></pre></div>
 <p>The reading behind P5 is the <code>influence</code> attribute of the
 full fit’s checks, one row per released estimate: the released value,
 the largest move any one patient causes, its unit, the number of
@@ -763,33 +770,33 @@ from, and the verdict. No row is about a patient.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">digits3</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">checks</span>, <span class="st">"influence"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;        group   name            quantity released change   unit patients</span></span>
-<span><span class="co">#&gt; 1         PK cp: cl       typical value     0.13   2.62      %       32</span></span>
-<span><span class="co">#&gt; 2         PK cp: cl  between-subject SD    0.268   4.19 points       32</span></span>
-<span><span class="co">#&gt; 3         PK  cp: v       typical value      6.6   1.01      %       32</span></span>
-<span><span class="co">#&gt; 4         PK  cp: v  between-subject SD    0.192   1.83 points       32</span></span>
-<span><span class="co">#&gt; 5         PK cp: ka       typical value     0.42    3.2      %       32</span></span>
-<span><span class="co">#&gt; 6         PK cp: ka  between-subject SD    0.557     10 points       32</span></span>
-<span><span class="co">#&gt; 7         PK  cp: q       typical value    0.098 0.0146      %       32</span></span>
-<span><span class="co">#&gt; 8         PK  cp: q  between-subject SD   0.0748  0.801 points       32</span></span>
-<span><span class="co">#&gt; 9         PK cp: v2       typical value      1.6   2.31      %       32</span></span>
-<span><span class="co">#&gt; 10        PK cp: v2  between-subject SD     0.64   3.68 points       32</span></span>
-<span><span class="co">#&gt; 11        PD    pca    typical baseline       96   2.11      %       32</span></span>
-<span><span class="co">#&gt; 12        PD    pca  between-subject SD     0.15   5.86 points       32</span></span>
+<span><span class="co">#&gt; 1         PK cp: cl       typical value      0.1   2.62      %       32</span></span>
+<span><span class="co">#&gt; 2         PK cp: cl  between-subject SD    0.265   4.13 points       32</span></span>
+<span><span class="co">#&gt; 3         PK  cp: v       typical value        7   1.01      %       32</span></span>
+<span><span class="co">#&gt; 4         PK  cp: v  between-subject SD      0.2    1.9 points       32</span></span>
+<span><span class="co">#&gt; 5         PK cp: ka       typical value      0.4    3.2      %       32</span></span>
+<span><span class="co">#&gt; 6         PK cp: ka  between-subject SD    0.548   9.84 points       32</span></span>
+<span><span class="co">#&gt; 7         PK  cp: q       typical value      0.1 0.0146      %       32</span></span>
+<span><span class="co">#&gt; 8         PK  cp: q  between-subject SD   0.0775  0.829 points       32</span></span>
+<span><span class="co">#&gt; 9         PK cp: v2       typical value        2   2.31      %       32</span></span>
+<span><span class="co">#&gt; 10        PK cp: v2  between-subject SD    0.632   3.63 points       32</span></span>
+<span><span class="co">#&gt; 11        PD    pca    typical baseline      100   2.11      %       32</span></span>
+<span><span class="co">#&gt; 12        PD    pca  between-subject SD      0.1   5.86 points       32</span></span>
 <span><span class="co">#&gt; 13 covariate     wt      geometric mean       69   1.22      %       32</span></span>
 <span><span class="co">#&gt; 14 covariate     wt SD on the log scale     0.18   1.71 points       32</span></span>
 <span><span class="co">#&gt; 15 covariate    age      geometric mean       29   2.05      %       32</span></span>
 <span><span class="co">#&gt; 16 covariate    age SD on the log scale     0.34    2.3 points       32</span></span>
 <span><span class="co">#&gt;    shrinkage verdict</span></span>
-<span><span class="co">#&gt; 1     0.0291    pass</span></span>
-<span><span class="co">#&gt; 2     0.0291    pass</span></span>
-<span><span class="co">#&gt; 3      0.333    pass</span></span>
-<span><span class="co">#&gt; 4      0.333    pass</span></span>
-<span><span class="co">#&gt; 5      0.456    pass</span></span>
-<span><span class="co">#&gt; 6      0.456    pass</span></span>
-<span><span class="co">#&gt; 7      0.976    pass</span></span>
-<span><span class="co">#&gt; 8      0.976    pass</span></span>
-<span><span class="co">#&gt; 9       0.48    pass</span></span>
-<span><span class="co">#&gt; 10      0.48    pass</span></span>
+<span><span class="co">#&gt; 1     0.0153    pass</span></span>
+<span><span class="co">#&gt; 2     0.0153    pass</span></span>
+<span><span class="co">#&gt; 3      0.359    pass</span></span>
+<span><span class="co">#&gt; 4      0.359    pass</span></span>
+<span><span class="co">#&gt; 5      0.447    pass</span></span>
+<span><span class="co">#&gt; 6      0.447    pass</span></span>
+<span><span class="co">#&gt; 7      0.977    pass</span></span>
+<span><span class="co">#&gt; 8      0.977    pass</span></span>
+<span><span class="co">#&gt; 9      0.474    pass</span></span>
+<span><span class="co">#&gt; 10     0.474    pass</span></span>
 <span><span class="co">#&gt; 11        NA    pass</span></span>
 <span><span class="co">#&gt; 12        NA    pass</span></span>
 <span><span class="co">#&gt; 13        NA    pass</span></span>
@@ -892,18 +899,18 @@ fit names nobody.</p>
 <span><span class="co">#&gt; 5                                                                                                                  largest: cp: v2 between-subject SD, 70.7 points</span></span>
 <span><span class="fu">digits3</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">kept_checks</span>, <span class="st">"influence"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;        group   name            quantity released   change   unit patients</span></span>
-<span><span class="co">#&gt; 1         PK cp: cl       typical value     0.11     26.2      %       32</span></span>
+<span><span class="co">#&gt; 1         PK cp: cl       typical value      0.1     26.2      %       32</span></span>
 <span><span class="co">#&gt; 2         PK cp: cl  between-subject SD    0.707     51.8 points       32</span></span>
-<span><span class="co">#&gt; 3         PK  cp: v       typical value      6.6     25.5      %       32</span></span>
+<span><span class="co">#&gt; 3         PK  cp: v       typical value        7     25.5      %       32</span></span>
 <span><span class="co">#&gt; 4         PK  cp: v  between-subject SD    0.707     53.6 points       32</span></span>
-<span><span class="co">#&gt; 5         PK cp: ka       typical value     0.57     3.97      %       32</span></span>
+<span><span class="co">#&gt; 5         PK cp: ka       typical value      0.6     3.97      %       32</span></span>
 <span><span class="co">#&gt; 6         PK cp: ka  between-subject SD    0.707     12.9 points       32</span></span>
-<span><span class="co">#&gt; 7         PK  cp: q       typical value   0.0024 0.000055      %       32</span></span>
-<span><span class="co">#&gt; 8         PK  cp: q  between-subject SD    0.138     13.1 points       32</span></span>
-<span><span class="co">#&gt; 9         PK cp: v2       typical value 0.000055    0.122      %       32</span></span>
+<span><span class="co">#&gt; 7         PK  cp: q       typical value    0.002 0.000055      %       32</span></span>
+<span><span class="co">#&gt; 8         PK  cp: q  between-subject SD    0.141     13.4 points       32</span></span>
+<span><span class="co">#&gt; 9         PK cp: v2       typical value  0.00006    0.122      %       32</span></span>
 <span><span class="co">#&gt; 10        PK cp: v2  between-subject SD    0.707     70.7 points       32</span></span>
-<span><span class="co">#&gt; 11        PD    pca    typical baseline       96     2.11      %       32</span></span>
-<span><span class="co">#&gt; 12        PD    pca  between-subject SD     0.15     5.86 points       32</span></span>
+<span><span class="co">#&gt; 11        PD    pca    typical baseline      100     2.11      %       32</span></span>
+<span><span class="co">#&gt; 12        PD    pca  between-subject SD      0.1     5.86 points       32</span></span>
 <span><span class="co">#&gt; 13 covariate     wt      geometric mean       69     1.22      %       32</span></span>
 <span><span class="co">#&gt; 14 covariate     wt SD on the log scale     0.18     1.71 points       32</span></span>
 <span><span class="co">#&gt; 15 covariate    age      geometric mean       29     2.05      %       32</span></span>
@@ -951,7 +958,7 @@ estimates they moved, and the checks pass:</p>
 <span><span class="co">#&gt; 2                                                                                                                                                             none</span></span>
 <span><span class="co">#&gt; 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored, no factor level beyond what the arms carry</span></span>
 <span><span class="co">#&gt; 4                                                                                                smallest group: 4, patients holding a categorical covariate level</span></span>
-<span><span class="co">#&gt; 5                                                                 largest: cp: ka between-subject SD, 9.32 points; after leaving 1 patient(s) out of the estimates</span></span></code></pre></div>
+<span><span class="co">#&gt; 5                                                                 largest: cp: ka between-subject SD, 9.02 points; after leaving 1 patient(s) out of the estimates</span></span></code></pre></div>
 <p>The synthetic data shows the difference. Kept, the patient’s exposure
 becomes between-subject variability, and the synthetic patients spread
 wider than the rest of the source cohort. Left out, they do not:</p>
@@ -1107,16 +1114,16 @@ patient moves furthest.</p>
 <span><span class="co">#&gt; 9  mixroute_sim       90        0 pass pass pass pass pass</span></span>
 <span><span class="co">#&gt; 10      onc_sim      200        0 pass pass pass pass pass</span></span>
 <span><span class="co">#&gt;                                                           largest</span></span>
-<span><span class="co">#&gt; 1                   largest: cp: ka between-subject SD, 10 points</span></span>
+<span><span class="co">#&gt; 1                 largest: cp: ka between-subject SD, 9.84 points</span></span>
 <span><span class="co">#&gt; 2                           largest: DV: ka typical value, 9.92 %</span></span>
 <span><span class="co">#&gt; 3        largest: PD - Continuous between-subject SD, 10.3 points</span></span>
 <span><span class="co">#&gt; 4        largest: PD - Continuous between-subject SD, 6.44 points</span></span>
 <span><span class="co">#&gt; 5                     largest: DV between-subject SD, 2.25 points</span></span>
-<span><span class="co">#&gt; 6                 largest: DV: v2 between-subject SD, 1.92 points</span></span>
-<span><span class="co">#&gt; 7                 largest: DV: v2 between-subject SD, 12.4 points</span></span>
-<span><span class="co">#&gt; 8                 largest: DV: cl between-subject SD, 4.55 points</span></span>
-<span><span class="co">#&gt; 9                 largest: DV: ka between-subject SD, 4.46 points</span></span>
-<span><span class="co">#&gt; 10 largest: Everolimus trough: ka between-subject SD, 3.21 points</span></span></code></pre></div>
+<span><span class="co">#&gt; 6                 largest: DV: v2 between-subject SD, 2.09 points</span></span>
+<span><span class="co">#&gt; 7                 largest: DV: v2 between-subject SD, 12.7 points</span></span>
+<span><span class="co">#&gt; 8                  largest: APGR SD on the log scale, 4.32 points</span></span>
+<span><span class="co">#&gt; 9                 largest: DV: ka between-subject SD, 4.25 points</span></span>
+<span><span class="co">#&gt; 10 largest: Everolimus trough: ka between-subject SD, 3.39 points</span></span></code></pre></div>
 <p><code>left_out</code> counts the patients each study’s estimation
 left out for moving an estimate by 15 or more, and <code>largest</code>
 is the largest move among the patients that remain. A move is a fraction
@@ -1186,20 +1193,21 @@ each public study’s release against them. Three readings:</p>
 <ul>
 <li>
 <strong>Cohort size decides the population model’s
-exposure.</strong> With an exact reference the AUC falls from 0.74 at 12
-patients to 0.61 at 60, and a reference off by 20% brings the two to
-0.62 and 0.52.</li>
+exposure.</strong> With an exact reference the AUC falls from 0.70 at 12
+patients to 0.56 at 60, and a reference off by 20% brings the two to
+0.59 and 0.53.</li>
 <li>
-<strong>Two significant figures do not change it.</strong> Scored on
-the same simulated studies before and after rounding, the AUC moves by
-at most 0.002, because an estimate’s sampling variation is larger than
-one rounding step.</li>
+<strong>One significant figure lowers it; two would not.</strong>
+Scored on the same simulated studies, rounding to one figure, as the
+release does, lowers the AUC by up to 0.05, while two figures move it by
+at most 0.001, because a one-figure step is as wide as an estimate’s
+sampling variation and a two-figure step is not.</li>
 <li>
 <strong>A table per visit would be the most exposed part of a
 release, so the release holds none.</strong> A share of patients sampled
 at each of 20 visits gives 0.83 with 10 patients behind each share, 0.72
-with 30 and 0.63 with 100, and the three-patient rule moves it by at
-most 0.02, because the rule acts only on shares near 0 or 1. Attendance
+with 30 and 0.62 with 100, and the three-patient rule moves it by at
+most 0.01, because the rule acts only on shares near 0 or 1. Attendance
 is one rate for the study instead, and a binary or ordinal endpoint one
 set of level frequencies, each resting on every patient.</li>
 </ul>
@@ -1288,51 +1296,226 @@ few people alive hold it.</li>
 </ul>
 </div>
 <div class="section level2">
+<h2 id="why-the-release-is-not-differentially-private">Why the Release Is Not Differentially Private<a class="anchor" aria-label="anchor" href="#why-the-release-is-not-differentially-private"></a>
+</h2>
+<p><strong>For the use this generator is built for, a DP guarantee would
+drown the data it releases and protect against an attacker that use does
+not face.</strong> That use is synthetic data for developing analysis
+code, shared with people who work under the study’s own access controls
+or an agreement like them. The case rests on four points, and the
+paragraph after them says where it fails.</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>The release holds what the study’s own reports make public,
+more coarsely.</strong> A population PK report gives each typical value,
+its between-subject variability and the residual error, with their
+standard errors, and regulators ask for exactly that [18, 19]. The
+study’s main publication gives each arm’s baseline characteristics and
+how many patients discontinued [20]. This release holds the same kinds
+of number at one significant figure, pooled over the arms and the
+visits, without standard errors, and a few dozen at most (<a href="#released-parameters-at-a-glance">Released Parameters at a
+Glance</a>).</li>
+<li>
+<strong>The attacker the remaining risk needs already holds the
+answer.</strong> Membership inference needs the candidate’s own
+measurements of the kind the study made: their concentrations, which
+visits they attended, how their dose changed. Outside the study these
+exist at its sites, in a related study, or in routine care measuring the
+same things. Whoever holds a candidate’s trial record knows the
+candidate was in the trial, and learning it again from the release
+discloses nothing.</li>
+<li>
+<strong>What remains is measured, and it is close to
+chance.</strong> An attacker holding a candidate’s own random effects
+and the population’s exact values ranks a member above a non-member with
+probability 0.70 at 12 patients and 0.56 at 60. With the population’s
+values taken from another study of the drug, off by 20%, that falls to
+0.59 and 0.53. Nothing released is one patient’s value, every frequency
+rests on at least three patients, no patient moves an estimate by 15%,
+and the release holds no table per visit.</li>
+<li>
+<strong>DP at these cohort sizes replaces the study with
+noise</strong>, as the next section computes, and for this use noise is
+worse than no data. The <a href="https://iamstein.github.io/synpmx/articles/calibrated-public-data-examples.html">calibrated
+generator’s evaluation</a> finds a DP release at phase 1 sizes worse
+than generating from a public prior, which reads nothing.</li>
+</ol>
+<p><strong>Where the case fails.</strong> It assumes the release reaches
+people who will not try to identify anyone in it, as the study’s own
+data would. A mechanism with a formal guarantee is needed when:</p>
+<ul>
+<li>the release or the synthetic data will be published openly;</li>
+<li>being in the study is itself sensitive, as in a trial for HIV, a
+psychiatric condition or a rare disease, and someone outside the study
+could hold a candidate’s measurements, such as drug levels from
+therapeutic monitoring or routine laboratory tests;</li>
+<li>the same study will be released more than once, since releases add
+up and nothing here accounts for that;</li>
+<li>a regulator or a data-use agreement asks for a formal
+guarantee.</li>
+</ul>
+<p><a href="https://iamstein.github.io/synpmx/articles/synpmx-privacy.html">What
+differential privacy does and does not guarantee</a> sets out that
+choice.</p>
+</div>
+<div class="section level2">
 <h2 id="what-a-formal-guarantee-would-take">What a Formal Guarantee Would Take<a class="anchor" aria-label="anchor" href="#what-a-formal-guarantee-would-take"></a>
 </h2>
-<p>The DP method that fits a generator built on <code>nlmixr2</code> is
-subsample-and-aggregate [17, 18], because it treats the estimator as a
-black box:</p>
+<p><strong>A formal guarantee is possible, and at these cohort sizes its
+noise would be larger than what the study says.</strong> Generation
+needs no change, because it reads only the release. The release would
+change in three ways:</p>
 <ol style="list-style-type: decimal">
-<li>Split the patients into <em>k</em> disjoint groups and fit the
-population model in each.</li>
-<li>Clip each group’s estimate of each log parameter to a public range
-of width <em>S</em>.</li>
-<li>Release the mean over the groups plus Laplace noise of scale
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>b</mi><mo>=</mo><mi>d</mi><mi>S</mi><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mi>ε</mi><mi>k</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">b = dS/(\varepsilon k)</annotation></semantics></math>
-per parameter, where <em>d</em> parameters share the privacy budget
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ε</mi><annotation encoding="application/x-tex">\varepsilon</annotation></semantics></math>.</li>
+<li>
+<strong>Each patient’s influence is bounded by construction rather
+than measured.</strong> A population fit has no such bound: one patient
+given a thousand times the recorded dose moves its variances far past
+any threshold. Subsample-and-aggregate bounds it while keeping the fit
+as it is: the patients are split into disjoint groups of about twenty,
+the model is fitted in each, and the mean of the groups’ estimates, each
+clipped to a public range, is released with noise [17, 21]. The
+per-patient route estimates each patient’s parameters from that
+patient’s own measurements, clips them to a public range and releases
+their mean with noise, which is how <code><a href="../reference/synpmx_calibrated.html">synpmx_calibrated()</a></code>
+releases its one number. The textbook DP methods for regression perturb
+a convex loss with bounded gradients [22], and a population likelihood
+has neither.</li>
+<li>
+<strong>Fewer numbers are released.</strong> The privacy budget
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ε</mi><annotation encoding="application/x-tex">\varepsilon</annotation></semantics></math>
+is split across every released number, so the design, meaning the arms,
+schedules, visits and endpoint types, would come from the protocol
+rather than the data, as <code><a href="../reference/pmx_trial_design.html">pmx_trial_design()</a></code> already
+provides for the other generators.</li>
+<li>
+<strong>The noise comes from a vetted mechanism, with the budget
+accounted.</strong> The package already has both for
+<code><a href="../reference/synpmx_calibrated.html">synpmx_calibrated()</a></code>, through OpenDP.</li>
 </ol>
-<p>One patient is in one group, so the guarantee holds whatever the fit
-inside a group does. The textbook DP methods for regression perturb a
-convex loss with bounded gradients [19], and a population likelihood is
-neither, which rules them out here. The cost is the error law of the <a href="https://iamstein.github.io/synpmx/articles/privacy-background.html">privacy
-background</a> with the cohort size replaced by the number of groups. At
-about twenty patients per group, and a median Laplace error of
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>b</mi><mrow><mi mathvariant="normal">ln</mi><mo>⁡</mo></mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">b \ln 2</annotation></semantics></math>:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>patients <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">60</span>, <span class="fl">200</span>, <span class="fl">1000</span><span class="op">)</span>, released <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">11</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">grid</span><span class="op">$</span><span class="va">groups</span> <span class="op">&lt;-</span> <span class="va">grid</span><span class="op">$</span><span class="va">patients</span> <span class="op">/</span> <span class="fl">20</span></span>
-<span><span class="va">scale</span> <span class="op">&lt;-</span> <span class="va">grid</span><span class="op">$</span><span class="va">released</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">*</span> <span class="va">grid</span><span class="op">$</span><span class="va">groups</span><span class="op">)</span></span>
-<span><span class="va">grid</span><span class="op">$</span><span class="va">median_fold_error</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">signif</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span> <span class="op">*</span> <span class="va">scale</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
-<span><span class="va">grid</span></span>
-<span><span class="co">#&gt;   patients released groups median_fold_error</span></span>
-<span><span class="co">#&gt; 1       60        3      3              4.93</span></span>
-<span><span class="co">#&gt; 2      200        3     10              1.61</span></span>
-<span><span class="co">#&gt; 3     1000        3     50              1.10</span></span>
-<span><span class="co">#&gt; 4       60       11      3            348.00</span></span>
-<span><span class="co">#&gt; 5      200       11     10              5.79</span></span>
-<span><span class="co">#&gt; 6     1000       11     50              1.42</span></span></code></pre></div>
-<p>That is with
+<p><strong>What the noise costs.</strong> With
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ε</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\varepsilon = 1</annotation></semantics></math>
-and a public range spanning tenfold for each parameter. With all eleven
-parameters of a two-compartment model released, the error stays above
-40% even at a thousand patients; with three released and the rest taken
-from a public prior, it reaches about 10% there. At the cohort sizes
-this generator usually sees, the <a href="https://iamstein.github.io/synpmx/articles/calibrated-public-data-examples.html">calibrated
-generator’s evaluation</a> finds that a release is worse than generating
-from the public prior alone. Subsample-and-aggregate is not
-implemented.</p>
+split evenly over <em>d</em> released numbers, each clipped to a public
+range spanning sixteenfold on the log scale (fourfold either side of a
+prior, as <code><a href="../reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> uses), each number gets
+Laplace noise of scale
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>b</mi><mo>=</mo><mi>d</mi><mi>S</mi><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mi>n</mi><mi>ε</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">b = dS/(n\varepsilon)</annotation></semantics></math>
+on the log scale by the per-patient route, and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>b</mi><mo>=</mo><mi>d</mi><mi>S</mi><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mi>k</mi><mi>ε</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">b = dS/(k\varepsilon)</annotation></semantics></math>
+with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi><mo>=</mo><mi>n</mi><mi>/</mi><mn>20</mn></mrow><annotation encoding="application/x-tex">k = n/20</annotation></semantics></math>
+groups by subsample-and-aggregate. The table gives the median fold error
+of one released number,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>e</mi><mrow><mi>b</mi><mrow><mi mathvariant="normal">ln</mi><mo>⁡</mo></mrow><mn>2</mn></mrow></msup><annotation encoding="application/x-tex">e^{b \ln 2}</annotation></semantics></math>,
+and the noise’s spread against the uncertainty an estimate already has
+from sampling, for a between-subject SD of 0.3:</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">span</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">16</span><span class="op">)</span></span>
+<span><span class="va">dp_scale</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">patients</span>, <span class="va">released</span><span class="op">)</span> <span class="va">released</span> <span class="op">*</span> <span class="va">span</span> <span class="op">/</span> <span class="va">patients</span></span>
+<span><span class="va">dp_fold</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">patients</span>, <span class="va">released</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span> <span class="op">*</span> <span class="fu">dp_scale</span><span class="op">(</span><span class="va">patients</span>, <span class="va">released</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">dp_over_sampling</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">patients</span>, <span class="va">released</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span> <span class="op">*</span> <span class="fu">dp_scale</span><span class="op">(</span><span class="va">patients</span>, <span class="va">released</span><span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="fl">0.3</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">patients</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>patients <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">30</span>, <span class="fl">60</span>, <span class="fl">200</span>, <span class="fl">1000</span><span class="op">)</span>, released <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">11</span>, <span class="fl">30</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">fold_text</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">x</span> <span class="op">&gt;</span> <span class="fl">100</span>, <span class="st">"over 100-fold"</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"%.2f-fold"</span>, <span class="va">x</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  patients <span class="op">=</span> <span class="va">grid</span><span class="op">$</span><span class="va">patients</span>,</span>
+<span>  released_numbers <span class="op">=</span> <span class="va">grid</span><span class="op">$</span><span class="va">released</span>,</span>
+<span>  per_patient_median_error <span class="op">=</span> <span class="fu">fold_text</span><span class="op">(</span><span class="fu">dp_fold</span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">patients</span>, <span class="va">grid</span><span class="op">$</span><span class="va">released</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  noise_over_sampling_error <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"%.0f times"</span>, <span class="fu">dp_over_sampling</span><span class="op">(</span></span>
+<span>    <span class="va">grid</span><span class="op">$</span><span class="va">patients</span>, <span class="va">grid</span><span class="op">$</span><span class="va">released</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  subsample_median_error <span class="op">=</span> <span class="fu">fold_text</span><span class="op">(</span><span class="fu">dp_fold</span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">patients</span> <span class="op">/</span> <span class="fl">20</span>,</span>
+<span>                                             <span class="va">grid</span><span class="op">$</span><span class="va">released</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<colgroup>
+<col width="9%">
+<col width="17%">
+<col width="25%">
+<col width="26%">
+<col width="23%">
+</colgroup>
+<thead><tr class="header">
+<th align="right">patients</th>
+<th align="right">released_numbers</th>
+<th align="left">per_patient_median_error</th>
+<th align="left">noise_over_sampling_error</th>
+<th align="left">subsample_median_error</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="right">30</td>
+<td align="right">11</td>
+<td align="left">2.02-fold</td>
+<td align="left">26 times</td>
+<td align="left">over 100-fold</td>
+</tr>
+<tr class="even">
+<td align="right">60</td>
+<td align="right">11</td>
+<td align="left">1.42-fold</td>
+<td align="left">19 times</td>
+<td align="left">over 100-fold</td>
+</tr>
+<tr class="odd">
+<td align="right">200</td>
+<td align="right">11</td>
+<td align="left">1.11-fold</td>
+<td align="left">10 times</td>
+<td align="left">8.28-fold</td>
+</tr>
+<tr class="even">
+<td align="right">1000</td>
+<td align="right">11</td>
+<td align="left">1.02-fold</td>
+<td align="left">5 times</td>
+<td align="left">1.53-fold</td>
+</tr>
+<tr class="odd">
+<td align="right">30</td>
+<td align="right">30</td>
+<td align="left">6.83-fold</td>
+<td align="left">72 times</td>
+<td align="left">over 100-fold</td>
+</tr>
+<tr class="even">
+<td align="right">60</td>
+<td align="right">30</td>
+<td align="left">2.61-fold</td>
+<td align="left">51 times</td>
+<td align="left">over 100-fold</td>
+</tr>
+<tr class="odd">
+<td align="right">200</td>
+<td align="right">30</td>
+<td align="left">1.33-fold</td>
+<td align="left">28 times</td>
+<td align="left">over 100-fold</td>
+</tr>
+<tr class="even">
+<td align="right">1000</td>
+<td align="right">30</td>
+<td align="left">1.06-fold</td>
+<td align="left">12 times</td>
+<td align="left">3.17-fold</td>
+</tr>
+</tbody>
+</table>
+<p>Eleven numbers are a two-compartment population model alone, and
+thirty a whole release. At 60 patients the per-patient route leaves half
+of the population model’s numbers off by more than 1.42-fold, with noise
+19 times the sampling error each estimate already carries, and a whole
+release off by 2.6-fold. At 30 patients the population model alone is
+off by 2.0-fold. Even at 1,000 patients the noise is 4.5 times the
+sampling error. Subsample-and-aggregate, which keeps the fit as it is,
+is unusable below about a thousand patients. Gaussian noise with tighter
+accounting grows with the square root of the count rather than the
+count, and does not change this picture at these cohort sizes. At the 12
+to 200 patients this generator sees, a DP release would say less about
+the study than a public prior does. Neither route is implemented beyond
+the one number <code><a href="../reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> releases.</p>
 </div>
 <div class="section level2">
 <h2 id="released-parameters-at-a-glance">Released Parameters at a Glance<a class="anchor" aria-label="anchor" href="#released-parameters-at-a-glance"></a>
@@ -1527,11 +1710,11 @@ planned dose schedule, which is the protocol, is counted apart.</p>
 <td align="right">9</td>
 <td align="right">0</td>
 <td align="right">4</td>
-<td align="right">8</td>
+<td align="right">6</td>
 <td align="right">1</td>
 <td align="right">0</td>
 <td align="right">3</td>
-<td align="right">25</td>
+<td align="right">23</td>
 <td align="right">14</td>
 </tr>
 <tr class="odd">
@@ -1581,7 +1764,7 @@ categorical one.</li>
 <li>
 <strong>Dose changes</strong>: the three pooled rates of reducing,
 skipping and stopping, and each level of the dose ladder below the full
-dose.</li>
+dose, a fraction of the starting dose to one significant figure.</li>
 <li>
 <strong>Attendance</strong>: one rate for the study, or none where
 every patient attended every visit their arm had.</li>
@@ -1656,6 +1839,13 @@ groundhog day. <em>USENIX Security Symposium.</em> 2022.</li>
 <li>Nissim K, Raskhodnikova S, Smith A. Smooth sensitivity and sampling
 in private data analysis. <em>ACM Symposium on Theory of Computing
 (STOC).</em> 2007.</li>
+<li>U.S. Food and Drug Administration. <em>Population Pharmacokinetics:
+Guidance for Industry.</em> 2022.</li>
+<li>European Medicines Agency. <em>Guideline on Reporting the Results of
+Population Pharmacokinetic Analyses.</em> CHMP/EWP/185990/06. 2007.</li>
+<li>Schulz KF, Altman DG, Moher D. CONSORT 2010 Statement: updated
+guidelines for reporting parallel group randomised trials. <em>BMJ.</em>
+2010;340:c332.</li>
 <li>Smith A. Privacy-preserving statistical estimation with optimal
 convergence rates. <em>ACM Symposium on Theory of Computing (STOC).</em>
 2011.</li>

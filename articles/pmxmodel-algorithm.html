@@ -815,7 +815,7 @@ checks.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged accepted      aic seconds note</span></span>
-<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  57.132</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  56.676</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="covariates">Covariates<a class="anchor" aria-label="anchor" href="#covariates"></a>
@@ -951,10 +951,10 @@ kilogram, the arm’s mean to two significant figures</td>
 </tr>
 <tr class="even">
 <td>Dose ladder</td>
-<td>The levels patients dropped to, as ratios to their own starting
-dose, built from within-patient decreases: every level
-<code>min_arm_patients</code> patients of some arm share, one ladder for
-the study</td>
+<td>The levels patients dropped to, as ratios to their own starting dose
+to one significant figure, built from within-patient decreases: every
+level <code>min_arm_patients</code> patients of some arm share, one
+ladder for the study</td>
 <td>The amount multiplier in force at a cycle</td>
 </tr>
 <tr class="odd">
@@ -1074,13 +1074,16 @@ from an allowlist, the fields Step 6 uses and nothing else, and
 <code><a href="../reference/synpmx_model_generate.html">synpmx_model_generate()</a></code> attaches that to its output rather
 than the fit. An allowlist, so that a field added to the fit later stays
 behind unless someone adds it to the list.</p>
-<p><strong>Every released estimate is rounded to two significant
-figures</strong>: the PK fixed effects, the between-subject variances,
-the residual error, the PD shape parameters and the covariate summaries.
-The acceptance checks of Step 3 run on the fit as estimated, before the
-rounding. Leaving out a typical patient moves a typical value by less
-than one rounding step; an outlier moves a variance by more, which is
-what the next reading is for.</p>
+<p><strong>Every released PK and PD estimate is rounded to one
+significant figure</strong>: the PK fixed effects, the between-subject
+variances, the residual error and the PD shape parameters. The covariate
+summaries are rounded to two, because one would put a mean height of 172
+cm at 200. The acceptance checks of Step 3 run on the fit as estimated,
+before the rounding, and the full-precision PK estimates stay on the fit
+as <code>estimated</code>, outside the release. One figure moves an
+estimate by 9% on average and 33% at worst; in exchange a typical
+patient leaves the released value unchanged, and an outlier’s effect on
+a variance is what the next reading is for.</p>
 <p><strong>How far one patient moves each estimate is read before the
 random effects are dropped.</strong> A typical value on the log scale
 sits close to the mean of the patients’ individual log parameters, so
@@ -1153,11 +1156,11 @@ seen.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Each non-PK continuous endpoint, fitted as constant, linear, or exponential</span></span>
 <span><span class="co">#&gt;   pca                exponential</span></span>
-<span><span class="co">#&gt;                        plateau          27</span></span>
-<span><span class="co">#&gt;                        baseline         96</span></span>
-<span><span class="co">#&gt;                        rate             0.099</span></span>
-<span><span class="co">#&gt;                        between-subject  0.15 (SD on the log baseline)</span></span>
-<span><span class="co">#&gt;                        residual         additive 12</span></span>
+<span><span class="co">#&gt;                        plateau          30</span></span>
+<span><span class="co">#&gt;                        baseline         100</span></span>
+<span><span class="co">#&gt;                        rate             0.1</span></span>
+<span><span class="co">#&gt;                        between-subject  0.1 (SD on the log baseline)</span></span>
+<span><span class="co">#&gt;                        residual         additive 10</span></span>
 <span><span class="co">#&gt;                        chosen on AIC from constant, linear, exponential</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; PK endpoint for the PopPK model</span></span>
@@ -1176,14 +1179,14 @@ seen.</p>
 <span><span class="co">#&gt;   structural model   2cmt_oral </span></span>
 <span><span class="co">#&gt;   selected by        two-compartment model passed acceptance checks</span></span>
 <span><span class="co">#&gt;   fitted on          all 32 patients with a concentration</span></span>
-<span><span class="co">#&gt;   fixed effects      cl 0.13, v 6.6, q 0.098, v2 1.6, ka 0.42 </span></span>
-<span><span class="co">#&gt;   between-subject    cl 0.268, v 0.192, ka 0.557, q 0.0748, v2 0.64 (as SD on the log scale)</span></span>
-<span><span class="co">#&gt;   residual error     proportional 0.21 </span></span>
-<span><span class="co">#&gt;   time to fit        57.1 s</span></span>
-<span><span class="co">#&gt;   whole call         57.3 s, against 57.1 s in the fitter</span></span>
+<span><span class="co">#&gt;   fixed effects      cl 0.1, v 7, q 0.1, v2 2, ka 0.4 </span></span>
+<span><span class="co">#&gt;   between-subject    cl 0.265, v 0.2, ka 0.548, q 0.0775, v2 0.632 (as SD on the log scale)</span></span>
+<span><span class="co">#&gt;   residual error     proportional 0.2 </span></span>
+<span><span class="co">#&gt;   time to fit        56.7 s</span></span>
+<span><span class="co">#&gt;   whole call         56.9 s, against 56.7 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
-<span><span class="co">#&gt;   one patient's pull pass: largest: cp: ka between-subject SD, 10 points;</span></span>
+<span><span class="co">#&gt;   one patient's pull pass: largest: cp: ka between-subject SD, 9.84 points;</span></span>
 <span><span class="co">#&gt;                      `model_privacy_checks()` has every check</span></span></code></pre></div>
 </div>
 <div class="section level2">
