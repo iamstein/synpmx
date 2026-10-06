@@ -1,56 +1,35 @@
 # The PMX model study fingerprint
 
-Every generator in this package reduces a study to a **fingerprint** — a
-set of summaries small enough to carry out of the environment that holds
-the real data, and complete enough to build a synthetic study from. The
-fingerprint is the whole of what a synthetic dataset descends from.
-Nothing else about the source reaches it, which is why looking at the
-fingerprint is how you decide whether the output can be trusted, and how
-you satisfy yourself that no patient left the room.
+A study’s **fingerprint** is the set of numbers a synthetic study is
+generated from. For
+[`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md)
+it is a population PK model, a time course for each PD endpoint, and a
+summary of the study’s design: its arms, dose schedules, attendance and
+covariate distributions. Synthetic data is drawn from the fingerprint
+and random numbers alone, so the fingerprint is everything about the
+source that can reach the output.
 
 [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md)
-returns this generator’s fingerprint, as a `pmx_fitted_model`.
+returns a fit. The fit holds the fingerprint plus diagnostics for
+whoever ran it, such as the candidate models and the correlations
+between covariates and random effects.
+[`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md)
+extracts the fingerprint, and that is the object to carry out of the
+environment that holds the study.
 [`synpmx_model_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_generate.md)
-reads that object and no patient row.
+accepts either and reads only the fingerprint.
 
-This vignette walks through it group by group. It is a reference: read
+This vignette walks through the fingerprint of one study. Read
 [`vignette("pmxmodel-demo")`](https://iamstein.github.io/synpmx/articles/pmxmodel-demo.md)
 first for a run end to end, and
 [`vignette("pmxmodel-algorithm")`](https://iamstein.github.io/synpmx/articles/pmxmodel-algorithm.md)
-for how each quantity is arrived at and why.
-[`vignette("pca-fingerprint")`](https://iamstein.github.io/synpmx/articles/pca-fingerprint.md)
-is the same walk through the PCA generator’s fingerprint, and the two
-are worth reading side by side.
-
-## Two halves, and they are not alike
-
-This fingerprint divides more sharply than the PCA one does.
-
-**The estimated half** is a population model: a structural form, a
-handful of fixed effects, a covariance matrix, a residual error. It is
-perhaps twenty numbers describing the shape of every profile in the
-study, which is a very small fingerprint for a very strong claim. It
-also looks exactly like the output of a real population analysis, and it
-is not one — the candidate set is small and the covariate model is
-allometric scaling or nothing.
-
-**The summarized half** is the study’s apparatus: who was in which arm,
-when doses were planned and how patients departed from that plan, which
-visits were attended, what the covariates looked like, where the assay
-limit sat. None of this is estimated. It is exactly the apparatus
-[`synpmx_pca_summarize()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_summarize.md)
-builds, from the same code.
-
-The two halves carry different risks. Twenty fitted numbers are a
-compact summary of 32 people; a per-arm dosing model with a cycle grid
-can be much larger and is backed by one arm’s patients rather than the
-whole cohort.
+for how each quantity is estimated.
 
 ## The study
 
-[`nlmixr2data::warfarin`](https://nlmixr2.github.io/nlmixr2data/reference/warfarin.html)
-— thirty-two patients, a single oral dose, a concentration endpoint and
-a pharmacodynamic one.
+[`nlmixr2data::warfarin`](https://nlmixr2.github.io/nlmixr2data/reference/warfarin.html):
+32 patients, one oral dose scaled to body weight, a warfarin
+concentration and a prothrombin complex activity (PCA).
 
 ``` r
 
@@ -68,16 +47,25 @@ roles <- pmx_roles(
 fit <- synpmx_model_estimate(warfarin, roles, seed = 1)
 ```
 
-The chunk above is shown rather than run: fitting compiles a model, so
-this document reads a stored fit and `R CMD check` never needs a
-compiler.
+This document reads a stored copy of that fit, so it needs no compiler.
 
-## The inventory
+``` r
+
+release <- model_release(fit)
+names(release)
+#>  [1] "structural"           "parameters"           "pk_models"           
+#>  [4] "pd"                   "arms"                 "dosing"              
+#>  [7] "visits"               "cells"                "discrete"            
+#> [10] "covariates"           "covariate_effects"    "schema"              
+#> [13] "roles"                "endpoints"            "quantification_floor"
+#> [16] "n_source"             "settings"             "privacy"
+setdiff(names(fit), names(release))  # diagnostics that stay with the fit
+#> [1] "candidates"   "design"       "correlations" "censoring"    "timing"      
+#> [6] "movement"     "fit_subjects" "start_param"  "dose_records"
+```
 
 [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md)
-is the top-level account, and it separates the two halves because they
-answer to different things. Printing the fitted object shows the same
-account, because everything on it is an input to the generation step.
+summarizes the whole fit in one printout:
 
 ``` r
 
@@ -134,154 +122,94 @@ model_report(fit)
 #>                      `model_privacy_checks()` has every check
 ```
 
-Every section below expands one part of it. The object is a plain list
-and the names used are its own, so a quantity can be reached directly
-when no accessor covers it.
+## The PK model
+
+### Which endpoint is the concentration
+
+The fit decides which endpoint is the drug concentration from four
+signals: whether it is observed in a dosing compartment, whether it
+appears only after dosing, whether its median profile rises and falls,
+and whether it scales with dose. This is a diagnostic rather than part
+of the fingerprint, but everything in the PK model depends on it.
 
 ``` r
 
-names(fit)
-#>  [1] "structural"           "candidates"           "parameters"          
-#>  [4] "arms"                 "dosing"               "visits"              
-#>  [7] "schema"               "roles"                "settings"            
-#> [10] "n_source"             "cells"                "pd"                  
-#> [13] "covariate_effects"    "covariates"           "discrete"            
-#> [16] "design"               "correlations"         "censoring"           
-#> [19] "quantification_floor" "timing"               "movement"            
-#> [22] "fit_subjects"         "start_param"          "dose_records"        
-#> [25] "privacy"              "pk_models"            "endpoints"
-```
-
-## The settings that produced it
-
-``` r
-
-unlist(fit$settings)
-#>          min_subjects      min_arm_patients min_category_patients 
-#>                  "20"                   "3"                   "3" 
-#>         min_time_bins      max_fit_subjects            estimation 
-#>                   "6"                  "60"               "focei" 
-#>     covariate_effects                 error 
-#>                "none"                "prop"
-c(patients = fit$n_source, arms = length(fit$arms$arms))
-#> patients     arms 
-#>       32        1
-```
-
-## How the concentration endpoint was decided
-
-Not a released quantity, but the first thing to read: everything
-downstream is a model *of* this endpoint, and if the wrong one was
-chosen nothing else matters.
-
-``` r
-
-show(fit$endpoints$signals, "The four signals, per endpoint")
-```
-
-`proportional` reads `NA` here because `warfarin` gives every patient
-the same dose, so there are no dose levels to compare — the
-classification rests on the remaining signals. A column of `NA` under
-`proportional` is the object telling you how little evidence it had, and
-`endpoint_roles` is how you overrule it.
-
-``` r
-
+fit$endpoints$signals
+#>   endpoint compartment post_dose shape proportional
+#> 1       cp          NA      TRUE  TRUE           NA
+#> 2      pca          NA     FALSE FALSE           NA
 fit$design$reason
 #> [1] "the median profile rises to a peak at 9 before declining, and 31% of subjects do too"
-fit$endpoints$decided_by
-#> [1] "inferred"
 ```
 
-## The structural model
+`proportional` is `NA` because `warfarin` is dosed by body weight, so
+there are no dose levels to compare and the other three signals decide.
+`endpoint_roles` in
+[`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md)
+overrides the decision.
+
+### Structural model
 
 ``` r
 
-fit$structural
+release$structural
 #> [1] "2cmt_oral"
 model_candidates(fit)
 #>       model converged accepted      aic seconds note
 #> 1 2cmt_oral      TRUE     TRUE 922.2948  57.294
 ```
 
-Each row is an attempted fit. The default stops when two compartments
-pass the acceptance checks; a rejected fit is followed by one
-compartment. `pk` names a particular model, or several to compare by
-Akaike information criterion (AIC) after those checks.
+By default the fit tries two compartments and falls back to one only if
+two fail the acceptance checks. `pk` names a model, or several to
+compare by AIC.
 
-For a declared PD-only study there is no PK structure: `structural` and
-`parameters` are `NULL`, `pk_models` is empty, and the PK candidate
-table has no rows. The PD shapes and their candidates are in
-`model_report(fit)$pd`; `model_parameters(fit)$pd` returns those fits.
+### Parameters
 
-## The fixed effects
-
-The typical parameters, on the natural scale. These are the numbers that
-look most like a result and are least entitled to be read as one.
+Typical values on the natural scale, the between-subject covariance on
+the log scale, and the residual error. Every PK and PD estimate in the
+fingerprint is rounded to one significant figure.
 
 ``` r
 
-model_parameters(fit)$fixed
+model_parameters(fit)
+#> $fixed
 #>  cl   v   q  v2  ka 
-#> 0.1 7.0 0.1 2.0 0.4
-```
-
-## Between-subject variability
-
-A covariance matrix on the log scale, one row per parameter carrying a
-random effect. Generation draws each synthetic subject’s deviations from
-this matrix.
-
-``` r
-
-model_parameters(fit)$omega
+#> 0.1 7.0 0.1 2.0 0.4 
+#> 
+#> $omega
 #>      cl    v  ka     q  v2
 #> cl 0.07 0.00 0.0 0.000 0.0
 #> v  0.00 0.04 0.0 0.000 0.0
 #> ka 0.00 0.00 0.3 0.000 0.0
 #> q  0.00 0.00 0.0 0.006 0.0
 #> v2 0.00 0.00 0.0 0.000 0.4
-sqrt(diag(model_parameters(fit)$omega))  # as CV on the log scale
-#>         cl          v         ka          q         v2 
-#> 0.26457513 0.20000000 0.54772256 0.07745967 0.63245553
-```
-
-**No individual estimates.** Empirical Bayes estimates are per-subject
-quantities, and an object carrying them would be a description of each
-real patient. They are read for the correlations below and for how far
-one patient moves each estimate, and then dropped. This matrix is what
-stands in for them, and it is a statement about the population rather
-than about anybody in it. Like every PK and PD estimate in the
-fingerprint, it is rounded to one significant figure.
-
-## The residual error
-
-``` r
-
-model_parameters(fit)$residual
-#> $kind
+#> 
+#> $residual
+#> $residual$kind
 #> [1] "proportional"
 #> 
-#> $cv
+#> $residual$cv
 #> [1] 0.2
 ```
 
-Proportional, with the kind recorded on the object. `warfarin` reports a
-few concentrations at or below zero, which is what an assay returns near
-its limit rather than evidence that the endpoint reaches zero, so those
-rows are fitted at half the smallest positive value and the error stays
-proportional. An endpoint whose values reach zero in many rows is given
-an additive error instead.
+No covariate is in the model: `covariate_effects = "none"` is the
+default, so `release$covariate_effects` is empty and every synthetic
+patient’s parameters are drawn from the covariance matrix alone.
 
-## What the assay limit cost
+``` r
 
-The concentration is fitted with its below-limit rows censored, so each
-contributes the probability of falling below the limit rather than a
-value nobody measured. Every other part of the fingerprint is a
-least-squares fit with no likelihood to put censoring in, and reads a
-uniform draw inside the censoring region instead — an assumption, whose
-weight is the share of each endpoint carrying it. The boundary is put
-back when data is generated.
+release$covariate_effects
+#> list()
+```
+
+The fingerprint holds no patient’s own random effects (empirical Bayes
+estimates). They are read during estimation and dropped.
+
+`warfarin` reports four concentrations at or below zero, which is what
+an assay returns near its limit. They are fitted at half the smallest
+positive value, and the residual error stays proportional.
+
+### Censoring
 
 ``` r
 
@@ -289,55 +217,25 @@ fit$censoring
 #> NULL
 ```
 
-`warfarin` declares no censoring, so nothing here is below a limit. On a
-study where it is, this is the line to read before trusting the
-concentrations:
-[`xgxr::case1_pkpd`](https://rdrr.io/pkg/xgxr/man/case1_pkpd.html) has
-46% of its concentrations below the limit and 95% of the lowest dose
-arm. Much of the information is therefore a bound rather than a measured
-concentration. The two-compartment fit in the public-data survey retains
-a false-convergence warning and passes the parameter and generation
-checks.
+`warfarin` declares no assay limit, so this is empty. Where a study
+declares one, its below-limit concentrations enter the population fit as
+censored, and this table gives the share of each endpoint below the
+limit. On
+[`xgxr::case1_pkpd`](https://rdrr.io/pkg/xgxr/man/case1_pkpd.html) it is
+46% of the concentrations, so much of what the PK model knows there is a
+bound rather than a measurement.
 
-## The covariate effects
+## The PD time courses
 
-``` r
-
-fit$covariate_effects
-#> list()
-```
-
-Allometric scaling on clearance and volume, with the standard exponents.
-It is asserted rather than tested —
-[`vignette("pmxmodel-algorithm")`](https://iamstein.github.io/synpmx/articles/pmxmodel-algorithm.md)
-says why — and `covariate_effects = "none"` removes it.
-
-### What is *not* modelled shows up here
+Each continuous endpoint other than the concentration gets a time course
+with no exposure term, chosen by AIC from a constant, a linear and an
+exponential shape. It reproduces the average response over time, which
+is enough for testing analysis code, and is not an exposure-response
+model.
 
 ``` r
 
-show(fit$correlations[order(-abs(fit$correlations$correlation)), ],
-     "Each covariate against the individual random effects")
-```
-
-This is the most important table in the document, and it is a diagnostic
-rather than a released quantity. A covariate that moves with a random
-effect and is not in the model above is generated **independently** of
-the profiles, so the synthetic data carries no relationship between the
-two.
-[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
-preserves those relationships without modelling them, because a blended
-subject’s covariates and profile come from the same donors.
-
-The correlations are computed from the individual random effects and
-only the correlations are kept, so no per-subject quantity survives into
-the object.
-
-## The pharmacodynamic shapes
-
-``` r
-
-lapply(fit$pd, function(shape) c(shape = shape$pd, round(shape$typical, 3)))
+lapply(release$pd, function(shape) c(shape = shape$pd, shape$typical))
 #> $pca
 #>         shape       plateau      baseline          rate 
 #> "exponential"          "30"         "100"         "0.1"
@@ -348,36 +246,18 @@ lapply(fit$pd, function(shape) c(shape = shape$pd, round(shape$typical, 3)))
 show(fit$pd[[1L]]$candidates, "The three shapes, compared on AIC")
 ```
 
-A time course with no exposure term. A PD endpoint driven by
-concentration is reproduced as a curve that resembles the average
-subject’s response, which is adequate for exercising longitudinal code
-and is not an exposure-response model.
+## Covariates
 
-## The covariate distributions
-
-One distribution per covariate, fitted over the whole study and drawn
-from independently at generation. Pooled rather than per arm because a
-baseline covariate is recorded before the first dose: in a randomized
-study what separates two arms’ weights is the sampling noise of however
-many patients the arm has, and modelling it per arm reproduces that
-noise as if it were structure.
-
-A continuous covariate is summarized after its highest and lowest 5% of
-patients are set aside, at least one at each end, so no patient at
-either extreme enters the mean or the SD, and no median is stored.
-
-Categorical distributions retain only levels held by at least
-`min_category_patients` patients (default 3), counted once per patient
-after small arms are excluded. The remaining frequencies are
-renormalized. If no level remains, the covariate is generated as missing
-with a warning during estimation. Excluded labels are absent from the
-factor schema as well. Set `min_category_patients = 1` when estimating
-to retain all observed levels; previously stored fits must be
-re-estimated to apply the threshold.
+Each baseline covariate has one distribution for the whole study, and
+synthetic patients draw their covariates from it independently of
+everything else. A continuous covariate is a mean and SD on the log
+scale, taken after the highest and lowest 5% of patients are set aside.
+A categorical one is a set of level frequencies, keeping only levels at
+least `min_category_patients` patients (default 3) hold.
 
 ``` r
 
-str(fit$covariates, max.level = 2)
+str(release$covariates, max.level = 2)
 #> List of 3
 #>  $ wt :List of 3
 #>   ..$ kind   : chr "lognormal"
@@ -393,109 +273,106 @@ str(fit$covariates, max.level = 2)
 #>   ..$ probability: num [1:2] 0.156 0.844
 ```
 
-## The arms
+Because no covariate is in the PK model, a relationship the real study
+had, such as heavier patients having a larger volume, is absent from the
+synthetic data. The fit reports where that happens: the correlation
+between each covariate and each patient’s random effects, as a
+diagnostic that stays with the fit.
 
 ``` r
 
-data.frame(arm = fit$arms$arms, patients = as.integer(fit$arms$sizes))
+show(fit$correlations[order(-abs(fit$correlations$correlation)), ],
+     "Each covariate against the random effects")
+```
+
+Here weight and sex both move with volume. If the synthetic data needs
+that relationship, `covariate_effects = "auto"` adds allometric scaling
+of clearance and volume on body weight.
+[`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md)
+keeps such relationships without modelling them, because each synthetic
+patient’s covariates and profile come from the same real patients.
+
+## The study design
+
+The design half of the fingerprint is the same as the one
+[`synpmx_pca_summarize()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_summarize.md)
+builds, from the same code.
+
+### Arms
+
+``` r
+
+data.frame(arm = release$arms$arms, patients = as.integer(release$arms$sizes))
 #>   arm patients
 #> 1 all       32
 ```
 
-## The dosing model
+### Dosing
 
-A planned schedule per arm, and one dose ladder and three discrete-time
-hazards pooled over the arms. This is the apparatus
-[`synpmx_pca_summarize()`](https://iamstein.github.io/synpmx/reference/synpmx_pca_summarize.md)
-builds, unchanged.
+Each arm has its planned schedule. The levels doses were reduced to, and
+the rates of reducing, skipping and stopping, are pooled over the arms.
 
 ``` r
 
-arm <- fit$arms$arms[[1L]]
-show(fit$dosing[[arm]]$planned, "The planned schedule")
+arm <- release$arms$arms[[1L]]
+show(release$dosing[[arm]]$planned, "The planned schedule")
 ```
 
 ``` r
 
-dosing <- fit$dosing[[fit$arms$arms[[1L]]]]
+dosing <- release$dosing[[arm]]
 c(levels = length(dosing$levels), reduction = dosing$reduction,
   interruption = dosing$interruption, discontinuation = dosing$discontinuation)
 #>          levels       reduction    interruption discontinuation 
 #>               1               0               0               0
 ```
 
-`warfarin` is a single dose that everybody received, so the ladder has
-one level and all three rates are zero. The model then reproduces the
-planned schedule exactly, which is the right answer and is what those
-zeros say. On a study where patients reduce, skip cycles or come off
-treatment, these are the numbers that carry it — and because the
-schedule is drawn *before* the profile is computed from it, a synthetic
-subject who steps down has the lower exposure that implies.
+`warfarin` is a single dose everyone received, so all three rates are
+zero and the planned schedule is reproduced exactly. Where patients do
+reduce or skip doses, the synthetic schedule is drawn before the profile
+is simulated, so a synthetic patient who steps down gets the lower
+exposure.
 
-## The visit model
+### Visits
 
-The visits each arm has, and one attendance rate per endpoint, applied
-at every visit of that endpoint an arm has. Attendance is drawn per
-visit at generation. The rates, then the number of visits, per endpoint:
+The visits each arm has, and one attendance rate per endpoint.
+Attendance is drawn visit by visit at generation. The rates, then the
+number of visits, per endpoint:
 
 ``` r
 
-rate <- do.call(pmax, unname(lapply(fit$visits, function(v) v$probability)))
-signif(tapply(rate, fit$cells$endpoint, max), 3)
+rate <- do.call(pmax, unname(lapply(release$visits, function(v) v$probability)))
+signif(tapply(rate, release$cells$endpoint, max), 3)
 #>    cp   pca 
 #> 0.551 0.906
-table(fit$cells$endpoint)
+table(release$cells$endpoint)
 #> 
 #>  cp pca 
 #>  14   8
 ```
 
-A cell is kept only where at least `min_arm_patients` distinct patients
-hold an observation there. A nominal time one patient attended is that
-patient, and generating from it would put them back.
+A visit is kept only where at least `min_arm_patients` patients were
+observed there.
 
-## The schema
+### Schema
 
-What the generated table has to look like to be the same study: the
-columns and their classes, the compartment numbers, the assay limit per
-endpoint, and how identifiers are written.
+The shape of the table to generate: its columns and their classes, the
+compartment numbers, and any assay limit per endpoint.
 
 ``` r
 
-fit$schema$columns
+release$schema$columns
 #>  [1] "id"    "time"  "ntime" "dv"    "amt"   "evid"  "dvid"  "wt"    "age"  
 #> [10] "sex"
-fit$schema$cmt_dose
-#> NULL
-unlist(fit$schema$cmt_obs)
-#> NULL
-fit$schema$censoring
-#> $cp
-#> NULL
-#> 
-#> $pca
+unlist(release$schema$cmt_obs)
 #> NULL
 ```
 
 ## Generating from it
 
-The diagnostics above stay with the fit: the candidate table, the
-correlations and the timings.
-[`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md)
-is the part generation reads, and it is what
-[`synpmx_model_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_generate.md)
-attaches to the data it returns.
-
 ``` r
 
-setdiff(names(fit), names(model_release(fit)))
-#> [1] "candidates"   "design"       "correlations" "censoring"    "timing"      
-#> [6] "movement"     "fit_subjects" "start_param"  "dose_records"
-```
-
-``` r
-
-synthetic <- synpmx_model_generate(fit, n_subjects = 32, seed = 7)
+synthetic <- synpmx_model_generate(release, n_subjects = 32, seed = 7)
 c(rows = nrow(synthetic),
   subjects = length(unique(synthetic$id)),
   valid = validate_pmx(synthetic, roles)$valid)
@@ -505,16 +382,15 @@ c(rows = nrow(synthetic),
 
 ## Where to go next
 
-- [`vignette("pmxmodel-demo")`](https://iamstein.github.io/synpmx/articles/pmxmodel-demo.md)
-  — this generator run on a study end to end.
-- [`vignette("pmxmodel-algorithm")`](https://iamstein.github.io/synpmx/articles/pmxmodel-algorithm.md)
-  — how each quantity above is arrived at.
-- [`vignette("pca-fingerprint")`](https://iamstein.github.io/synpmx/articles/pca-fingerprint.md)
-  — the same walk for the PCA generator, which carries the same
-  apparatus and a completely different description of the profiles.
-- [`vignette("scorecard")`](https://iamstein.github.io/synpmx/articles/scorecard.md)
-  — the checks that read a generated dataset against its source.
+- [`vignette("pmxmodel-demo")`](https://iamstein.github.io/synpmx/articles/pmxmodel-demo.md):
+  this generator run on a study end to end.
+- [`vignette("pmxmodel-algorithm")`](https://iamstein.github.io/synpmx/articles/pmxmodel-algorithm.md):
+  how each quantity above is estimated.
+- [`vignette("pca-fingerprint")`](https://iamstein.github.io/synpmx/articles/pca-fingerprint.md):
+  the same walk for the PCA generator, which shares the study design and
+  describes the profiles differently.
+- [`vignette("scorecard")`](https://iamstein.github.io/synpmx/articles/scorecard.md):
+  the checks that compare generated data with its source.
 - [Privacy protections in the PMX model
-  generator](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html)
-  — what of this fingerprint leaves the study, the protections on it,
-  and the checks that measure them.
+  generator](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html):
+  what protects the fingerprint, and what risk remains.

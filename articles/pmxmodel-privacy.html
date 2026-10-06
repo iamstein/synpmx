@@ -216,9 +216,9 @@ study, pooled over the arms and the visits.</p>
 <p>These numbers are the <strong>release</strong>, and they are all that
 leaves the environment that holds the study. Synthetic data is simulated
 from the release and random numbers alone, so it discloses nothing the
-release does not. <a href="#released-parameters-at-a-glance">Released
-Parameters at a Glance</a> counts the numbers in each public study’s
-release.</p>
+release does not. The release is the study’s fingerprint, and <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-fingerprint.html">The
+PMX model study fingerprint</a> walks through one field by field. <a href="#released-parameters-at-a-glance">Released Parameters at a
+Glance</a> counts the numbers in each public study’s release.</p>
 </div>
 <div class="section level3">
 <h3 id="what-is-protected-and-what-is-not">What Is Protected, and What Is Not<a class="anchor" aria-label="anchor" href="#what-is-protected-and-what-is-not"></a>
@@ -254,11 +254,9 @@ small: given one member and one non-member, the attacker picks the
 member 53% of the time in a 60-patient study when its population
 parameters come from another study (20% off), and 70% of the time in a
 12-patient study when it knows the population’s true parameters, where
-50% is a coin flip. The advantage grows with fewer patients and more
-released numbers, which is why the release pools attendance and level
-frequencies over the visits and rounds its estimates to one significant
-figure. <a href="#membership-inference-against-the-release">Appendix:
-Membership Inference Against the Release</a> gives the numbers.</p>
+50% is a coin flip. <a href="#membership-inference-against-the-release">Appendix: Membership
+Inference Against the Release</a> provides further details on these
+calculations.</p>
 <p><strong>❌ No formal guarantee.</strong> Nothing bounds what an
 attacker who knows every other patient learns about the remaining
 one.</p>
@@ -268,42 +266,38 @@ one.</p>
 <h2 id="the-protections">The Privacy Protections<a class="anchor" aria-label="anchor" href="#the-protections"></a>
 </h2>
 <div class="section level3">
-<h3 id="no-single-patients-value">1. No Single Patient’s Value<a class="anchor" aria-label="anchor" href="#no-single-patients-value"></a>
+<h3 id="no-single-patients-value-is-used">1. No Single Patient’s Value is Used<a class="anchor" aria-label="anchor" href="#no-single-patients-value-is-used"></a>
 </h3>
 <p>Every quantity that would naturally have been one patient’s value is
 computed another way:</p>
 <table class="table">
 <colgroup>
-<col width="33%">
-<col width="33%">
-<col width="33%">
+<col width="50%">
+<col width="50%">
 </colgroup>
 <thead><tr class="header">
 <th>Quantity</th>
-<th>Would have been</th>
-<th>Is</th>
+<th>How it’s computed</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td>Lowest value generated, where no assay limit is declared</td>
-<td>half the smallest value reported</td>
+<td>Lowest value generated, used for LOQ where no assay limit is
+declared</td>
 <td>half the lowest value at least three patients reached, rounded down
 to 1, 2 or 5 times a power of ten</td>
 </tr>
 <tr class="even">
 <td>Reference weight for body-weight scaling</td>
-<td>the cohort median</td>
 <td>the median to one significant figure</td>
 </tr>
 <tr class="odd">
 <td>Planned dose, where patients’ doses differ</td>
-<td>the most common dose, which can be one patient’s</td>
 <td>the arm’s mean to two significant figures</td>
 </tr>
 <tr class="even">
 <td>Continuous covariate</td>
-<td>a mean, SD and median over every patient</td>
-<td>a trimmed mean and SD (protection 3), no median</td>
+<td>a trimmed mean and SD after the highest and lowest 5% of patients
+are set aside</td>
 </tr>
 </tbody>
 </table>
@@ -311,11 +305,15 @@ to 1, 2 or 5 times a power of ten</td>
 <div class="section level3">
 <h3 id="at-least-three-patients-behind-every-frequency">2. At Least Three Patients Behind Every Frequency<a class="anchor" aria-label="anchor" href="#at-least-three-patients-behind-every-frequency"></a>
 </h3>
-<p>A frequency resting on one patient describes that patient, and so
-does one that all but one patient share. Statistical disclosure control
-(SDC), the field that protects published statistical tables, publishes a
-count only where at least <em>k</em> people stand behind it [2]. Here
-<em>k</em> is 3, applied to both groups behind a frequency:</p>
+<p>If only one or two patients in a study missed a visit or had a dose
+reduced, any frequency describing that event reveals something about
+them. The same is true when all but one or two patients had it: 30 of 32
+patients attending also describes the 2 who did not. Statistical
+disclosure control (SDC), the discipline that protects published
+statistical tables, handles this with a threshold rule: publish a count
+only where at least <em>k</em> people stand behind it [2]. Here
+<em>k</em> is 3, and the rule is applied to both groups, the patients
+who had the event and those who did not:</p>
 <ul>
 <li>an arm, visit, dose level or planned cycle is kept only where at
 least three patients reached it;</li>
@@ -324,11 +322,12 @@ fewer than three patients missed a visit or changed a dose;</li>
 <li>a category level, of a covariate or of a graded endpoint, held by
 fewer than three patients is folded into the most common level.</li>
 </ul>
-<p>The rule stops a frequency from singling out one or two patients, but
-not membership inference, which adds up small signals over many
-frequencies. Pooling weakens that: attendance is one rate per endpoint,
-the dose-change rates are three, and a graded endpoint is one set of
-level frequencies, each pooled over the arms and the visits.</p>
+<p>The threshold stops a frequency from singling out one or two
+patients. It does not stop membership inference, which adds up small
+signals across many frequencies. Pooling is what weakens that:
+attendance is one rate per endpoint, the dose-change rates are three,
+and a graded endpoint is one set of level frequencies, each pooled over
+the arms and the visits.</p>
 </div>
 <div class="section level3">
 <h3 id="covariate-summaries-without-their-extremes">3. Covariate Summaries Without Their Extremes<a class="anchor" aria-label="anchor" href="#covariate-summaries-without-their-extremes"></a>

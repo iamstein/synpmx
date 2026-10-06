@@ -83,7 +83,10 @@ arms and the visits.
 These numbers are the **release**, and they are all that leaves the
 environment that holds the study. Synthetic data is simulated from the
 release and random numbers alone, so it discloses nothing the release
-does not. [Released Parameters at a
+does not. The release is the study’s fingerprint, and [The PMX model
+study
+fingerprint](https://iamstein.github.io/synpmx/articles/pmxmodel-fingerprint.html)
+walks through one field by field. [Released Parameters at a
 Glance](#released-parameters-at-a-glance) counts the numbers in each
 public study’s release.
 
@@ -122,37 +125,39 @@ someone outside the study. In simulation the advantage is small: given
 one member and one non-member, the attacker picks the member 53% of the
 time in a 60-patient study when its population parameters come from
 another study (20% off), and 70% of the time in a 12-patient study when
-it knows the population’s true parameters, where 50% is a coin flip. The
-advantage grows with fewer patients and more released numbers, which is
-why the release pools attendance and level frequencies over the visits
-and rounds its estimates to one significant figure. [Appendix:
-Membership Inference Against the
-Release](#membership-inference-against-the-release) gives the numbers.
+it knows the population’s true parameters, where 50% is a coin flip.
+[Appendix: Membership Inference Against the
+Release](#membership-inference-against-the-release) provides further
+details on these calculations.
 
 **❌ No formal guarantee.** Nothing bounds what an attacker who knows
 every other patient learns about the remaining one.
 
 ## The Privacy Protections
 
-### 1. No Single Patient’s Value
+### 1. No Single Patient’s Value is Used
 
 Every quantity that would naturally have been one patient’s value is
 computed another way:
 
-| Quantity | Would have been | Is |
-|----|----|----|
-| Lowest value generated, where no assay limit is declared | half the smallest value reported | half the lowest value at least three patients reached, rounded down to 1, 2 or 5 times a power of ten |
-| Reference weight for body-weight scaling | the cohort median | the median to one significant figure |
-| Planned dose, where patients’ doses differ | the most common dose, which can be one patient’s | the arm’s mean to two significant figures |
-| Continuous covariate | a mean, SD and median over every patient | a trimmed mean and SD (protection 3), no median |
+| Quantity | How it’s computed |
+|----|----|
+| Lowest value generated, used for LOQ where no assay limit is declared | half the lowest value at least three patients reached, rounded down to 1, 2 or 5 times a power of ten |
+| Reference weight for body-weight scaling | the median to one significant figure |
+| Planned dose, where patients’ doses differ | the arm’s mean to two significant figures |
+| Continuous covariate | a trimmed mean and SD after the highest and lowest 5% of patients are set aside |
 
 ### 2. At Least Three Patients Behind Every Frequency
 
-A frequency resting on one patient describes that patient, and so does
-one that all but one patient share. Statistical disclosure control
-(SDC), the field that protects published statistical tables, publishes a
-count only where at least *k* people stand behind it \[2\]. Here *k* is
-3, applied to both groups behind a frequency:
+If only one or two patients in a study missed a visit or had a dose
+reduced, any frequency describing that event reveals something about
+them. The same is true when all but one or two patients had it: 30 of 32
+patients attending also describes the 2 who did not. Statistical
+disclosure control (SDC), the discipline that protects published
+statistical tables, handles this with a threshold rule: publish a count
+only where at least *k* people stand behind it \[2\]. Here *k* is 3, and
+the rule is applied to both groups, the patients who had the event and
+those who did not:
 
 - an arm, visit, dose level or planned cycle is kept only where at least
   three patients reached it;
@@ -161,11 +166,12 @@ count only where at least *k* people stand behind it \[2\]. Here *k* is
 - a category level, of a covariate or of a graded endpoint, held by
   fewer than three patients is folded into the most common level.
 
-The rule stops a frequency from singling out one or two patients, but
-not membership inference, which adds up small signals over many
-frequencies. Pooling weakens that: attendance is one rate per endpoint,
-the dose-change rates are three, and a graded endpoint is one set of
-level frequencies, each pooled over the arms and the visits.
+The threshold stops a frequency from singling out one or two patients.
+It does not stop membership inference, which adds up small signals
+across many frequencies. Pooling is what weakens that: attendance is one
+rate per endpoint, the dose-change rates are three, and a graded
+endpoint is one set of level frequencies, each pooled over the arms and
+the visits.
 
 ### 3. Covariate Summaries Without Their Extremes
 

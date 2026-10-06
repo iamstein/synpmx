@@ -132,51 +132,30 @@ Stein</h4>
 
     
     
-<p>Every generator in this package reduces a study to a
-<strong>fingerprint</strong> — a set of summaries small enough to carry
-out of the environment that holds the real data, and complete enough to
-build a synthetic study from. The fingerprint is the whole of what a
-synthetic dataset descends from. Nothing else about the source reaches
-it, which is why looking at the fingerprint is how you decide whether
-the output can be trusted, and how you satisfy yourself that no patient
-left the room.</p>
-<p><code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code> returns this generator’s
-fingerprint, as a <code>pmx_fitted_model</code>.
-<code><a href="../reference/synpmx_model_generate.html">synpmx_model_generate()</a></code> reads that object and no patient
-row.</p>
-<p>This vignette walks through it group by group. It is a reference:
-read <code><a href="../articles/pmxmodel-demo.html">vignette("pmxmodel-demo")</a></code> first for a run end to end,
-and <code><a href="../articles/pmxmodel-algorithm.html">vignette("pmxmodel-algorithm")</a></code> for how each quantity is
-arrived at and why. <code><a href="../articles/pca-fingerprint.html">vignette("pca-fingerprint")</a></code> is the same
-walk through the PCA generator’s fingerprint, and the two are worth
-reading side by side.</p>
-<div class="section level2">
-<h2 id="two-halves-and-they-are-not-alike">Two halves, and they are not alike<a class="anchor" aria-label="anchor" href="#two-halves-and-they-are-not-alike"></a>
-</h2>
-<p>This fingerprint divides more sharply than the PCA one does.</p>
-<p><strong>The estimated half</strong> is a population model: a
-structural form, a handful of fixed effects, a covariance matrix, a
-residual error. It is perhaps twenty numbers describing the shape of
-every profile in the study, which is a very small fingerprint for a very
-strong claim. It also looks exactly like the output of a real population
-analysis, and it is not one — the candidate set is small and the
-covariate model is allometric scaling or nothing.</p>
-<p><strong>The summarized half</strong> is the study’s apparatus: who
-was in which arm, when doses were planned and how patients departed from
-that plan, which visits were attended, what the covariates looked like,
-where the assay limit sat. None of this is estimated. It is exactly the
-apparatus <code><a href="../reference/synpmx_pca_summarize.html">synpmx_pca_summarize()</a></code> builds, from the same
-code.</p>
-<p>The two halves carry different risks. Twenty fitted numbers are a
-compact summary of 32 people; a per-arm dosing model with a cycle grid
-can be much larger and is backed by one arm’s patients rather than the
-whole cohort.</p>
-</div>
+<p>A study’s <strong>fingerprint</strong> is the set of numbers a
+synthetic study is generated from. For <code><a href="../reference/synpmx_model.html">synpmx_model()</a></code> it is
+a population PK model, a time course for each PD endpoint, and a summary
+of the study’s design: its arms, dose schedules, attendance and
+covariate distributions. Synthetic data is drawn from the fingerprint
+and random numbers alone, so the fingerprint is everything about the
+source that can reach the output.</p>
+<p><code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code> returns a fit. The fit holds the
+fingerprint plus diagnostics for whoever ran it, such as the candidate
+models and the correlations between covariates and random effects.
+<code><a href="../reference/model_release.html">model_release()</a></code> extracts the fingerprint, and that is the
+object to carry out of the environment that holds the study.
+<code><a href="../reference/synpmx_model_generate.html">synpmx_model_generate()</a></code> accepts either and reads only the
+fingerprint.</p>
+<p>This vignette walks through the fingerprint of one study. Read
+<code><a href="../articles/pmxmodel-demo.html">vignette("pmxmodel-demo")</a></code> first for a run end to end, and
+<code><a href="../articles/pmxmodel-algorithm.html">vignette("pmxmodel-algorithm")</a></code> for how each quantity is
+estimated.</p>
 <div class="section level2">
 <h2 id="the-study">The study<a class="anchor" aria-label="anchor" href="#the-study"></a>
 </h2>
-<p><code><a href="https://nlmixr2.github.io/nlmixr2data/reference/warfarin.html" class="external-link">nlmixr2data::warfarin</a></code> — thirty-two patients, a single
-oral dose, a concentration endpoint and a pharmacodynamic one.</p>
+<p><code><a href="https://nlmixr2.github.io/nlmixr2data/reference/warfarin.html" class="external-link">nlmixr2data::warfarin</a></code>: 32 patients, one oral dose scaled
+to body weight, a warfarin concentration and a prothrombin complex
+activity (PCA).</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"warfarin"</span>, package <span class="op">=</span> <span class="st">"nlmixr2data"</span><span class="op">)</span></span>
 <span><span class="va">warfarin</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">warfarin</span><span class="op">)</span></span>
@@ -187,18 +166,23 @@ oral dose, a concentration endpoint and a pharmacodynamic one.</p>
 <span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate</a></span><span class="op">(</span><span class="va">warfarin</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
-<p>The chunk above is shown rather than run: fitting compiles a model,
-so this document reads a stored fit and <code>R CMD check</code> never
-needs a compiler.</p>
-</div>
-<div class="section level2">
-<h2 id="the-inventory">The inventory<a class="anchor" aria-label="anchor" href="#the-inventory"></a>
-</h2>
-<p><code><a href="../reference/model_report.html">model_report()</a></code> is the top-level account, and it
-separates the two halves because they answer to different things.
-Printing the fitted object shows the same account, because everything on
-it is an input to the generation step.</p>
+<p>This document reads a stored copy of that fit, so it needs no
+compiler.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">release</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_release.html">model_release</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">release</span><span class="op">)</span></span>
+<span><span class="co">#&gt;  [1] "structural"           "parameters"           "pk_models"           </span></span>
+<span><span class="co">#&gt;  [4] "pd"                   "arms"                 "dosing"              </span></span>
+<span><span class="co">#&gt;  [7] "visits"               "cells"                "discrete"            </span></span>
+<span><span class="co">#&gt; [10] "covariates"           "covariate_effects"    "schema"              </span></span>
+<span><span class="co">#&gt; [13] "roles"                "endpoints"            "quantification_floor"</span></span>
+<span><span class="co">#&gt; [16] "n_source"             "settings"             "privacy"</span></span>
+<span><span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">setdiff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">release</span><span class="op">)</span><span class="op">)</span>  <span class="co"># diagnostics that stay with the fit</span></span>
+<span><span class="co">#&gt; [1] "candidates"   "design"       "correlations" "censoring"    "timing"      </span></span>
+<span><span class="co">#&gt; [6] "movement"     "fit_subjects" "start_param"  "dose_records"</span></span></code></pre></div>
+<p><code><a href="../reference/model_report.html">model_report()</a></code> summarizes the whole fit in one
+printout:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_report.html">model_report</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Summarized from the source, not estimated</span></span>
 <span><span class="co">#&gt;   cohort             32 patients in 1 arm(s)</span></span>
@@ -250,220 +234,127 @@ it is an input to the generation step.</p>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: cp: ka between-subject SD, 9.84 points;</span></span>
 <span><span class="co">#&gt;                      `model_privacy_checks()` has every check</span></span></code></pre></div>
-<p>Every section below expands one part of it. The object is a plain
-list and the names used are its own, so a quantity can be reached
-directly when no accessor covers it.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  [1] "structural"           "candidates"           "parameters"          </span></span>
-<span><span class="co">#&gt;  [4] "arms"                 "dosing"               "visits"              </span></span>
-<span><span class="co">#&gt;  [7] "schema"               "roles"                "settings"            </span></span>
-<span><span class="co">#&gt; [10] "n_source"             "cells"                "pd"                  </span></span>
-<span><span class="co">#&gt; [13] "covariate_effects"    "covariates"           "discrete"            </span></span>
-<span><span class="co">#&gt; [16] "design"               "correlations"         "censoring"           </span></span>
-<span><span class="co">#&gt; [19] "quantification_floor" "timing"               "movement"            </span></span>
-<span><span class="co">#&gt; [22] "fit_subjects"         "start_param"          "dose_records"        </span></span>
-<span><span class="co">#&gt; [25] "privacy"              "pk_models"            "endpoints"</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="the-settings-that-produced-it">The settings that produced it<a class="anchor" aria-label="anchor" href="#the-settings-that-produced-it"></a>
+<h2 id="the-pk-model">The PK model<a class="anchor" aria-label="anchor" href="#the-pk-model"></a>
 </h2>
+<div class="section level3">
+<h3 id="which-endpoint-is-the-concentration">Which endpoint is the concentration<a class="anchor" aria-label="anchor" href="#which-endpoint-is-the-concentration"></a>
+</h3>
+<p>The fit decides which endpoint is the drug concentration from four
+signals: whether it is observed in a dosing compartment, whether it
+appears only after dosing, whether its median profile rises and falls,
+and whether it scales with dose. This is a diagnostic rather than part
+of the fingerprint, but everything in the PK model depends on it.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">settings</span><span class="op">)</span></span>
-<span><span class="co">#&gt;          min_subjects      min_arm_patients min_category_patients </span></span>
-<span><span class="co">#&gt;                  "20"                   "3"                   "3" </span></span>
-<span><span class="co">#&gt;         min_time_bins      max_fit_subjects            estimation </span></span>
-<span><span class="co">#&gt;                   "6"                  "60"               "focei" </span></span>
-<span><span class="co">#&gt;     covariate_effects                 error </span></span>
-<span><span class="co">#&gt;                "none"                "prop"</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>patients <span class="op">=</span> <span class="va">fit</span><span class="op">$</span><span class="va">n_source</span>, arms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">arms</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; patients     arms </span></span>
-<span><span class="co">#&gt;       32        1</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">fit</span><span class="op">$</span><span class="va">endpoints</span><span class="op">$</span><span class="va">signals</span></span>
+<span><span class="co">#&gt;   endpoint compartment post_dose shape proportional</span></span>
+<span><span class="co">#&gt; 1       cp          NA      TRUE  TRUE           NA</span></span>
+<span><span class="co">#&gt; 2      pca          NA     FALSE FALSE           NA</span></span>
+<span><span class="va">fit</span><span class="op">$</span><span class="va">design</span><span class="op">$</span><span class="va">reason</span></span>
+<span><span class="co">#&gt; [1] "the median profile rises to a peak at 9 before declining, and 31% of subjects do too"</span></span></code></pre></div>
+<p><code>proportional</code> is <code>NA</code> because
+<code>warfarin</code> is dosed by body weight, so there are no dose
+levels to compare and the other three signals decide.
+<code>endpoint_roles</code> in <code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code>
+overrides the decision.</p>
 </div>
-<div class="section level2">
-<h2 id="how-the-concentration-endpoint-was-decided">How the concentration endpoint was decided<a class="anchor" aria-label="anchor" href="#how-the-concentration-endpoint-was-decided"></a>
-</h2>
-<p>Not a released quantity, but the first thing to read: everything
-downstream is a model <em>of</em> this endpoint, and if the wrong one
-was chosen nothing else matters.</p>
+<div class="section level3">
+<h3 id="structural-model">Structural model<a class="anchor" aria-label="anchor" href="#structural-model"></a>
+</h3>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">show</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">endpoints</span><span class="op">$</span><span class="va">signals</span>, <span class="st">"The four signals, per endpoint"</span><span class="op">)</span></span></code></pre></div>
-<div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>The four signals, per endpoint<\/caption>","data":[["cp","pca"],[null,null],[true,false],[true,false],[null,null]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>endpoint<\/th>\n      <th>compartment<\/th>\n      <th>post_dose<\/th>\n      <th>shape<\/th>\n      <th>proportional<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"name":"endpoint","targets":0},{"name":"compartment","targets":1},{"name":"post_dose","targets":2},{"name":"shape","targets":3},{"name":"proportional","targets":4}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p><code>proportional</code> reads <code>NA</code> here because
-<code>warfarin</code> gives every patient the same dose, so there are no
-dose levels to compare — the classification rests on the remaining
-signals. A column of <code>NA</code> under <code>proportional</code> is
-the object telling you how little evidence it had, and
-<code>endpoint_roles</code> is how you overrule it.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit</span><span class="op">$</span><span class="va">design</span><span class="op">$</span><span class="va">reason</span></span>
-<span><span class="co">#&gt; [1] "the median profile rises to a peak at 9 before declining, and 31% of subjects do too"</span></span>
-<span><span class="va">fit</span><span class="op">$</span><span class="va">endpoints</span><span class="op">$</span><span class="va">decided_by</span></span>
-<span><span class="co">#&gt; [1] "inferred"</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="the-structural-model">The structural model<a class="anchor" aria-label="anchor" href="#the-structural-model"></a>
-</h2>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit</span><span class="op">$</span><span class="va">structural</span></span>
+<code class="sourceCode R"><span><span class="va">release</span><span class="op">$</span><span class="va">structural</span></span>
 <span><span class="co">#&gt; [1] "2cmt_oral"</span></span>
 <span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged accepted      aic seconds note</span></span>
 <span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  57.294</span></span></code></pre></div>
-<p>Each row is an attempted fit. The default stops when two compartments
-pass the acceptance checks; a rejected fit is followed by one
-compartment. <code>pk</code> names a particular model, or several to
-compare by Akaike information criterion (AIC) after those checks.</p>
-<p>For a declared PD-only study there is no PK structure:
-<code>structural</code> and <code>parameters</code> are
-<code>NULL</code>, <code>pk_models</code> is empty, and the PK candidate
-table has no rows. The PD shapes and their candidates are in
-<code>model_report(fit)$pd</code>; <code>model_parameters(fit)$pd</code>
-returns those fits.</p>
+<p>By default the fit tries two compartments and falls back to one only
+if two fail the acceptance checks. <code>pk</code> names a model, or
+several to compare by AIC.</p>
 </div>
-<div class="section level2">
-<h2 id="the-fixed-effects">The fixed effects<a class="anchor" aria-label="anchor" href="#the-fixed-effects"></a>
-</h2>
-<p>The typical parameters, on the natural scale. These are the numbers
-that look most like a result and are least entitled to be read as
-one.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/model_parameters.html">model_parameters</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">fixed</span></span>
+<div class="section level3">
+<h3 id="parameters">Parameters<a class="anchor" aria-label="anchor" href="#parameters"></a>
+</h3>
+<p>Typical values on the natural scale, the between-subject covariance
+on the log scale, and the residual error. Every PK and PD estimate in
+the fingerprint is rounded to one significant figure.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/model_parameters.html">model_parameters</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $fixed</span></span>
 <span><span class="co">#&gt;  cl   v   q  v2  ka </span></span>
-<span><span class="co">#&gt; 0.1 7.0 0.1 2.0 0.4</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="between-subject-variability">Between-subject variability<a class="anchor" aria-label="anchor" href="#between-subject-variability"></a>
-</h2>
-<p>A covariance matrix on the log scale, one row per parameter carrying
-a random effect. Generation draws each synthetic subject’s deviations
-from this matrix.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/model_parameters.html">model_parameters</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">omega</span></span>
+<span><span class="co">#&gt; 0.1 7.0 0.1 2.0 0.4 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $omega</span></span>
 <span><span class="co">#&gt;      cl    v  ka     q  v2</span></span>
 <span><span class="co">#&gt; cl 0.07 0.00 0.0 0.000 0.0</span></span>
 <span><span class="co">#&gt; v  0.00 0.04 0.0 0.000 0.0</span></span>
 <span><span class="co">#&gt; ka 0.00 0.00 0.3 0.000 0.0</span></span>
 <span><span class="co">#&gt; q  0.00 0.00 0.0 0.006 0.0</span></span>
 <span><span class="co">#&gt; v2 0.00 0.00 0.0 0.000 0.4</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/diag.html" class="external-link">diag</a></span><span class="op">(</span><span class="fu"><a href="../reference/model_parameters.html">model_parameters</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">omega</span><span class="op">)</span><span class="op">)</span>  <span class="co"># as CV on the log scale</span></span>
-<span><span class="co">#&gt;         cl          v         ka          q         v2 </span></span>
-<span><span class="co">#&gt; 0.26457513 0.20000000 0.54772256 0.07745967 0.63245553</span></span></code></pre></div>
-<p><strong>No individual estimates.</strong> Empirical Bayes estimates
-are per-subject quantities, and an object carrying them would be a
-description of each real patient. They are read for the correlations
-below and for how far one patient moves each estimate, and then dropped.
-This matrix is what stands in for them, and it is a statement about the
-population rather than about anybody in it. Like every PK and PD
-estimate in the fingerprint, it is rounded to one significant
-figure.</p>
-</div>
-<div class="section level2">
-<h2 id="the-residual-error">The residual error<a class="anchor" aria-label="anchor" href="#the-residual-error"></a>
-</h2>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/model_parameters.html">model_parameters</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">residual</span></span>
-<span><span class="co">#&gt; $kind</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $residual</span></span>
+<span><span class="co">#&gt; $residual$kind</span></span>
 <span><span class="co">#&gt; [1] "proportional"</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $cv</span></span>
+<span><span class="co">#&gt; $residual$cv</span></span>
 <span><span class="co">#&gt; [1] 0.2</span></span></code></pre></div>
-<p>Proportional, with the kind recorded on the object.
-<code>warfarin</code> reports a few concentrations at or below zero,
-which is what an assay returns near its limit rather than evidence that
-the endpoint reaches zero, so those rows are fitted at half the smallest
-positive value and the error stays proportional. An endpoint whose
-values reach zero in many rows is given an additive error instead.</p>
+<p>No covariate is in the model: <code>covariate_effects = "none"</code>
+is the default, so <code>release$covariate_effects</code> is empty and
+every synthetic patient’s parameters are drawn from the covariance
+matrix alone.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">release</span><span class="op">$</span><span class="va">covariate_effects</span></span>
+<span><span class="co">#&gt; list()</span></span></code></pre></div>
+<p>The fingerprint holds no patient’s own random effects (empirical
+Bayes estimates). They are read during estimation and dropped.</p>
+<p><code>warfarin</code> reports four concentrations at or below zero,
+which is what an assay returns near its limit. They are fitted at half
+the smallest positive value, and the residual error stays
+proportional.</p>
 </div>
-<div class="section level2">
-<h2 id="what-the-assay-limit-cost">What the assay limit cost<a class="anchor" aria-label="anchor" href="#what-the-assay-limit-cost"></a>
-</h2>
-<p>The concentration is fitted with its below-limit rows censored, so
-each contributes the probability of falling below the limit rather than
-a value nobody measured. Every other part of the fingerprint is a
-least-squares fit with no likelihood to put censoring in, and reads a
-uniform draw inside the censoring region instead — an assumption, whose
-weight is the share of each endpoint carrying it. The boundary is put
-back when data is generated.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="section level3">
+<h3 id="censoring">Censoring<a class="anchor" aria-label="anchor" href="#censoring"></a>
+</h3>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span><span class="op">$</span><span class="va">censoring</span></span>
 <span><span class="co">#&gt; NULL</span></span></code></pre></div>
-<p><code>warfarin</code> declares no censoring, so nothing here is below
-a limit. On a study where it is, this is the line to read before
-trusting the concentrations: <code><a href="https://rdrr.io/pkg/xgxr/man/case1_pkpd.html" class="external-link">xgxr::case1_pkpd</a></code> has 46% of
-its concentrations below the limit and 95% of the lowest dose arm. Much
-of the information is therefore a bound rather than a measured
-concentration. The two-compartment fit in the public-data survey retains
-a false-convergence warning and passes the parameter and generation
-checks.</p>
-</div>
-<div class="section level2">
-<h2 id="the-covariate-effects">The covariate effects<a class="anchor" aria-label="anchor" href="#the-covariate-effects"></a>
-</h2>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit</span><span class="op">$</span><span class="va">covariate_effects</span></span>
-<span><span class="co">#&gt; list()</span></span></code></pre></div>
-<p>Allometric scaling on clearance and volume, with the standard
-exponents. It is asserted rather than tested —
-<code><a href="../articles/pmxmodel-algorithm.html">vignette("pmxmodel-algorithm")</a></code> says why — and
-<code>covariate_effects = "none"</code> removes it.</p>
-<div class="section level3">
-<h3 id="what-is-not-modelled-shows-up-here">What is <em>not</em> modelled shows up here<a class="anchor" aria-label="anchor" href="#what-is-not-modelled-shows-up-here"></a>
-</h3>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">show</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">correlations</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">correlations</span><span class="op">$</span><span class="va">correlation</span><span class="op">)</span><span class="op">)</span>, <span class="op">]</span>,</span>
-<span>     <span class="st">"Each covariate against the individual random effects"</span><span class="op">)</span></span></code></pre></div>
-<div class="datatables html-widget html-fill-item" id="htmlwidget-e5c8c404fe174e4c81bd" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"caption":"<caption>Each covariate against the individual random effects<\/caption>","data":[["wt","sex","wt","wt","age","sex","wt","sex","sex","age","wt","sex","age","age","age"],["v","v","v2","q","cl","q","cl","v2","ka","ka","ka","cl","v2","q","v"],[0.733,0.702,0.623,0.493,0.33,0.317,0.304,0.268,-0.221,-0.121,0.107,0.0965,0.09379999999999999,-0.0871,0.08309999999999999]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>covariate<\/th>\n      <th>parameter<\/th>\n      <th>correlation<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":2},{"name":"covariate","targets":0},{"name":"parameter","targets":1},{"name":"correlation","targets":2}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>This is the most important table in the document, and it is a
-diagnostic rather than a released quantity. A covariate that moves with
-a random effect and is not in the model above is generated
-<strong>independently</strong> of the profiles, so the synthetic data
-carries no relationship between the two. <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code>
-preserves those relationships without modelling them, because a blended
-subject’s covariates and profile come from the same donors.</p>
-<p>The correlations are computed from the individual random effects and
-only the correlations are kept, so no per-subject quantity survives into
-the object.</p>
+<p><code>warfarin</code> declares no assay limit, so this is empty.
+Where a study declares one, its below-limit concentrations enter the
+population fit as censored, and this table gives the share of each
+endpoint below the limit. On <code><a href="https://rdrr.io/pkg/xgxr/man/case1_pkpd.html" class="external-link">xgxr::case1_pkpd</a></code> it is 46% of
+the concentrations, so much of what the PK model knows there is a bound
+rather than a measurement.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="the-pharmacodynamic-shapes">The pharmacodynamic shapes<a class="anchor" aria-label="anchor" href="#the-pharmacodynamic-shapes"></a>
+<h2 id="the-pd-time-courses">The PD time courses<a class="anchor" aria-label="anchor" href="#the-pd-time-courses"></a>
 </h2>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">pd</span>, <span class="kw">function</span><span class="op">(</span><span class="va">shape</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>shape <span class="op">=</span> <span class="va">shape</span><span class="op">$</span><span class="va">pd</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">shape</span><span class="op">$</span><span class="va">typical</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<p>Each continuous endpoint other than the concentration gets a time
+course with no exposure term, chosen by AIC from a constant, a linear
+and an exponential shape. It reproduces the average response over time,
+which is enough for testing analysis code, and is not an
+exposure-response model.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">pd</span>, <span class="kw">function</span><span class="op">(</span><span class="va">shape</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>shape <span class="op">=</span> <span class="va">shape</span><span class="op">$</span><span class="va">pd</span>, <span class="va">shape</span><span class="op">$</span><span class="va">typical</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; $pca</span></span>
 <span><span class="co">#&gt;         shape       plateau      baseline          rate </span></span>
 <span><span class="co">#&gt; "exponential"          "30"         "100"         "0.1"</span></span></code></pre></div>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">show</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">pd</span><span class="op">[[</span><span class="fl">1L</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">candidates</span>, <span class="st">"The three shapes, compared on AIC"</span><span class="op">)</span></span></code></pre></div>
-<div class="datatables html-widget html-fill-item" id="htmlwidget-36aa3d2a04d42bbc2145" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"caption":"<caption>The three shapes, compared on AIC<\/caption>","data":[["constant","linear","exponential"],[true,true,true],[2170,2140,1840],["","",""]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>shape<\/th>\n      <th>converged<\/th>\n      <th>aic<\/th>\n      <th>note<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":2},{"name":"shape","targets":0},{"name":"converged","targets":1},{"name":"aic","targets":2},{"name":"note","targets":3}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>A time course with no exposure term. A PD endpoint driven by
-concentration is reproduced as a curve that resembles the average
-subject’s response, which is adequate for exercising longitudinal code
-and is not an exposure-response model.</p>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>The three shapes, compared on AIC<\/caption>","data":[["constant","linear","exponential"],[true,true,true],[2170,2140,1840],["","",""]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>shape<\/th>\n      <th>converged<\/th>\n      <th>aic<\/th>\n      <th>note<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":2},{"name":"shape","targets":0},{"name":"converged","targets":1},{"name":"aic","targets":2},{"name":"note","targets":3}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
 </div>
 <div class="section level2">
-<h2 id="the-covariate-distributions">The covariate distributions<a class="anchor" aria-label="anchor" href="#the-covariate-distributions"></a>
+<h2 id="covariates">Covariates<a class="anchor" aria-label="anchor" href="#covariates"></a>
 </h2>
-<p>One distribution per covariate, fitted over the whole study and drawn
-from independently at generation. Pooled rather than per arm because a
-baseline covariate is recorded before the first dose: in a randomized
-study what separates two arms’ weights is the sampling noise of however
-many patients the arm has, and modelling it per arm reproduces that
-noise as if it were structure.</p>
-<p>A continuous covariate is summarized after its highest and lowest 5%
-of patients are set aside, at least one at each end, so no patient at
-either extreme enters the mean or the SD, and no median is stored.</p>
-<p>Categorical distributions retain only levels held by at least
-<code>min_category_patients</code> patients (default 3), counted once
-per patient after small arms are excluded. The remaining frequencies are
-renormalized. If no level remains, the covariate is generated as missing
-with a warning during estimation. Excluded labels are absent from the
-factor schema as well. Set <code>min_category_patients = 1</code> when
-estimating to retain all observed levels; previously stored fits must be
-re-estimated to apply the threshold.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">covariates</span>, max.level <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<p>Each baseline covariate has one distribution for the whole study, and
+synthetic patients draw their covariates from it independently of
+everything else. A continuous covariate is a mean and SD on the log
+scale, taken after the highest and lowest 5% of patients are set aside.
+A categorical one is a set of level frequencies, keeping only levels at
+least <code>min_category_patients</code> patients (default 3) hold.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">covariates</span>, max.level <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="co">#&gt; List of 3</span></span>
 <span><span class="co">#&gt;  $ wt :List of 3</span></span>
 <span><span class="co">#&gt;   ..$ kind   : chr "lognormal"</span></span>
@@ -477,95 +368,93 @@ re-estimated to apply the threshold.</p>
 <span><span class="co">#&gt;   ..$ kind       : chr "categorical"</span></span>
 <span><span class="co">#&gt;   ..$ levels     : chr [1:2] "female" "male"</span></span>
 <span><span class="co">#&gt;   ..$ probability: num [1:2] 0.156 0.844</span></span></code></pre></div>
+<p>Because no covariate is in the PK model, a relationship the real
+study had, such as heavier patients having a larger volume, is absent
+from the synthetic data. The fit reports where that happens: the
+correlation between each covariate and each patient’s random effects, as
+a diagnostic that stays with the fit.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">show</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">correlations</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">correlations</span><span class="op">$</span><span class="va">correlation</span><span class="op">)</span><span class="op">)</span>, <span class="op">]</span>,</span>
+<span>     <span class="st">"Each covariate against the random effects"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-e5c8c404fe174e4c81bd" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-e5c8c404fe174e4c81bd">{"x":{"filter":"none","vertical":false,"caption":"<caption>Each covariate against the random effects<\/caption>","data":[["wt","sex","wt","wt","age","sex","wt","sex","sex","age","wt","sex","age","age","age"],["v","v","v2","q","cl","q","cl","v2","ka","ka","ka","cl","v2","q","v"],[0.733,0.702,0.623,0.493,0.33,0.317,0.304,0.268,-0.221,-0.121,0.107,0.0965,0.09379999999999999,-0.0871,0.08309999999999999]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>covariate<\/th>\n      <th>parameter<\/th>\n      <th>correlation<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":2},{"name":"covariate","targets":0},{"name":"parameter","targets":1},{"name":"correlation","targets":2}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>Here weight and sex both move with volume. If the synthetic data
+needs that relationship, <code>covariate_effects = "auto"</code> adds
+allometric scaling of clearance and volume on body weight.
+<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> keeps such relationships without modelling
+them, because each synthetic patient’s covariates and profile come from
+the same real patients.</p>
 </div>
 <div class="section level2">
-<h2 id="the-arms">The arms<a class="anchor" aria-label="anchor" href="#the-arms"></a>
+<h2 id="the-study-design">The study design<a class="anchor" aria-label="anchor" href="#the-study-design"></a>
 </h2>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>arm <span class="op">=</span> <span class="va">fit</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">arms</span>, patients <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">sizes</span><span class="op">)</span><span class="op">)</span></span>
+<p>The design half of the fingerprint is the same as the one
+<code><a href="../reference/synpmx_pca_summarize.html">synpmx_pca_summarize()</a></code> builds, from the same code.</p>
+<div class="section level3">
+<h3 id="arms">Arms<a class="anchor" aria-label="anchor" href="#arms"></a>
+</h3>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>arm <span class="op">=</span> <span class="va">release</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">arms</span>, patients <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">sizes</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   arm patients</span></span>
 <span><span class="co">#&gt; 1 all       32</span></span></code></pre></div>
 </div>
-<div class="section level2">
-<h2 id="the-dosing-model">The dosing model<a class="anchor" aria-label="anchor" href="#the-dosing-model"></a>
-</h2>
-<p>A planned schedule per arm, and one dose ladder and three
-discrete-time hazards pooled over the arms. This is the apparatus
-<code><a href="../reference/synpmx_pca_summarize.html">synpmx_pca_summarize()</a></code> builds, unchanged.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">arm</span> <span class="op">&lt;-</span> <span class="va">fit</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">arms</span><span class="op">[[</span><span class="fl">1L</span><span class="op">]</span><span class="op">]</span></span>
-<span><span class="fu">show</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">dosing</span><span class="op">[[</span><span class="va">arm</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">planned</span>, <span class="st">"The planned schedule"</span><span class="op">)</span></span></code></pre></div>
-<div class="datatables html-widget html-fill-item" id="htmlwidget-febe03efa1a2d8d52a86" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"caption":"<caption>The planned schedule<\/caption>","data":[[1],[0],[120],[null],[0],[null]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>cycle<\/th>\n      <th>time<\/th>\n      <th>amt<\/th>\n      <th>route<\/th>\n      <th>rate<\/th>\n      <th>adm<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[0,1,2,4]},{"name":"cycle","targets":0},{"name":"time","targets":1},{"name":"amt","targets":2},{"name":"route","targets":3},{"name":"rate","targets":4},{"name":"adm","targets":5}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">dosing</span> <span class="op">&lt;-</span> <span class="va">fit</span><span class="op">$</span><span class="va">dosing</span><span class="op">[[</span><span class="va">fit</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">arms</span><span class="op">[[</span><span class="fl">1L</span><span class="op">]</span><span class="op">]</span><span class="op">]</span><span class="op">]</span></span>
+<div class="section level3">
+<h3 id="dosing">Dosing<a class="anchor" aria-label="anchor" href="#dosing"></a>
+</h3>
+<p>Each arm has its planned schedule. The levels doses were reduced to,
+and the rates of reducing, skipping and stopping, are pooled over the
+arms.</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">arm</span> <span class="op">&lt;-</span> <span class="va">release</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">arms</span><span class="op">[[</span><span class="fl">1L</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="fu">show</span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">dosing</span><span class="op">[[</span><span class="va">arm</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">planned</span>, <span class="st">"The planned schedule"</span><span class="op">)</span></span></code></pre></div>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-36aa3d2a04d42bbc2145" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"caption":"<caption>The planned schedule<\/caption>","data":[[1],[0],[120],[null],[0],[null]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>cycle<\/th>\n      <th>time<\/th>\n      <th>amt<\/th>\n      <th>route<\/th>\n      <th>rate<\/th>\n      <th>adm<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[0,1,2,4]},{"name":"cycle","targets":0},{"name":"time","targets":1},{"name":"amt","targets":2},{"name":"route","targets":3},{"name":"rate","targets":4},{"name":"adm","targets":5}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">dosing</span> <span class="op">&lt;-</span> <span class="va">release</span><span class="op">$</span><span class="va">dosing</span><span class="op">[[</span><span class="va">arm</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">dosing</span><span class="op">$</span><span class="va">levels</span><span class="op">)</span>, reduction <span class="op">=</span> <span class="va">dosing</span><span class="op">$</span><span class="va">reduction</span>,</span>
 <span>  interruption <span class="op">=</span> <span class="va">dosing</span><span class="op">$</span><span class="va">interruption</span>, discontinuation <span class="op">=</span> <span class="va">dosing</span><span class="op">$</span><span class="va">discontinuation</span><span class="op">)</span></span>
 <span><span class="co">#&gt;          levels       reduction    interruption discontinuation </span></span>
 <span><span class="co">#&gt;               1               0               0               0</span></span></code></pre></div>
-<p><code>warfarin</code> is a single dose that everybody received, so
-the ladder has one level and all three rates are zero. The model then
-reproduces the planned schedule exactly, which is the right answer and
-is what those zeros say. On a study where patients reduce, skip cycles
-or come off treatment, these are the numbers that carry it — and because
-the schedule is drawn <em>before</em> the profile is computed from it, a
-synthetic subject who steps down has the lower exposure that
-implies.</p>
+<p><code>warfarin</code> is a single dose everyone received, so all
+three rates are zero and the planned schedule is reproduced exactly.
+Where patients do reduce or skip doses, the synthetic schedule is drawn
+before the profile is simulated, so a synthetic patient who steps down
+gets the lower exposure.</p>
 </div>
-<div class="section level2">
-<h2 id="the-visit-model">The visit model<a class="anchor" aria-label="anchor" href="#the-visit-model"></a>
-</h2>
-<p>The visits each arm has, and one attendance rate per endpoint,
-applied at every visit of that endpoint an arm has. Attendance is drawn
-per visit at generation. The rates, then the number of visits, per
-endpoint:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">rate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">pmax</span>, <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">visits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="va">v</span><span class="op">$</span><span class="va">probability</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">signif</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="va">rate</span>, <span class="va">fit</span><span class="op">$</span><span class="va">cells</span><span class="op">$</span><span class="va">endpoint</span>, <span class="va">max</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<div class="section level3">
+<h3 id="visits">Visits<a class="anchor" aria-label="anchor" href="#visits"></a>
+</h3>
+<p>The visits each arm has, and one attendance rate per endpoint.
+Attendance is drawn visit by visit at generation. The rates, then the
+number of visits, per endpoint:</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">pmax</span>, <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">visits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="va">v</span><span class="op">$</span><span class="va">probability</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">signif</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="va">rate</span>, <span class="va">release</span><span class="op">$</span><span class="va">cells</span><span class="op">$</span><span class="va">endpoint</span>, <span class="va">max</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    cp   pca </span></span>
 <span><span class="co">#&gt; 0.551 0.906</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">cells</span><span class="op">$</span><span class="va">endpoint</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">cells</span><span class="op">$</span><span class="va">endpoint</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;  cp pca </span></span>
 <span><span class="co">#&gt;  14   8</span></span></code></pre></div>
-<p>A cell is kept only where at least <code>min_arm_patients</code>
-distinct patients hold an observation there. A nominal time one patient
-attended is that patient, and generating from it would put them
-back.</p>
+<p>A visit is kept only where at least <code>min_arm_patients</code>
+patients were observed there.</p>
 </div>
-<div class="section level2">
-<h2 id="the-schema">The schema<a class="anchor" aria-label="anchor" href="#the-schema"></a>
-</h2>
-<p>What the generated table has to look like to be the same study: the
-columns and their classes, the compartment numbers, the assay limit per
-endpoint, and how identifiers are written.</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit</span><span class="op">$</span><span class="va">schema</span><span class="op">$</span><span class="va">columns</span></span>
+<div class="section level3">
+<h3 id="schema">Schema<a class="anchor" aria-label="anchor" href="#schema"></a>
+</h3>
+<p>The shape of the table to generate: its columns and their classes,
+the compartment numbers, and any assay limit per endpoint.</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">release</span><span class="op">$</span><span class="va">schema</span><span class="op">$</span><span class="va">columns</span></span>
 <span><span class="co">#&gt;  [1] "id"    "time"  "ntime" "dv"    "amt"   "evid"  "dvid"  "wt"    "age"  </span></span>
 <span><span class="co">#&gt; [10] "sex"</span></span>
-<span><span class="va">fit</span><span class="op">$</span><span class="va">schema</span><span class="op">$</span><span class="va">cmt_dose</span></span>
-<span><span class="co">#&gt; NULL</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">schema</span><span class="op">$</span><span class="va">cmt_obs</span><span class="op">)</span></span>
-<span><span class="co">#&gt; NULL</span></span>
-<span><span class="va">fit</span><span class="op">$</span><span class="va">schema</span><span class="op">$</span><span class="va">censoring</span></span>
-<span><span class="co">#&gt; $cp</span></span>
-<span><span class="co">#&gt; NULL</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $pca</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">schema</span><span class="op">$</span><span class="va">cmt_obs</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NULL</span></span></code></pre></div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="generating-from-it">Generating from it<a class="anchor" aria-label="anchor" href="#generating-from-it"></a>
 </h2>
-<p>The diagnostics above stay with the fit: the candidate table, the
-correlations and the timings. <code><a href="../reference/model_release.html">model_release()</a></code> is the part
-generation reads, and it is what <code><a href="../reference/synpmx_model_generate.html">synpmx_model_generate()</a></code>
-attaches to the data it returns.</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">setdiff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/model_release.html">model_release</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "candidates"   "design"       "correlations" "censoring"    "timing"      </span></span>
-<span><span class="co">#&gt; [6] "movement"     "fit_subjects" "start_param"  "dose_records"</span></span></code></pre></div>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">fit</span>, n_subjects <span class="op">=</span> <span class="fl">32</span>, seed <span class="op">=</span> <span class="fl">7</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">release</span>, n_subjects <span class="op">=</span> <span class="fl">32</span>, seed <span class="op">=</span> <span class="fl">7</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>rows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span>,</span>
 <span>  subjects <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  valid <span class="op">=</span> <span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span><span class="op">)</span></span>
@@ -577,23 +466,22 @@ attaches to the data it returns.</p>
 </h2>
 <ul>
 <li>
-<code><a href="../articles/pmxmodel-demo.html">vignette("pmxmodel-demo")</a></code> — this generator run on a
+<code><a href="../articles/pmxmodel-demo.html">vignette("pmxmodel-demo")</a></code>: this generator run on a
 study end to end.</li>
 <li>
-<code><a href="../articles/pmxmodel-algorithm.html">vignette("pmxmodel-algorithm")</a></code> — how each quantity
-above is arrived at.</li>
+<code><a href="../articles/pmxmodel-algorithm.html">vignette("pmxmodel-algorithm")</a></code>: how each quantity above
+is estimated.</li>
 <li>
-<code><a href="../articles/pca-fingerprint.html">vignette("pca-fingerprint")</a></code> — the same walk for the PCA
-generator, which carries the same apparatus and a completely different
-description of the profiles.</li>
+<code><a href="../articles/pca-fingerprint.html">vignette("pca-fingerprint")</a></code>: the same walk for the PCA
+generator, which shares the study design and describes the profiles
+differently.</li>
 <li>
-<code><a href="../articles/scorecard.html">vignette("scorecard")</a></code> — the checks that read a
-generated dataset against its source.</li>
+<code><a href="../articles/scorecard.html">vignette("scorecard")</a></code>: the checks that compare
+generated data with its source.</li>
 <li>
 <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html">Privacy
-protections in the PMX model generator</a> — what of this fingerprint
-leaves the study, the protections on it, and the checks that measure
-them.</li>
+protections in the PMX model generator</a>: what protects the
+fingerprint, and what risk remains.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
