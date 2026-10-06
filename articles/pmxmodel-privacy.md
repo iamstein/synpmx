@@ -37,9 +37,9 @@ agreement like them. The case rests on three points:
 1.  **The release holds what the study’s own reports ultimately make
     public, more coarsely.** A population PK report gives each typical
     value, its between-subject variability and the residual error, with
-    their standard errors, and regulators ask for exactly that \[18,
-    19\]. The study’s main publication gives each arm’s baseline
-    characteristics and how many patients discontinued \[20\]. This
+    their standard errors, and regulators ask for exactly that \[11,
+    12\]. The study’s main publication gives each arm’s baseline
+    characteristics and how many patients discontinued \[13\]. This
     release holds the same kinds of number at one significant figure,
     pooled over the arms and the visits, without standard errors, and a
     few dozen at most ([Released Parameters at a
@@ -63,414 +63,162 @@ agreement like them. The case rests on three points:
 
 ### What the Generator Releases
 
-A population PK/PD model describes how the concentration of a drug in
-the blood, and a response to the drug, change over time across a
-population of patients. It is a short list of numbers: a **typical
-value** for each parameter, such as how fast the body clears the drug; a
-**between-subject variance** for each, which says how far patients
-spread around the typical value; and a **residual error**, the scatter
-of single measurements around a patient’s own curve.
+A population PK/PD model is a short list of numbers: a **typical value**
+for each parameter, such as clearance; a **between-subject variance**
+for each, which says how far patients spread around the typical value;
+and a **residual error**, the scatter of single measurements around a
+patient’s own curve.
 [`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md)
-estimates these from the study’s patients with `nlmixr2`, an R package
-for fitting population models.
+estimates these with `nlmixr2`.
 
-The generator also summarizes the study’s design as it was carried out:
-the number of patients in each treatment group (**arm**), each arm’s
+The generator also summarizes the study as it was carried out: the
+number of patients in each treatment group (**arm**), each arm’s planned
 dose schedule, how often doses were reduced, skipped or stopped, the
-share of scheduled visits at which patients were measured, for each kind
-of measurement, the distribution of each baseline covariate such as body
-weight, age or sex, and, for an endpoint recorded in levels such as a
-yes/no response or a toxicity grade, how often each level was recorded.
-Everything in that list read from how patients behaved, rather than from
-the protocol, is one set of numbers for the whole study, pooled over the
-arms and the visits, as the PD time courses are pooled over the arms.
+share of scheduled visits attended for each kind of measurement, the
+distribution of each baseline covariate such as body weight, age or sex,
+and how often each level of a yes/no or graded endpoint was recorded.
+Each of these is one set of numbers for the whole study, pooled over the
+arms and the visits.
 
-What leaves the environment that holds the study is the **release**:
-these numbers, assembled by
-[`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md)
-from a list of permitted fields, together with a description of the
-table to generate. Synthetic data is simulated from the release and from
-random numbers alone, so it discloses nothing the release does not, and
-the release travels with the synthetic data as an attribute. A reviewer
-can read every number in a release with `str(unclass(release))`, and
-[Released Parameters at a Glance](#released-parameters-at-a-glance)
-counts them for each public study.
+These numbers are the **release**, and they are all that leaves the
+environment that holds the study. Synthetic data is simulated from the
+release and random numbers alone, so it discloses nothing the release
+does not. [Released Parameters at a
+Glance](#released-parameters-at-a-glance) counts the numbers in each
+public study’s release.
 
 ### What Is Protected, and What Is Not
 
 **✅ No patient record, identifier or per-patient estimate leaves the
 study.** The release holds numbers about the population and about arms.
-Synthetic subject identifiers are new. Each patient’s own estimated
-deviation from the typical values is used during estimation and then
-discarded.
+Each patient’s estimated random effects are used during estimation and
+dropped from the release, and synthetic subject IDs are new numbers that
+cannot collide with real ones.
 
 **✅ No released number is one patient’s value, and every released
-frequency rests on at least three patients on each side.** Minima,
-maxima, medians and modes are replaced by quantities no one patient
-decides. A frequency, a category level, or a value copied onto every
-patient of an arm is released only where the patients on each side of it
-number zero or at least three.
+frequency rests on at least three patients.** A few settings the
+generator needs (the lowest value it generates, the reference weight for
+body-weight scaling, a planned dose where doses varied) are computed so
+that no single patient decides them, rather than taken as half the
+smallest measurement, the median weight or the most common dose. Each
+frequency counts the patients who had something and those who did not:
+an attendance rate of 30 in 32 also describes the 2 who missed. A
+frequency is released only where both groups hold no patients or at
+least three.
 
 **✅ A patient who moves a released estimate by 15% or more is left out
 of the estimates.** Estimation reads how far each patient moves each
-estimate, leaves out anyone who moves one by 15% or more (for a
-between-subject spread, by 0.15 in its standard deviation (SD) on the
-log scale), and estimates again, up to a tenth of the cohort. A patient
-left out still counts in the arm sizes, the dosing and the visit
-attendance. The reading is approximate and does not cover every
-estimate; its limits are among the outstanding risks.
+model parameter estimate, leaves out anyone who moves one by 15% or more
+(for a between-subject spread, by 0.15 in its standard deviation (SD) on
+the log scale), and estimates again. A patient left out of one
+estimation step is still used in the others. The reading is approximate
+and does not cover every estimate; its limits are among the outstanding
+risks.
 
 **⚠️ Membership inference remains possible for an attacker who holds a
-candidate’s own trial data.** In simulation, an attacker with a
-candidate’s own measurements and exact reference values for the
-population ranks a study member above a non-member with probability 0.70
-when the population model is fitted to 12 patients and 0.56 when it is
-fitted to 60. This probability is the area under the curve (AUC), where
-0.5 is chance and 1 is certainty. A reference off by 20% brings the two
-to 0.59 and 0.53. The release holds no table per visit, because one
-would be more exposed: a share of patients sampled at each of 20 visits
-gives 0.83 when 10 patients stand behind each share and 0.62 when 100
-do. Attendance is one rate per endpoint instead, and each binary or
-ordinal endpoint one set of level frequencies. A rate exposes about as
-much as one visit’s share, so five endpoints’ rates behind 10 patients
-give about 0.67. Rounding the estimates to one significant figure lowers
-these numbers by up to 0.05, and the three-patient floor moves them by
-at most 0.01; cohort size and the number of released numbers decide
-them. [Membership inference against the PMX model
-release](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy-simulation.html)
-shows how each number is computed.
+candidate’s own trial data.** Such an attacker can check whether the
+released model fits the candidate slightly better than it would fit
+someone outside the study. In simulation the advantage is small: given
+one member and one non-member, the attacker picks the member 53% of the
+time in a 60-patient study when its population parameters come from
+another study (20% off), and 70% of the time in a 12-patient study when
+it knows the population’s true parameters, where 50% is a coin flip. The
+advantage grows with fewer patients and more released numbers, which is
+why the release pools attendance and level frequencies over the visits
+and rounds its estimates to one significant figure. [Appendix:
+Membership Inference Against the
+Release](#membership-inference-against-the-release) gives the numbers.
 
 **❌ No formal guarantee.** Nothing bounds what an attacker who knows
-every other patient learns about the remaining one. That attacker is the
-one DP is defined against, and no DP mechanism is implemented for this
-generator. [Why we chose a method that does not formally guarantee
-DP](#why-not-dp) makes the case for its use, and says where that case
-fails.
+every other patient learns about the remaining one.
 
-### How to Share a Release
+## The Privacy Protections
 
-**Share the release or the synthetic data, never the fit.** The object
-[`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md)
-returns also holds diagnostics: the comparison of candidate models, the
-starting values, and the correlations between covariates and each
-patient’s random effects. Save `model_release(fit)`.
+### 1. No Single Patient’s Value
 
-**Keep the estimation’s console output and rendered reports inside the
-study environment.** A patient left out of the estimates, or one who
-moves an estimate far, is named there by their study identifier.
-
-**Use a method with a formal guarantee where membership in the study is
-itself sensitive** and a recipient could hold a candidate’s measurements
-of the kind the study made: a site holding the patient’s records, a
-partner holding a related study, or routine care that measures the same
-quantities, such as drug-level monitoring. [What differential privacy
-does and does not
-guarantee](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html)
-sets out that choice.
-
-## How Summary Statistics Disclose Patients
-
-A fitted model holds no patient rows, but the DP literature shows that
-statistics computed from patients can still disclose them. Four
-mechanisms apply here.
-
-**Membership inference** decides whether a given person was in the
-study. The attacker holds that person’s data and the release, and asks
-whether the release fits them better than it would fit someone who was
-not in the study. Homer and colleagues did this from published allele
-frequencies alone \[2\], after which public access to that kind of
-aggregate genetic data was withdrawn. The power of the attack grows with
-the number of released statistics and with their precision, and falls as
-the number of people behind each statistic grows \[3, 4\].
-
-**Model inversion** infers a hidden attribute from an estimated
-relationship. Fredrikson and colleagues took a published warfarin dosing
-regression, a patient’s demographics and that patient’s stable dose, and
-inferred the patient’s genotype nearly as well as a model built to
-predict genotype \[5\].
-
-**Reconstruction** recovers individual records from enough accurate
-aggregate answers: answering too many questions too precisely gives the
-dataset away \[6\].
-
-**A single patient’s value** is the simplest case. A minimum, a maximum,
-the median of an odd number of patients, and the most common value where
-every value is held once are each one patient’s value, whatever the
-summary is called. Releasing one releases that patient’s value.
-
-What an attacker already holds decides which of these succeed:
-
-| Attacker | Holds | What the release gives them |
-|----|----|----|
-| An outsider | a candidate’s demographics: age, sex, body weight | the covariates as trimmed, rounded means and SDs, and as level frequencies held by at least three patients: the kind of summary a trial’s table of baseline characteristics reports |
-| An attacker with trial data | a candidate’s own measurements of the kind the study made, and reference values for the population | an advantage at membership inference, measured under [Membership Inference Against the Release](#membership-inference-against-the-release) |
-| An attacker who knows every other patient | the whole study except one patient | that patient’s contribution to every released number, which only a DP mechanism hides |
-
-Three properties of a summary lower all four risks: fewer released
-numbers, coarser released numbers, and numbers no single patient can
-move far. Each protection below is one of these.
-
-## The Release, Field by Field
-
-A fitted model carries two kinds of content. Generation reads one of
-them. The other is diagnostics for whoever ran the fit, and stays with
-it.
-[`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md)
-builds the part generation reads, and
-[`synpmx_model_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_generate.md)
-attaches that part, never the fit, to the data it returns. Generating
-from a fit and from its release gives the same data. The worked example
-is
-[`nlmixr2data::warfarin`](https://nlmixr2.github.io/nlmixr2data/reference/warfarin.html):
-32 patients, one oral dose, a warfarin concentration and a prothrombin
-activity.
-
-The diagnostics that stay with the fit:
-
-``` r
-
-release <- model_release(fit)
-setdiff(names(fit), names(release))
-#> [1] "candidates"   "design"       "correlations" "censoring"    "timing"      
-#> [6] "movement"     "fit_subjects" "start_param"  "dose_records"
-```
-
-Every field of the release, what it holds, and how many finite numbers
-it holds. `parameters` repeats the first entry of `pk_models` and is
-left out.
-
-| field | holds | numbers |
-|:---|:---|---:|
-| structural | the structural PK model selected | 0 |
-| pk_models | per concentration endpoint: typical values, between-subject variances, residual error, any body-weight scaling | 32 |
-| pd | per other continuous endpoint: a time-course shape and its parameters, the spread of patients’ baselines, residual error | 5 |
-| arms | the arms and the number of patients in each | 1 |
-| dosing | per arm: the planned dose at each scheduled time; pooled over arms: the levels doses were reduced to, and the rates of reducing, skipping and stopping | 9 |
-| visits | the visits each arm has, and one attendance rate per endpoint, listed at each of its visits | 44 |
-| cells | the scheduled visits kept, as endpoint and nominal time | 44 |
-| discrete | per binary or ordinal endpoint: one set of level frequencies for the study, listed at each visit | 0 |
-| covariates | per baseline covariate: a trimmed mean and SD, or level frequencies | 6 |
-| covariate_effects | body-weight scaling, where requested: a reference weight | 0 |
-| schema | the table to generate: columns and their types, compartment numbers, assay limits, values copied onto each arm, each endpoint’s value type | 1 |
-| roles | which column holds what | 0 |
-| endpoints | which endpoints are concentrations, time courses or levels | 0 |
-| quantification_floor | per endpoint without a declared assay limit, the value nothing is generated below | 2 |
-| n_source | the number of patients | 1 |
-| settings | the frequency floors used | 2 |
-| privacy | the verdicts of checks P4 and P5 | 2 |
-
-Membership inference gains power with the number of released numbers
-\[3, 4\]. Most of the count is the visit and dosing apparatus rather
-than the population model, which is in `pk_models` and `pd`. Part of the
-apparatus is the protocol rather than a measurement: the nominal visit
-times in `cells` and the planned dose times in `dosing` are public in
-the sense the protocol is.
-
-## The Protections
-
-Each protection is applied by
-[`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md)
-without being asked for, and each names the work it rests on.
-
-### 1. An Allowlist Decides What Leaves
-
-[`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md)
-copies the fields Step 6 of the
-[algorithm](https://iamstein.github.io/synpmx/articles/pmxmodel-algorithm.html)
-reads. Inside the PK models, the PD shapes, the dosing models, the
-endpoint list and the settings, a second list names the parts it copies;
-the schema, the arm, visit and covariate models and the remaining fields
-are copied whole. A field added to the fit later stays behind unless it
-is added to a list. The pattern is the glimpse-then-simulate split of
-Novartis’s `synadam` package \[7\], which writes the summary that
-synthetic data is generated from to one file a reviewer can read.
-
-### 2. No Per-Patient Quantity
-
-The empirical Bayes estimates (EBEs) are each patient’s own random
-effects: how far that patient’s parameters sit from the typical values,
-estimated from the patient’s own measurements. They are read twice at
-estimation, for the correlations between covariates and random effects
-and for the influence reading of protection 8, and then dropped.
-Generation draws new random effects from the between-subject covariance
-matrix.
-
-### 3. No Identifier
-
-Synthetic subject identifiers (IDs) are minted at generation. No source
-label is kept, including the levels of an ID column stored as a factor.
-A numeric ID keeps only the largest source ID rounded up to a power of
-ten, which stops a synthetic ID colliding with a real one without
-storing the real one. `synadam` refuses to run when an ID column is left
-undeclared, for the same reason \[7\].
-
-### 4. No Single Patient’s Value
-
-Every summary that could have been one patient’s value is replaced:
+Every quantity that would naturally have been one patient’s value is
+computed another way:
 
 | Quantity | Would have been | Is |
 |----|----|----|
-| Emission floor, where no assay limit is declared | half the smallest value reported | half the lowest value at least three patients reached, rounded down to 1, 2 or 5 times a power of ten |
-| Allometric reference weight | the cohort median | the median to one significant figure |
-| Planned dose amount or infusion rate, where no value is shared | the most common value, which is then one patient’s | the arm’s mean to two significant figures |
-| Continuous covariate | a mean and SD over every patient, and a median | a trimmed mean and SD (protection 6), no median |
-| Endpoint type description | text quoting the count of levels and the lowest and highest value observed | the type, without the text |
+| Lowest value generated, where no assay limit is declared | half the smallest value reported | half the lowest value at least three patients reached, rounded down to 1, 2 or 5 times a power of ten |
+| Reference weight for body-weight scaling | the cohort median | the median to one significant figure |
+| Planned dose, where patients’ doses differ | the most common dose, which can be one patient’s | the arm’s mean to two significant figures |
+| Continuous covariate | a mean, SD and median over every patient | a trimmed mean and SD (protection 3), no median |
 
-Statistical disclosure control (SDC), the field that protects published
-statistical tables, treats extreme values the same way, by top-coding
-and coarsening them \[8\].
+### 2. At Least Three Patients Behind Every Frequency
 
-### 5. Several Patients Behind Every Frequency
+A frequency resting on one patient describes that patient, and so does
+one that all but one patient share. Statistical disclosure control
+(SDC), the field that protects published statistical tables, publishes a
+count only where at least *k* people stand behind it \[2\]. Here *k* is
+3, applied to both groups behind a frequency:
 
-A frequency resting on one patient is that patient. The threshold rule
-of SDC publishes a count only where at least *k* units stand behind it
-\[8\], and `synadam` masks values held once \[7\]. The rule applies to
-both sides of a frequency: attendance at a visit that all but one
-patient kept says as much about the one who missed it as attendance by
-one patient says about the one who came. Here *k* is 3 by default:
+- an arm, visit, dose level or planned cycle is kept only where at least
+  three patients reached it;
+- an attendance rate is set to 1, and a dose-change rate to 0, where
+  fewer than three patients missed a visit or changed a dose;
+- a category level, of a covariate or of a graded endpoint, held by
+  fewer than three patients is folded into the most common level.
 
-- arms below `min_arm_patients` are dropped before anything is fitted;
-- a nominal visit slot, a dose level and a planned cycle are kept only
-  where at least `min_arm_patients` patients reached them, and an arm
-  has a visit only where at least that many of its patients were
-  observed there;
-- attendance is one rate per endpoint, and is 1 where fewer than
-  `min_arm_patients` patients missed any of the endpoint’s visits;
-- a dose-change rate, pooled over every arm, whose events fewer than
-  `min_arm_patients` patients had is zero;
-- a categorical covariate level, and a binary or ordinal endpoint’s
-  level, below `min_category_patients` patients is excluded, or folded
-  into the most common level;
-- a `keep` value of any type, copied from the arm’s first patient as
-  `keep` declares, is written as missing where fewer than
-  `min_category_patients` patients in the arm hold it;
-- the description of the table to generate keeps, for a factor column,
-  only the levels its arms carry or at least `min_category_patients`
-  patients hold, and for a binary or ordinal endpoint only the levels
-  that many patients recorded, so the label of an arm too small to keep,
-  or a grade one patient reached, stays behind.
+The rule stops a frequency from singling out one or two patients, but
+not membership inference, which adds up small signals over many
+frequencies. Pooling weakens that: attendance is one rate per endpoint,
+the dose-change rates are three, and a graded endpoint is one set of
+level frequencies, each pooled over the arms and the visits.
 
-The rule stops a frequency from singling out one or two patients. It
-does not stop membership inference, which adds up small signals over
-many frequencies ([Membership Inference Against the
-Release](#membership-inference-against-the-release)). Pooling is what
-weakens that: attendance is one rate per endpoint, the dose-change rates
-are three, and a binary or ordinal endpoint is one set of level
-frequencies, each pooled over the arms and the visits rather than
-resting on one arm at one visit. `pd_by_arm = TRUE` reads the endpoint
-frequencies per arm again, with the PD time courses.
-
-### 6. Covariate Summaries Without Their Extremes
+### 3. Covariate Summaries Without Their Extremes
 
 A continuous covariate is summarized by a mean and SD taken after the
-highest and lowest 5% of patients are set aside, at least one at each
-end. The SD of what remains understates the spread, because the tails
-are what was removed, so it is divided by the SD a standard normal keeps
-under the same trimming. With a share $`\alpha`$ removed from each end
-and $`z = \Phi^{-1}(1-\alpha)`$,
+highest and lowest 5% of patients are set aside, with the SD corrected
+for the trimming. No single extreme patient, such as one weighing 250
+kg, can then move the summary. This is the trimmed mean of robust
+statistics \[3\], and it is also how DP mean estimators bound one
+person’s influence \[4\].
 
-``` math
-\mathrm{SD} = \frac{\mathrm{SD}_\text{trimmed}}{\sqrt{1 - \dfrac{2 z \phi(z)}{1-2\alpha}}}.
-```
+### 4. One Significant Figure
 
-This is the trimmed mean of robust statistics \[9\]. Trimming is also
-how DP mean estimators bound one person’s influence \[10\], since no
-single value can then move the result by more than the trimmed range
-allows.
+Every released PK and PD estimate is rounded to one significant figure;
+covariate summaries are rounded to two, since one would put a mean
+height of 172 cm at 200. One figure moves an estimate by 9% on average
+and 33% at worst. In exchange, the released value is usually the same
+whether a given patient is in the study or not, because a one-figure
+step is about as wide as an estimate’s sampling variation. Rounding does
+not hide an outlier’s effect on a variance, which protection 5 measures.
+The full-precision estimates stay on the fit, outside the release.
 
-### 7. One Significant Figure
+### 5. How Far One Patient Moves Each Estimate
 
-Every released PK and PD estimate is rounded to one significant figure:
-PK fixed effects, between-subject variances, residual error and PD shape
-parameters. Covariate summaries are rounded to two, because one would
-put a mean height of 172 cm at 200. Rounding is the other standard
-coarsening of SDC \[8\]. One significant figure moves an estimate by 9%
-on average and by 33% at worst, against 1% and 5% for two, and in
-exchange it weakens membership inference where two figures do not: its
-step is as wide as an estimate’s sampling variation, so the released
-value is usually the same with a given patient in the study or out
-([Membership Inference Against the
-Release](#membership-inference-against-the-release)). Rounding does not
-hide an outlier’s effect on a variance, which protection 8 measures. The
-full-precision estimates stay on the fit, outside the release, for
-whoever ran it. The frequencies are not rounded: each is an exact count
-over the study, held to the floor of protection 5 instead.
+For each released estimate, estimation approximates how far it would
+move if each patient in turn were left out, from that patient’s random
+effects and without refitting. This is *local sensitivity*, the
+study-specific version of DP’s sensitivity \[1\], and in regression the
+same idea is Cook’s distance \[5\]. A move of 15 (percent for a typical
+value; points of between-subject SD on the log scale, close to CV%, for
+a spread) triggers a review, and 30 fails.
 
-### 8. How Far One Patient Moves Each Estimate
-
-DP calls the most one person can move a released number its
-*sensitivity*, taken over every possible dataset \[1\]. The same
-question asked of the study at hand, leaving each patient out in turn
-and recording the largest move, is *local sensitivity*, and in
-regression the same idea is Cook’s distance \[11\]. It is computed at
-estimation without refitting:
-
-- A population typical value on the log scale sits close to the mean of
-  the patients’ individual log parameters, so leaving out patient $`i`$
-  moves it by about $`\eta_i/(n-1)`$, where $`\eta_i`$ is that patient’s
-  random effect. The PD typical baseline is read the same way, from each
-  patient’s own baseline.
-- The between-subject variance sits close to the mean of the squared
-  random effects, so leaving out patient $`i`$ scales it by
-  $`\frac{(S-\eta_i^2)/(n-1)}{S/n}`$, with $`S=\sum_j \eta_j^2`$.
-- The spread of the PD baselines and each covariate summary are
-  recomputed with the patient left out, which needs no approximation.
-
-The largest move over all patients is kept for each estimate: in percent
-for a typical value, and in points of the between-subject SD on the log
-scale, close to a coefficient of variation (CV) in percent, for a
-spread. A move of 15 is a review; a move of 30 fails, warns at
-estimation, and names the patient on the console. The name is printed in
-the environment that holds the study and is not stored: the fit keeps
-the largest move per estimate, never anything per patient. On a
-parameter whose between-subject SD is 0.27, a patient 3 SD from the mean
-in a cohort of 32 moves the typical value by about 3% and the spread by
-about 4 points. Shrinkage, the pull of a random effect toward zero when
-the patient’s own measurements say little about their parameters, makes
-the reading understate the move, so it is reported beside it.
-
-A patient who moves an estimate by 15 or more is then left out of the
-estimates, and estimation runs again. The patient is left out of the PK
-fit, the PD fits and the covariate summaries, and stays in the dosing,
-visit and arm models, so the cohort and arm sizes the release describes
-do not change. Rounds repeat until the reading flags nobody, and stop
-before a tenth of the cohort has been left out. Each patient left out is
-named on the console; the fit records how many, and which estimates they
-moved. `drop_influential = FALSE` keeps every patient and leaves the
-reading as a review or a failure.
-
-The rounds are repeated because leaving out the most influential
-patients makes the next ones the most influential, which Carlini and
-colleagues call the privacy onion effect \[12\]. The DP counterpart of
-the reading is propose-test-release, which checks that the study at hand
-is far from any study in which one patient could move an estimate far,
-and only then releases it with noise scaled to that bound \[13\].
+A patient who moves an estimate by 15 or more is left out of the PK fit,
+the PD fits and the covariate summaries, and estimation runs again. The
+patient stays in the dosing, visit and arm models, so cohort and arm
+sizes do not change. Rounds repeat until nobody is flagged, because
+leaving out the most influential patients makes the next ones the most
+influential \[6\], and stop at a tenth of the cohort. Patients left out
+are named on the console only; the fit records how many.
+`drop_influential = FALSE` keeps every patient.
 
 ## The Five Checks
 
 [`model_privacy_checks()`](https://iamstein.github.io/synpmx/reference/model_privacy_checks.md)
-runs five checks on a fit, each with its pass criterion. The first four
-ask whether the release holds something about one patient that it should
-not. The fifth is the reading of protection 8.
+verifies the protections on a fit; a release carries the verdicts of P4
+and P5.
 
 | Check | Question | Passes when |
 |----|----|----|
-| P1 | No per-patient table is released | the release holds only fields on the allowlist, none of them per patient |
-| P2 | No source identifier is released | no source ID label, and no source ID value as the synthetic ID offset |
-| P3 | No single patient’s value is released | floors on the 1-2-5 series, the reference weight rounded, no covariate median, no factor level that no arm carries |
-| P4 | Every released frequency rests on several patients, on both sides | each side of every frequency is none or at least `min_arm_patients` patients (`min_category_patients` for categorical levels and values) |
-| P5 | No single patient moves a released estimate far | every estimate moves less than 15, after any patient who moved one further has been left out |
-
-P1 to P3 are structural and read the release. They pass by construction
-on a fit from this version, and exist to catch a release assembled some
-other way or a fit stored before the protections existed. P3 reads the
-emission floors, the covariate summaries, the reference weight and the
-factor levels of the columns copied onto arms. P4 recounts, at
-estimation, the smallest group of patients behind each kind of released
-frequency after the rules of protection 5 have run, including every
-factor and endpoint level the schema stores, and P5 is the reading of
-protection 8. A release carries the verdicts of P4 and P5, and the fit
-the counts behind them.
+| P1 | No per-patient table is released | the release holds only population- and arm-level fields |
+| P2 | No source identifier is released | no source subject ID appears in the release |
+| P3 | No single patient’s value is released | protection 1 holds |
+| P4 | Every released frequency rests on at least three patients | protection 2 holds for every frequency |
+| P5 | No single patient moves a released estimate far | every estimate moves less than 15 (protection 5) |
 
 ``` r
 
@@ -490,11 +238,10 @@ as.data.frame(checks)[, c("check", "verdict", "result")]
 #> 5                                                                                                                  largest: cp: ka between-subject SD, 9.84 points
 ```
 
-The reading behind P5 is the `influence` attribute of the full fit’s
-checks, one row per released estimate: the released value, the largest
-move any one patient causes, its unit, the number of patients it was
-read over, the shrinkage of the random effect it came from, and the
-verdict. No row is about a patient.
+The reading behind P5, one row per released estimate: the largest move
+any one patient causes, the number of patients it was read over, the
+shrinkage of the random effect it came from, and the verdict. No row is
+about a patient.
 
 ``` r
 
@@ -535,10 +282,9 @@ digits3(attr(checks, "influence"))
 #> 16        NA    pass
 ```
 
-The recount behind P4 is the `frequencies` attribute: for each kind of
-released frequency, the smallest group of patients behind any one of
-them, the floor it is held to, and how many values the rules changed to
-meet it.
+The recount behind P4: for each kind of released frequency, the smallest
+group of patients behind any one of them, and how many values the rules
+changed to meet the floor.
 
 ``` r
 
@@ -558,34 +304,9 @@ attr(checks, "frequencies")[, c("quantity", "smallest", "threshold",
 #> 5        0
 ```
 
-The same checks on the release report P5 as a verdict only. A passing
-release states that every estimate moved less than 15, and nothing more,
-so the one data-dependent thing it carries about the reading is the
-verdict. A release that does not pass names its worst estimate and the
-size of the move, which is computed from one patient’s data; such a
-release is not meant to leave.
-
-``` r
-
-as.data.frame(model_privacy_checks(release))[, c("check", "verdict", "result")]
-#>   check verdict
-#> 1    P1    pass
-#> 2    P2    pass
-#> 3    P3    pass
-#> 4    P4    pass
-#> 5    P5    pass
-#>                                                                                                                                                             result
-#> 1                                                                                                                                                             none
-#> 2                                                                                                                                                             none
-#> 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored, no factor level beyond what the arms carry
-#> 4                                                                                                 every released frequency rests on at least the floor of patients
-#> 5                                                                                                                       every released estimate moves less than 15
-```
-
 ## Three Constructed Cases
 
-Each case is `warfarin` with one or more patients changed, built once by
-[`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md)
+Each case is `warfarin` with one or more patients changed, fitted once
 and stored with the package. None is a real study.
 
 ``` r
@@ -614,28 +335,15 @@ extreme$sex <- factor(extreme$sex)
 ``` r
 
 misdosed_fit <- synpmx_model_estimate(misdosed, roles, seed = 1)
+misdosed_kept_fit <- synpmx_model_estimate(misdosed, roles, seed = 1,
+                                           drop_influential = FALSE)
 extreme_fit <- synpmx_model_estimate(extreme, roles, seed = 1)
 ```
 
 ### A Patient Given a Thousand Times the Recorded Dose
 
-One patient received a thousand times the dose the record shows, so a
-linear model sees concentrations a thousand times higher than the
-recorded dose implies. The case is fitted twice: as estimation runs by
-default, and with `drop_influential = FALSE`, which keeps the patient so
-that the reading can be seen to catch them.
-
-``` r
-
-misdosed_fit <- synpmx_model_estimate(misdosed, roles, seed = 1)
-misdosed_kept_fit <- synpmx_model_estimate(misdosed, roles, seed = 1,
-                                           drop_influential = FALSE)
-```
-
-Kept, the patient fails P5. The variance terms absorb the excess
-exposure, and estimation warned that one patient moved a released
-estimate by 30 or more, naming the patient on the console. The stored
-fit names nobody.
+One patient’s concentrations are a thousand times what the recorded dose
+implies. Kept in with `drop_influential = FALSE`, the patient fails P5:
 
 ``` r
 
@@ -653,58 +361,14 @@ as.data.frame(kept_checks)[, c("check", "verdict", "result")]
 #> 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored, no factor level beyond what the arms carry
 #> 4                                                                                                smallest group: 5, patients holding a categorical covariate level
 #> 5                                                                                                                  largest: cp: v2 between-subject SD, 70.7 points
-digits3(attr(kept_checks, "influence"))
-#>        group   name            quantity released   change   unit patients
-#> 1         PK cp: cl       typical value      0.1     26.2      %       32
-#> 2         PK cp: cl  between-subject SD    0.707     51.8 points       32
-#> 3         PK  cp: v       typical value        7     25.5      %       32
-#> 4         PK  cp: v  between-subject SD    0.707     53.6 points       32
-#> 5         PK cp: ka       typical value      0.6     3.97      %       32
-#> 6         PK cp: ka  between-subject SD    0.707     12.9 points       32
-#> 7         PK  cp: q       typical value    0.002 0.000055      %       32
-#> 8         PK  cp: q  between-subject SD    0.141     13.4 points       32
-#> 9         PK cp: v2       typical value  0.00006    0.122      %       32
-#> 10        PK cp: v2  between-subject SD    0.707     70.7 points       32
-#> 11        PD    pca    typical baseline      100     2.11      %       32
-#> 12        PD    pca  between-subject SD      0.1     5.86 points       32
-#> 13 covariate     wt      geometric mean       69     1.22      %       32
-#> 14 covariate     wt SD on the log scale     0.18     1.71 points       32
-#> 15 covariate    age      geometric mean       29     2.05      %       32
-#> 16 covariate    age SD on the log scale     0.34      2.3 points       32
-#>    shrinkage verdict
-#> 1     -0.899  review
-#> 2     -0.899    FAIL
-#> 3     -0.843  review
-#> 4     -0.843    FAIL
-#> 5      0.474    pass
-#> 6      0.474    pass
-#> 7          1    pass
-#> 8          1    pass
-#> 9       0.99    pass
-#> 10      0.99    FAIL
-#> 11        NA    pass
-#> 12        NA    pass
-#> 13        NA    pass
-#> 14        NA    pass
-#> 15        NA    pass
-#> 16        NA    pass
 ```
 
-By default, estimation left the patient out of the estimates and ran
-again. The fit records how many patients were left out and which
-estimates they moved, and the checks pass:
+By default the patient is left out, and the checks pass:
 
 ``` r
 
 misdosed_fit$privacy$left_out$patients
 #> [1] 1
-digits3(misdosed_fit$privacy$left_out$because)
-#>   group   name           quantity change   unit
-#> 1    PK cp: cl      typical value   26.2      %
-#> 2    PK cp: cl between-subject SD   51.8 points
-#> 3    PK  cp: v      typical value   25.5      %
-#> 4    PK  cp: v between-subject SD   53.6 points
-#> 5    PK cp: v2 between-subject SD   70.7 points
 as.data.frame(model_privacy_checks(misdosed_fit))[, c("check", "verdict",
                                                       "result")]
 #>   check verdict
@@ -721,9 +385,8 @@ as.data.frame(model_privacy_checks(misdosed_fit))[, c("check", "verdict",
 #> 5                                                                 largest: cp: ka between-subject SD, 9.02 points; after leaving 1 patient(s) out of the estimates
 ```
 
-The synthetic data shows the difference. Kept, the patient’s exposure
-becomes between-subject variability, and the synthetic patients spread
-wider than the rest of the source cohort. Left out, they do not:
+Kept, the patient’s exposure becomes between-subject variability and the
+synthetic patients spread wider than the source. Left out, they do not:
 
 ``` r
 
@@ -753,32 +416,10 @@ ggplot2::ggplot(plotted, ggplot2::aes(time, dv, group = id,
 
 ![](pmxmodel-privacy_files/figure-html/misdosed-plot-1.png)
 
-The scorecard reads each release’s verdict as row E3, so the finding
-reaches anyone who scores the synthetic data:
-
-``` r
-
-kept_card <- synpmx_scorecard(misdosed, kept_synthetic, roles)
-card <- synpmx_scorecard(misdosed, synthetic, roles)
-data.frame(fit = c("patient kept", "patient left out"),
-           E3 = c(kept_card$verdict[kept_card$check == "E3"],
-                  card$verdict[card$check == "E3"]),
-           result = c(kept_card$result[kept_card$check == "E3"],
-                      card$result[card$check == "E3"]))
-#>                fit   E3                                          result
-#> 1     patient kept FAIL largest: cp: v2 between-subject SD, 70.7 points
-#> 2 patient left out pass      every released estimate moves less than 15
-```
-
-Leaving the patient out protects the release and keeps the synthetic
-data plausible. The record is still wrong, and correcting the patient’s
-dosing is the remedy for any analysis of the real study.
-
 ### Extreme Covariates
 
-One patient weighs 250 kg and another is 95 years old. Neither enters
-the covariate summaries, because each is the most extreme patient on
-their side and trimming sets them aside:
+One patient weighs 250 kg and another is 95 years old. Trimming sets
+both aside, so the covariate summaries barely change:
 
 ``` r
 
@@ -797,54 +438,10 @@ rbind(cbind(study = "warfarin", summary_of(fit$covariates)),
 #> 4 with the two extreme patients       age             29   0.36
 ```
 
-The same two summaries taken over every patient, without trimming, move
-with the extreme patients:
-
-``` r
-
-first <- function(data) data[!duplicated(data$id), ]
-untrimmed <- function(data) {
-  data.frame(covariate = c("wt", "age"),
-             geometric_mean = exp(c(mean(log(first(data)$wt)),
-                                    mean(log(first(data)$age)))),
-             sd_log = c(stats::sd(log(first(data)$wt)),
-                        stats::sd(log(first(data)$age))))
-}
-digits3(rbind(cbind(study = "warfarin", untrimmed(warfarin)),
-              cbind(study = "with the two extreme patients",
-                    untrimmed(extreme))))
-#>                           study covariate geometric_mean sd_log
-#> 1                      warfarin        wt           68.8   0.19
-#> 2                      warfarin       age           29.6  0.304
-#> 3 with the two extreme patients        wt           71.7  0.297
-#> 4 with the two extreme patients       age           30.3  0.363
-```
-
-P5 reads the covariate rows of the influence table: leaving out any one
-patient barely moves them, the extreme patients included.
-
-``` r
-
-extreme_influence <- attr(model_privacy_checks(extreme_fit), "influence")
-digits3(extreme_influence[extreme_influence$group == "covariate", ])
-#>        group name            quantity released change   unit patients shrinkage
-#> 13 covariate   wt      geometric mean       70   1.26      %       32        NA
-#> 14 covariate   wt SD on the log scale     0.19   1.68 points       32        NA
-#> 15 covariate  age      geometric mean       29   2.03      %       32        NA
-#> 16 covariate  age SD on the log scale     0.36   2.02 points       32        NA
-#>    verdict
-#> 13    pass
-#> 14    pass
-#> 15    pass
-#> 16    pass
-```
-
 ### A Category Nobody Else Holds
 
-A third changed patient has a sex recorded as a level no other patient
-holds. The level is excluded from the covariate distribution and from
-the schema the generated table is written in, so no synthetic patient
-can carry it:
+A third patient has a sex recorded as a level no other patient holds.
+The level is dropped, so no synthetic patient can carry it:
 
 ``` r
 
@@ -857,9 +454,11 @@ levels(extreme_fit$schema$prototypes$sex)
 ## The Checks Across the Public Studies
 
 The checks on every stored fit of the [public-data
-evaluation](https://iamstein.github.io/synpmx/articles/pmxmodel-public-data-examples.html),
-and the estimate each study’s most influential remaining patient moves
-furthest.
+evaluation](https://iamstein.github.io/synpmx/articles/pmxmodel-public-data-examples.html).
+`left_out` counts the patients left out for moving an estimate by 15 or
+more, and `largest` is the largest move among those that remain; the
+same patient moves a twelve-patient fit about five times as far as a
+sixty-patient one.
 
 ``` r
 
@@ -910,169 +509,61 @@ do.call(rbind, rows[!vapply(rows, is.null, logical(1))])
 #> 10 largest: Everolimus trough: ka between-subject SD, 3.39 points
 ```
 
-`left_out` counts the patients each study’s estimation left out for
-moving an estimate by 15 or more, and `largest` is the largest move
-among the patients that remain. A move is a fraction of the cohort’s
-spread divided by the cohort size, so the same patient moves a
-twelve-patient fit about five times as far as a sixty-patient one.
-
 ## Checks on the Synthetic Table
 
-The checks above read the fit.
 [`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md)
-reads the synthetic table against its source, and its section B asks
-whether any synthetic patient reproduces a real one. Four of its rows do
-not apply to this generator, because no synthetic patient is assembled
-from a real patient’s record; B3, B4b and B5 do.
+compares the synthetic table with its source. Three of its rows ask
+whether a synthetic patient reproduces a real one: B3 compares how close
+synthetic patients sit to real ones with how close real patients sit to
+each other, B4b asks whether any synthetic patient copies a real
+patient’s values, and B5 asks whether a level fewer than three real
+patients held reached the output.
 
 ``` r
 
 synthetic <- synpmx_model_generate(fit, seed = 11)
 card <- synpmx_scorecard(warfarin, synthetic, roles)
-as.data.frame(card)[substr(card$check, 1, 1) %in% c("B", "E"),
+as.data.frame(card)[card$check %in% c("B3", "B4b", "B5"),
                     c("check", "question", "result", "verdict")]
-#>    check                                                      question
-#> 8    B1a                   Avatars with a visit set nobody else shares
-#> 9    B1b               Avatars with a dose schedule nobody else shares
-#> 10    B2               Synthetic patients unusual within their stratum
-#> 11    B3                 Adversarial accuracy inside its null interval
-#> 12   B4a            Generated time vectors copying an exposed real one
-#> 13   B4b              Generated DV vectors copying an exposed real one
-#> 14    B5                     Rare source levels copied into the output
-#> 19    E1             Fitted parameters moved off their starting values
-#> 20    E2 Between-subject terms were estimated, not left at their start
-#> 21    E3                 No single patient moves a fitted estimate far
-#>                                                          result        verdict
-#> 8                                                 no run record not applicable
-#> 9                                                 no run record not applicable
-#> 10 not applicable: profiles simulated, not built from a patient not applicable
-#> 11                                      0.656 in [0.344, 0.712]           pass
-#> 12                   not applicable: attendance drawn per visit not applicable
-#> 13                                                            0           pass
-#> 14                                               0 of 0 exposed           pass
-#> 19                                           moved (1 model(s))           pass
-#> 20                                                    estimated           pass
-#> 21                   every released estimate moves less than 15           pass
+#>    check                                         question
+#> 11    B3    Adversarial accuracy inside its null interval
+#> 13   B4b Generated DV vectors copying an exposed real one
+#> 14    B5        Rare source levels copied into the output
+#>                     result verdict
+#> 11 0.656 in [0.344, 0.712]    pass
+#> 13                       0    pass
+#> 14          0 of 0 exposed    pass
 ```
-
-B3 compares how close synthetic patients sit to real ones against how
-close real patients sit to each other, B4b asks whether any generated
-vector of values copies a real patient’s, and B5 asks whether a level
-fewer than three real patients held reached the output. [The
-scorecard](https://iamstein.github.io/synpmx/articles/scorecard.html)
-documents each row and its pass criterion.
-
-## Membership Inference Against the Release
-
-A membership-inference attack gives each candidate a score that is high
-when the release has moved, away from what the population would give,
-toward the candidate’s own values. Members of the study score higher on
-average than people who were not in it, and the attack’s strength is
-read as the AUC, the probability that a randomly chosen member scores
-above a randomly chosen non-member: 0.5 is chance and 1 is certain
-identification. The attacker modelled holds the candidate’s own
-measurements and reference values for the population, and does not know
-the other patients. The release is reduced to its two kinds of number: a
-population model of five parameters, each released as a typical value
-and a between-subject variance, and the share of patients sampled at
-each scheduled visit. [Membership inference against the PMX model
-release](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy-simulation.html)
-works through the calculation on one small study, shows both tables in
-full, and places each public study’s release against them. Three
-readings:
-
-- **Cohort size decides the population model’s exposure.** With an exact
-  reference the AUC falls from 0.70 at 12 patients to 0.56 at 60, and a
-  reference off by 20% brings the two to 0.59 and 0.53.
-- **One significant figure lowers it; two would not.** Scored on the
-  same simulated studies, rounding to one figure, as the release does,
-  lowers the AUC by up to 0.05, while two figures move it by at most
-  0.001, because a one-figure step is as wide as an estimate’s sampling
-  variation and a two-figure step is not.
-- **A table per visit would be the most exposed part of a release, so
-  the release holds none.** A share of patients sampled at each of 20
-  visits gives 0.83 with 10 patients behind each share, 0.72 with 30 and
-  0.62 with 100, and the three-patient rule moves it by at most 0.01,
-  because the rule acts only on shares near 0 or 1. Attendance is one
-  rate per endpoint instead, and a binary or ordinal endpoint one set of
-  level frequencies, each pooled over the arms and the visits. A rate
-  exposes about as much as one visit’s share, so a study’s attendance
-  rates are about as exposed as a table with one visit for each
-  endpoint: 0.67 for five endpoints behind 10 patients.
-
-An AUC averages over members, and the most exposed member is the one far
-from the typical values: that patient moves the release furthest toward
-themselves, which is what protection 8 reads. The membership-inference
-literature on machine-learning models reports success against such
-patients separately for this reason \[14, 15\], and Stadler and
-colleagues found that synthetic data from generative models leaves them
-exposed \[16\].
-
-The attacker modelled here is strong. The measurements it needs, a
-candidate’s random effects estimated from their concentrations or their
-outcome at every visit, are made by the study, and outside it exist only
-where the same quantities are measured for the same patient: at a study
-site, in a related study, or in routine care such as drug-level
-monitoring.
 
 ## Outstanding Risks
 
-These are the ways a release from this generator can still disclose
-something about a patient, most serious first. Each is inherent to
-releasing estimates without noise, or a limit of the checks.
+The ways a release can still disclose something about a patient, most
+serious first:
 
 - **An attacker who holds a candidate’s own trial data can infer
-  membership.** [Membership Inference Against the
-  Release](#membership-inference-against-the-release) measures how well.
-  The release holds no per-visit table, so what remains is chiefly the
-  population model of a small cohort and one attendance rate per
-  endpoint, which only noise would reduce.
-- **An attacker who knows every other patient is not stopped.** Such an
-  attacker can compute the exact effect of the one patient they do not
-  know, so any move at all is detectable, however far under a threshold
-  it sits. That attacker is the one DP is defined against, and only a DP
-  mechanism stops them.
-- **Releases compose, and their counts are exact.** The cohort size, the
-  arm sizes and every frequency are exact counts or exact ratios of
-  counts. Two releases from overlapping data, such as an interim and a
-  final analysis, or the same study before and after one patient
-  withdraws, differ by exactly what the patients between them
-  contributed. Nothing here accounts for that.
-- **Three patients is the smallest threshold in common use.** Every
-  released frequency rests on at least three patients on each side,
-  which is the floor the threshold rule of SDC starts from. A release
-  held to a stricter rule needs `min_arm_patients` and
-  `min_category_patients` raised to match.
-- **The influence reading describes this study only, and its thresholds
-  are empirical.** How far one patient moves an estimate is itself a
-  fact about the data, which is why DP calibrates its noise to *smooth*
-  sensitivity rather than local sensitivity \[17\]. The review and
-  failure thresholds were set against the public studies above, so that
-  ordinary patients pass and a gross data error fails; they are not
-  derived from a privacy target. Shrinkage makes the reading understate
-  the move, and where shrinkage is close to 1 the reading says little
-  while its verdict still reads pass.
-- **Not every estimate is read.** The residual error, a parameter
-  estimated without a between-subject term (bioavailability in a
-  mixed-route model), the PD shape parameters other than the baseline,
-  and a planned dose taken as the arm’s mean where no amount is shared
-  have no row.
-- **Leaving out stops at a tenth of the cohort.** A study with more
-  patients than that whom the influence reading flags keeps the rest,
-  and P5 then reads a review or a failure.
-- **The full fit holds diagnostics the release does not.** The Akaike
-  information criterion (AIC) of every candidate model, the starting
-  values and the correlations between covariates and the individual
-  random effects stay on the object
-  [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md)
-  returns. Share the release or the synthetic data, never the fit.
-- **The estimation output names patients.** A patient left out of the
-  estimates, and a patient who fails the influence reading, is named on
-  the console, so logs and rendered reports from the environment that
-  holds the study carry that identifier.
-- **Rarity in the world is not measured.** A covariate level held by
-  many patients in this study can still identify someone if few people
-  alive hold it.
+  membership**, with the small advantage measured in the
+  [appendix](#membership-inference-against-the-release). Only noise
+  would reduce it.
+- **An attacker who knows every other patient is not stopped.** They can
+  compute the exact effect of the one patient they do not know. Only a
+  DP mechanism stops them.
+- **Releases compose.** Two releases from overlapping data, such as an
+  interim and a final analysis, differ by exactly what the patients
+  between them contributed. Nothing here accounts for that.
+- **Three patients is the smallest threshold in common use.** A stricter
+  rule needs `min_arm_patients` and `min_category_patients` raised.
+- **The influence reading is approximate, and its thresholds are
+  empirical.** They were set so that ordinary patients pass and a gross
+  data error fails, not derived from a privacy target. Shrinkage makes
+  it understate a patient’s effect, and the residual error, a parameter
+  without between-subject variability, and PD shape parameters other
+  than the baseline are not read.
+- **The full fit and the estimation log are not safe to share.** The fit
+  holds diagnostics the release does not, and the console names patients
+  left out. Share the release or the synthetic data only.
+- **Rarity in the world is not measured.** A covariate level many
+  patients in this study hold can still identify someone if few people
+  hold it.
 
 ## Released Parameters at a Glance
 
@@ -1188,6 +679,39 @@ What each column holds:
   description of the table to generate are the protocol too, and are not
   counted.
 
+## Appendix: Membership Inference Against the Release
+
+A membership-inference attack scores each candidate by how far the
+release has moved, away from what the population would give, toward the
+candidate’s own values. Members score higher on average than
+non-members, and the attack’s strength is the area under the curve
+(AUC): the probability that a randomly chosen member scores above a
+randomly chosen non-member, where 0.5 is chance and 1 is certain
+identification. The attacker holds the candidate’s own measurements and
+reference values for the population, and does not know the other
+patients. [Membership inference against the PMX model
+release](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy-simulation.html)
+works through the calculation. Three findings:
+
+- **Cohort size decides the population model’s exposure.** With exact
+  reference values the AUC falls from 0.70 at 12 patients to 0.56 at 60;
+  with reference values off by 20%, to 0.59 and 0.53.
+- **One significant figure lowers it; two would not.** Rounding to one
+  figure lowers the AUC by up to 0.05, while two figures move it by at
+  most 0.001.
+- **A table per visit would be the most exposed part of a release, so
+  the release holds none.** A share of patients sampled at each of 20
+  visits gives 0.83 with 10 patients behind each share and 0.62 with
+  100, and the three-patient floor moves it by at most 0.01. One
+  attendance rate per endpoint is about as exposed as one visit’s share:
+  0.67 for five endpoints behind 10 patients.
+
+An AUC averages over members, and the most exposed member is the one far
+from the typical values, which is what protection 5 reads. The
+membership-inference literature reports success against such outliers
+separately for this reason \[7, 8\], and synthetic data from generative
+models leaves them exposed \[9\].
+
 ## Appendix: The Noise a DP Guarantee Needs in a Small Study
 
 Two routes give a population model a DP guarantee. The per-patient route
@@ -1197,8 +721,8 @@ noise, which is how
 [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
 releases its one number. Subsample-and-aggregate splits the patients
 into disjoint groups of about twenty, fits the model in each, and
-releases the mean of the groups’ clipped estimates with noise \[17,
-21\].
+releases the mean of the groups’ clipped estimates with noise \[10,
+14\].
 
 With $`\varepsilon = 1`$ split evenly over *d* released numbers, each
 clipped to a public range spanning sixteenfold on the log scale
@@ -1267,56 +791,35 @@ releases.
 1.  Dwork C, McSherry F, Nissim K, Smith A. Calibrating noise to
     sensitivity in private data analysis. *Theory of Cryptography
     Conference (TCC).* 2006.
-2.  Homer N, Szelinger S, Redman M, et al. Resolving individuals
-    contributing trace amounts of DNA to highly complex mixtures using
-    high-density SNP genotyping microarrays. *PLoS Genetics.*
-    2008;4(8):e1000167.
-3.  Sankararaman S, Obozinski G, Jordan MI, Halperin E. Genomic privacy
-    and limits of individual detection in a pool. *Nature Genetics.*
-    2009;41:965–967.
-4.  Dwork C, Smith A, Steinke T, Ullman J, Vadhan S. Robust traceability
-    from trace amounts. *IEEE Symposium on Foundations of Computer
-    Science (FOCS).*
-    2015. 
-5.  Fredrikson M, Lantz E, Jha S, Lin S, Page D, Ristenpart T. Privacy
-    in pharmacogenetics: an end-to-end case study of personalized
-    warfarin dosing. *USENIX Security Symposium.* 2014.
-6.  Dinur I, Nissim K. Revealing information while preserving privacy.
-    *ACM Symposium on Principles of Database Systems (PODS).* 2003.
-7.  Novartis. `synadam`: generate synthetic ADaM datasets. R package
-    version 0.3.4. <https://github.com/Novartis/synadam>.
-8.  Hundepool A, Domingo-Ferrer J, Franconi L, et al. *Statistical
+2.  Hundepool A, Domingo-Ferrer J, Franconi L, et al. *Statistical
     Disclosure Control.* Wiley; 2012.
-9.  Huber PJ, Ronchetti EM. *Robust Statistics.* 2nd ed. Wiley; 2009.
-10. Bun M, Steinke T. Average-case averages: private algorithms for
+3.  Huber PJ, Ronchetti EM. *Robust Statistics.* 2nd ed. Wiley; 2009.
+4.  Bun M, Steinke T. Average-case averages: private algorithms for
     smooth sensitivity and mean estimation. *Advances in Neural
     Information Processing Systems (NeurIPS).* 2019.
-11. Cook RD. Detection of influential observation in linear regression.
+5.  Cook RD. Detection of influential observation in linear regression.
     *Technometrics.* 1977;19(1):15–18.
-12. Carlini N, Jagielski M, Zhang C, Papernot N, Terzis A, Tramèr F. The
+6.  Carlini N, Jagielski M, Zhang C, Papernot N, Terzis A, Tramèr F. The
     privacy onion effect: memorization is relative. *Advances in Neural
     Information Processing Systems (NeurIPS).* 2022.
-13. Dwork C, Lei J. Differential privacy and robust statistics. *ACM
-    Symposium on Theory of Computing (STOC).* 2009.
-14. Shokri R, Stronati M, Song C, Shmatikov V. Membership inference
+7.  Shokri R, Stronati M, Song C, Shmatikov V. Membership inference
     attacks against machine learning models. *IEEE Symposium on Security
-    and Privacy.*
-    2017. 
-15. Carlini N, Chien S, Nasr M, Song S, Terzis A, Tramèr F. Membership
+    and Privacy.* 2017.
+8.  Carlini N, Chien S, Nasr M, Song S, Terzis A, Tramèr F. Membership
     inference attacks from first principles. *IEEE Symposium on Security
     and Privacy.* 2022.
-16. Stadler T, Oprisanu B, Troncoso C. Synthetic data – anonymisation
+9.  Stadler T, Oprisanu B, Troncoso C. Synthetic data – anonymisation
     groundhog day. *USENIX Security Symposium.* 2022.
-17. Nissim K, Raskhodnikova S, Smith A. Smooth sensitivity and sampling
+10. Nissim K, Raskhodnikova S, Smith A. Smooth sensitivity and sampling
     in private data analysis. *ACM Symposium on Theory of Computing
     (STOC).* 2007.
-18. U.S. Food and Drug Administration. *Population Pharmacokinetics:
+11. U.S. Food and Drug Administration. *Population Pharmacokinetics:
     Guidance for Industry.* 2022.
-19. European Medicines Agency. *Guideline on Reporting the Results of
+12. European Medicines Agency. *Guideline on Reporting the Results of
     Population Pharmacokinetic Analyses.* CHMP/EWP/185990/06. 2007.
-20. Schulz KF, Altman DG, Moher D. CONSORT 2010 Statement: updated
+13. Schulz KF, Altman DG, Moher D. CONSORT 2010 Statement: updated
     guidelines for reporting parallel group randomised trials. *BMJ.*
     2010;340:c332.
-21. Smith A. Privacy-preserving statistical estimation with optimal
+14. Smith A. Privacy-preserving statistical estimation with optimal
     convergence rates. *ACM Symposium on Theory of Computing (STOC).*
     2011.
