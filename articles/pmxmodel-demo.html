@@ -276,8 +276,8 @@ printing the fitted object shows the same account.</p>
 <span><span class="co">#&gt;   fixed effects      cl 6, v 50, q 5, v2 100, ka 1 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.447, v 0.447, ka 0.316, q 0.548, v2 0.447 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.4 </span></span>
-<span><span class="co">#&gt;   time to fit        3 min 13 s</span></span>
-<span><span class="co">#&gt;   whole call         3 min 14 s, against 3 min 13 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        2 min 48 s</span></span>
+<span><span class="co">#&gt;   whole call         2 min 49 s, against 2 min 48 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: PD - Continuous between-subject SD,</span></span>
@@ -304,7 +304,7 @@ relationships without modelling them.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">show</span><span class="op">(</span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, <span class="st">"Models attempted and acceptance results"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>Models attempted and acceptance results<\/caption>","data":[["2cmt_oral"],[true],[true],[2720],[193],[""]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>model<\/th>\n      <th>converged<\/th>\n      <th>accepted<\/th>\n      <th>aic<\/th>\n      <th>seconds<\/th>\n      <th>note<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[3,4]},{"name":"model","targets":0},{"name":"converged","targets":1},{"name":"accepted","targets":2},{"name":"aic","targets":3},{"name":"seconds","targets":4},{"name":"note","targets":5}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>The table contains only models actually attempted. An accepted
+<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>Models attempted and acceptance results<\/caption>","data":[["2cmt_oral"],[true],[true],[2720],[168],[""]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>model<\/th>\n      <th>converged<\/th>\n      <th>accepted<\/th>\n      <th>aic<\/th>\n      <th>seconds<\/th>\n      <th>note<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[3,4]},{"name":"model","targets":0},{"name":"converged","targets":1},{"name":"accepted","targets":2},{"name":"aic","targets":3},{"name":"seconds","targets":4},{"name":"note","targets":5}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>The table contains only models actually attempted. An accepted
 two-compartment fit needs no one-compartment comparison. A rejected fit
 retains its convergence status and rejection reason, and the fallback
 has its own row. <code><a href="../reference/model_report.html">model_report()</a></code> explains the selection. A

@@ -513,23 +513,23 @@ do.call(rbind, rows[!vapply(rows, is.null, logical(1))])
 #> 2       theo_md       12        0 pass pass pass pass pass
 #> 3           mad       60        1 pass pass pass pass pass
 #> 4    case1_pkpd      180        0 pass pass pass pass pass
-#> 5        wbcSim       45        0 pass pass pass pass pass
+#> 5        wbcSim       45        1 pass pass pass pass pass
 #> 6   mavoglurant      120        0 pass pass pass pass pass
 #> 7      nimoData       12        0 pass pass pass pass pass
 #> 8      pheno_sd       59        0 pass pass pass pass pass
 #> 9  mixroute_sim       90        0 pass pass pass pass pass
 #> 10      onc_sim      200        0 pass pass pass pass pass
-#>                                                           largest
-#> 1                 largest: cp: ka between-subject SD, 9.84 points
-#> 2                           largest: DV: ka typical value, 9.92 %
-#> 3        largest: PD - Continuous between-subject SD, 10.3 points
-#> 4        largest: PD - Continuous between-subject SD, 6.44 points
-#> 5                     largest: DV between-subject SD, 2.25 points
-#> 6                 largest: DV: v2 between-subject SD, 2.09 points
-#> 7                 largest: DV: v2 between-subject SD, 12.7 points
-#> 8                  largest: APGR SD on the log scale, 4.32 points
-#> 9                 largest: DV: ka between-subject SD, 4.25 points
-#> 10 largest: Everolimus trough: ka between-subject SD, 3.39 points
+#>                                                     largest
+#> 1           largest: cp: ka between-subject SD, 9.84 points
+#> 2                     largest: DV: ka typical value, 9.92 %
+#> 3  largest: PD - Continuous between-subject SD, 10.3 points
+#> 4  largest: PD - Continuous between-subject SD, 6.44 points
+#> 5               largest: DV between-subject SD, 2.39 points
+#> 6           largest: DV: v2 between-subject SD, 2.09 points
+#> 7           largest: DV: v2 between-subject SD, 12.7 points
+#> 8            largest: APGR SD on the log scale, 4.32 points
+#> 9           largest: DV: ka between-subject SD, 4.25 points
+#> 10                             largest: SLD slope, 0.635 SE
 ```
 
 ## Checks on the Synthetic Table
@@ -667,7 +667,7 @@ knitr::kable(counted, row.names = FALSE)
 | theo_md | 12 | 11 | 0 | 2 | 3 | 1 | 0 | 3 | 20 | 7 |
 | mad | 60 | 11 | 10 | 3 | 3 | 0 | 3 | 9 | 39 | 36 |
 | case1_pkpd | 180 | 11 | 5 | 2 | 3 | 0 | 0 | 7 | 28 | 510 |
-| wbcSim | 45 | 0 | 4 | 0 | 3 | 1 | 0 | 3 | 11 | 1 |
+| wbcSim | 45 | 0 | 3 | 0 | 3 | 1 | 0 | 3 | 10 | 1 |
 | mavoglurant | 120 | 9 | 0 | 8 | 3 | 1 | 0 | 3 | 24 | 1 |
 | nimoData | 12 | 9 | 0 | 6 | 3 | 1 | 0 | 3 | 22 | 10 |
 | pheno_sd | 59 | 9 | 0 | 4 | 6 | 1 | 0 | 3 | 23 | 14 |

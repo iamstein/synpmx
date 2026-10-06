@@ -481,8 +481,8 @@ the discrete ones are a question this generator does not answer.</p>
 <span><span class="co">#&gt;   fixed effects      cl 6, v 50, q 5, v2 100, ka 1 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.447, v 0.447, ka 0.316, q 0.548, v2 0.447 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.4 </span></span>
-<span><span class="co">#&gt;   time to fit        3 min 13 s</span></span>
-<span><span class="co">#&gt;   whole call         3 min 14 s, against 3 min 13 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        2 min 48 s</span></span>
+<span><span class="co">#&gt;   whole call         2 min 49 s, against 2 min 48 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: PD - Continuous between-subject SD,</span></span>
@@ -638,10 +638,9 @@ generator looks for is not here: what is recorded is the response.</p>
 <span><span class="co">#&gt;     DV                 0.2, no assay limit: half the lowest value several patients reached, rounded down</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Each non-PK continuous endpoint, fitted as constant, linear, or exponential</span></span>
-<span><span class="co">#&gt;   DV                 linear</span></span>
+<span><span class="co">#&gt;   DV                 constant</span></span>
 <span><span class="co">#&gt;                        baseline         7</span></span>
-<span><span class="co">#&gt;                        slope            -0.001</span></span>
-<span><span class="co">#&gt;                        between-subject  0.3 (SD on the log baseline)</span></span>
+<span><span class="co">#&gt;                        between-subject  0.4 (SD on the log baseline)</span></span>
 <span><span class="co">#&gt;                        residual         additive 3</span></span>
 <span><span class="co">#&gt;                        chosen on AIC from constant, linear</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -649,8 +648,11 @@ generator looks for is not here: what is recorded is the response.</p>
 <span><span class="co">#&gt;   whole call         0.0 s, against 0.0 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
-<span><span class="co">#&gt;   one patient's pull pass: largest: DV between-subject SD, 2.25 points;</span></span>
-<span><span class="co">#&gt;                      `model_privacy_checks()` has every check</span></span></code></pre></div>
+<span><span class="co">#&gt;   one patient's pull pass: largest: DV between-subject SD, 2.39 points;</span></span>
+<span><span class="co">#&gt;                      `model_privacy_checks()` has every check</span></span>
+<span><span class="co">#&gt;   left out           1 patient(s), from the PK, PD and covariate estimates,</span></span>
+<span><span class="co">#&gt;                      for moving DV slope by 241 %; the dosing and visit</span></span>
+<span><span class="co">#&gt;                      models still read them</span></span></code></pre></div>
 <p><img src="pmxmodel-public-data-examples_files/figure-html/wbc-plot-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">wbc_run</span><span class="op">$</span><span class="va">source</span>, <span class="va">wbc_run</span><span class="op">$</span><span class="va">synthetic</span>, <span class="va">wbc_roles</span><span class="op">)</span></span></code></pre></div>
@@ -658,7 +660,7 @@ generator looks for is not here: what is recorded is the response.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">wbc_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-febe03efa1a2d8d52a86" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"caption":"<caption>13 pass, 3 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","A5b","D1"],["Observations per patient","Doses per patient","Values landing in the same range"],["both","both","both"],["3.91 -&gt; 3.04","1.16 -&gt; 1","sd x0.87 on DV (furthest of 1)"],["review","review","review"],["compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The positive first-dose baseline identifies this as a PD-only study.
+<script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"caption":"<caption>13 pass, 3 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5a","A5b","D1"],["Observations per patient","Doses per patient","Values landing in the same range"],["both","both","both"],["3.91 -&gt; 3.04","1.16 -&gt; 1","sd x0.99 on DV (furthest of 1)"],["review","review","review"],["compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>The positive first-dose baseline identifies this as a PD-only study.
 No compartment model is attempted. The report shows the response’s
 time-course fit and its residual variation, alongside the infusion and
 visit summaries.</p>
@@ -739,8 +741,8 @@ grid is the one the PCA survey writes down, reused unchanged.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.04, v 0.1, q 0.05, v2 0.2 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.316, v 0.447, q 0.316, v2 0.447 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.3 </span></span>
-<span><span class="co">#&gt;   time to fit        43.2 s</span></span>
-<span><span class="co">#&gt;   whole call         43.4 s, against 43.2 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        37.9 s</span></span>
+<span><span class="co">#&gt;   whole call         38.1 s, against 37.9 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: DV: v2 between-subject SD, 2.09 points;</span></span>
@@ -963,8 +965,8 @@ seconds.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.06, v 40, q 0.1, v2 300 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.707, v 0.707, q 0.548, v2 0.447 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.4 </span></span>
-<span><span class="co">#&gt;   time to fit        37.4 s</span></span>
-<span><span class="co">#&gt;   whole call         37.4 s, against 37.4 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        31.9 s</span></span>
+<span><span class="co">#&gt;   whole call         32.0 s, against 31.9 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: DV: v2 between-subject SD, 12.7 points;</span></span>
@@ -1104,10 +1106,10 @@ the sample times to the day is that statement, and it is two lines.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.006, v 0.8, q 0.6, v2 0.6 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.316, v 0.707, q 0.1, v2 0.245 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.1 </span></span>
-<span><span class="co">#&gt;   time to fit        2 min 57 s</span></span>
-<span><span class="co">#&gt;                        2cmt_iv                    1 min 1 s</span></span>
-<span><span class="co">#&gt;                        2cmt_oral                  1 min 56 s</span></span>
-<span><span class="co">#&gt;   whole call         2 min 57 s, against 2 min 57 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        2 min 30 s</span></span>
+<span><span class="co">#&gt;                        2cmt_iv                    52.4 s</span></span>
+<span><span class="co">#&gt;                        2cmt_oral                  1 min 38 s</span></span>
+<span><span class="co">#&gt;   whole call         2 min 30 s, against 2 min 30 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: APGR SD on the log scale, 4.32 points;</span></span>
@@ -1219,8 +1221,8 @@ reports whether fallback was needed.</p>
 <span><span class="co">#&gt;   fixed effects      cl 2, v 10, q 2, v2 0.1, ka 0.5, f 0.7 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.316, v 0.265, q 0.316, v2 0.283, ka 0.316 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.3 </span></span>
-<span><span class="co">#&gt;   time to fit        40.2 s</span></span>
-<span><span class="co">#&gt;   whole call         40.4 s, against 40.2 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        33.8 s</span></span>
+<span><span class="co">#&gt;   whole call         33.9 s, against 33.8 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: DV: ka between-subject SD, 4.25 points;</span></span>
@@ -1338,15 +1340,14 @@ the curve.</p>
 <span><span class="co">#&gt;   starting values    ka 5 declared through `start_param`; the rest were</span></span>
 <span><span class="co">#&gt;                      read off the cohort's median profile</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.2 </span></span>
-<span><span class="co">#&gt;   time to fit        42 min 12 s</span></span>
-<span><span class="co">#&gt;                        2cmt_iv                    14 min 50 s</span></span>
-<span><span class="co">#&gt;                        2cmt_oral                  27 min 22 s</span></span>
-<span><span class="co">#&gt;   whole call         42 min 21 s, against 42 min 12 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        35 min 36 s</span></span>
+<span><span class="co">#&gt;                        2cmt_iv                    12 min 52 s</span></span>
+<span><span class="co">#&gt;                        2cmt_oral                  22 min 44 s</span></span>
+<span><span class="co">#&gt;   whole call         35 min 42 s, against 35 min 36 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
-<span><span class="co">#&gt;   one patient's pull pass: largest: Everolimus trough: ka between-subject</span></span>
-<span><span class="co">#&gt;                      SD, 3.39 points; `model_privacy_checks()` has every</span></span>
-<span><span class="co">#&gt;                      check</span></span></code></pre></div>
+<span><span class="co">#&gt;   one patient's pull pass: largest: SLD slope, 0.635 SE;</span></span>
+<span><span class="co">#&gt;                      `model_privacy_checks()` has every check</span></span></code></pre></div>
 <p>The stored fit above was built with
 <code>endpoint_roles = c(pk = "Everolimus trough")</code> and
 <code>start_param = c(ka = 5)</code>. Tumour size becomes the PD

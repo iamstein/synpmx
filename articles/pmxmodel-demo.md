@@ -162,8 +162,8 @@ model_report(fit)
 #>   fixed effects      cl 6, v 50, q 5, v2 100, ka 1 
 #>   between-subject    cl 0.447, v 0.447, ka 0.316, q 0.548, v2 0.447 (as SD on the log scale)
 #>   residual error     proportional 0.4 
-#>   time to fit        3 min 13 s
-#>   whole call         3 min 14 s, against 3 min 13 s in the fitter
+#>   time to fit        2 min 48 s
+#>   whole call         2 min 49 s, against 2 min 48 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: PD - Continuous between-subject SD,
