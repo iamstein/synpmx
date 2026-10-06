@@ -41,9 +41,9 @@ test_that("no generated subject copies a real subject's values", {
                                            fixture$roles))
   expect_identical(copies$verdict[copies$check == "B4b"], "pass")
   # B4a asks whether a visit set was taken from a real patient, which is not a
-  # question about a generator that decides each visit independently from a
-  # per-arm probability. It reads `not applicable` here rather than reporting a
-  # coincidence rate as though it were a disclosure.
+  # question about a generator that decides each visit independently at its
+  # endpoint's attendance rate. It reads `not applicable` here rather than
+  # reporting a coincidence rate as though it were a disclosure.
   expect_identical(copies$verdict[copies$check == "B4a"], "not applicable")
 })
 

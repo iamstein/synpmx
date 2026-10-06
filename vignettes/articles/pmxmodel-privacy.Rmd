@@ -111,7 +111,8 @@ with `nlmixr2`, an R package for fitting population models.
 The generator also summarizes the study's design as it was carried out: the
 number of patients in each treatment group (**arm**), each arm's dose schedule,
 how often doses were reduced, skipped or stopped, the share of scheduled visits
-at which patients were measured, the distribution of each baseline covariate
+at which patients were measured, for each kind of measurement, the distribution
+of each baseline covariate
 such as body weight, age or sex, and, for an endpoint recorded in levels such
 as a yes/no response or a toxicity grade, how often each level was recorded.
 Everything in that list read from how patients behaved, rather than from the
@@ -161,8 +162,10 @@ is chance and 1 is certainty. A reference off by 20% brings the two to
 no table per visit, because one would be more exposed: a share of patients
 sampled at each of 20 visits gives `r attendance_auc(20, 10)` when 10 patients
 stand behind each share and `r attendance_auc(20, 100)` when 100 do.
-Attendance is one rate for the study instead, and each binary or ordinal
-endpoint one set of level frequencies. Rounding the estimates to one
+Attendance is one rate per endpoint instead, and each binary or ordinal
+endpoint one set of level frequencies. A rate exposes about as much as one
+visit's share, so five endpoints' rates behind 10 patients give about
+`r attendance_auc(5, 10)`. Rounding the estimates to one
 significant figure lowers these numbers by up to `r rounding_gain`, and the
 three-patient floor moves them by at most `r floor_change`; cohort size and the
 number of released numbers decide them.
@@ -277,8 +280,8 @@ holds <- c(
   dosing = paste("per arm: the planned dose at each scheduled time; pooled",
                  "over arms: the levels doses were reduced to, and the rates",
                  "of reducing, skipping and stopping"),
-  visits = paste("the visits each arm has, and one attendance rate for the",
-                 "study, listed at each of them"),
+  visits = paste("the visits each arm has, and one attendance rate per",
+                 "endpoint, listed at each of its visits"),
   cells = "the scheduled visits kept, as endpoint and nominal time",
   discrete = paste("per binary or ordinal endpoint: one set of level",
                    "frequencies for the study, listed at each visit"),
@@ -373,8 +376,8 @@ came. Here *k* is 3 by default:
 - a nominal visit slot, a dose level and a planned cycle are kept only where at
   least `min_arm_patients` patients reached them, and an arm has a visit only
   where at least that many of its patients were observed there;
-- attendance is one rate for the study, and is 1 where fewer than
-  `min_arm_patients` patients missed any visit;
+- attendance is one rate per endpoint, and is 1 where fewer than
+  `min_arm_patients` patients missed any of the endpoint's visits;
 - a dose-change rate, pooled over every arm, whose events fewer than
   `min_arm_patients` patients had is zero;
 - a categorical covariate level, and a binary or ordinal endpoint's level,
@@ -392,10 +395,11 @@ came. Here *k* is 3 by default:
 The rule stops a frequency from singling out one or two patients. It does not
 stop membership inference, which adds up small signals over many frequencies
 ([Membership Inference Against the Release](#membership-inference-against-the-release)).
-Pooling is what weakens that: attendance is one rate, the dose-change rates are
-three, and a binary or ordinal endpoint is one set of level frequencies, each
-resting on every patient rather than on one arm at one visit. `pd_by_arm =
-TRUE` reads the endpoint frequencies per arm again, with the PD time courses.
+Pooling is what weakens that: attendance is one rate per endpoint, the
+dose-change rates are three, and a binary or ordinal endpoint is one set of
+level frequencies, each pooled over the arms and the visits rather than resting
+on one arm at one visit. `pd_by_arm = TRUE` reads the endpoint frequencies per
+arm again, with the PD time courses.
 
 ### 6. Covariate Summaries Without Their Extremes
 
@@ -790,9 +794,12 @@ and places each public study's release against them. Three readings:
   `r attendance_auc(20, 10)` with 10 patients behind each share,
   `r attendance_auc(20, 30)` with 30 and `r attendance_auc(20, 100)` with 100,
   and the three-patient rule moves it by at most `r floor_change`, because the
-  rule acts only on shares near 0 or 1. Attendance is one rate for the study
+  rule acts only on shares near 0 or 1. Attendance is one rate per endpoint
   instead, and a binary or ordinal endpoint one set of level frequencies, each
-  resting on every patient.
+  pooled over the arms and the visits. A rate exposes about as much as one
+  visit's share, so a study's attendance rates are about as exposed as a table
+  with one visit for each endpoint: `r attendance_auc(5, 10)` for five
+  endpoints behind 10 patients.
 
 An AUC averages over members, and the most exposed member is the one far from
 the typical values: that patient moves the release furthest toward themselves,
@@ -816,8 +823,8 @@ without noise, or a limit of the checks.
 - **An attacker who holds a candidate's own trial data can infer membership.**
   [Membership Inference Against the Release](#membership-inference-against-the-release)
   measures how well. The release holds no per-visit table, so what remains is
-  chiefly the population model of a small cohort, which only noise would
-  reduce.
+  chiefly the population model of a small cohort and one attendance rate per
+  endpoint, which only noise would reduce.
 - **An attacker who knows every other patient is not stopped.** Such an
   attacker can compute the exact effect of the one patient they do not know, so
   any move at all is detectable, however far under a threshold it sits. That
@@ -1007,8 +1014,10 @@ parameter_count <- function(release) {
             paste(d$levels, collapse = "/"))
     })
   })))
+  # One rate per endpoint, listed at each of its visits in each arm.
   attendance <- unique(unlist(lapply(release$visits, function(v) {
-    as.numeric(v$probability)
+    p <- as.numeric(v$probability)
+    paste(release$cells$endpoint, p)[p > 0 & p < 1]
   })))
   marginals <- unique(Filter(Negate(is.null),
                              unlist(release$discrete, recursive = FALSE)))
@@ -1026,7 +1035,7 @@ parameter_count <- function(release) {
     `dose changes` = sum(vapply(strsplit(rates, " "), function(r) {
       3 + length(strsplit(r[[4]], "/")[[1]]) - 1
     }, numeric(1))),
-    attendance = sum(attendance > 0 & attendance < 1),
+    attendance = length(attendance),
     `discrete endpoints` = sum(vapply(marginals, function(m) {
       max(0, length(m$levels) - 1)
     }, numeric(1))),
@@ -1070,8 +1079,9 @@ What each column holds:
 - **Dose changes**: the three pooled rates of reducing, skipping and stopping,
   and each level of the dose ladder below the full dose, a fraction of the
   starting dose to one significant figure.
-- **Attendance**: one rate for the study, or none where every patient attended
-  every visit their arm had.
+- **Attendance**: one rate per endpoint, and none for an endpoint whose rate
+  is 1, as where every patient was observed at every visit of it their arm
+  had.
 - **Discrete endpoints**: one fewer level frequency than levels, for each
   binary or ordinal endpoint.
 - **Counts and floors**: the size of each arm and of the cohort, an emission

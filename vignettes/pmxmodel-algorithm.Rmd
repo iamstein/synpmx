@@ -137,7 +137,7 @@ encoding its source used.
    by least squares.
 4. **Fit a dosing model and a visit model**: a planned dose schedule per arm,
    rates for reduction, interruption and discontinuation pooled over the arms,
-   the visits each arm has, and one attendance rate for the study.
+   the visits each arm has, and one attendance rate per endpoint.
 5. **Store the fit**: the structural model, the parameters, the arm models and
    the schema, and no per-subject quantity.
 6. **Generate new subjects.** Draw covariates and random effects, draw the dose
@@ -668,15 +668,16 @@ arms, as the PD shapes are:
 | Reduction rate | Discrete-time hazard of stepping down a level, pooled over arms | Decided before the cycle is dosed |
 | Interruption rate | Discrete-time hazard of skipping a cycle without ending treatment, pooled over arms | Decided at the cycle |
 | Discontinuation rate | Discrete-time hazard of stopping treatment, pooled over arms | Decided after the cycle is dosed |
-| Visit model | The visits each arm has, where at least `min_arm_patients` of its patients were observed, and one attendance rate for the study: the share of those scheduled visits at which a patient was observed | Attendance, drawn per visit at that one rate |
+| Visit model | The visits each arm has, where at least `min_arm_patients` of its patients were observed, and one attendance rate per endpoint: the share of that endpoint's scheduled visits at which a patient was observed | Attendance, drawn per visit at its endpoint's rate |
 
 Pooling puts every patient behind each rate. Its cost is that an arm whose
 patients reduced, stopped or missed visits more often than the others' takes
 the study's rates, so a dose-dependent discontinuation is not reproduced, and
 that attendance no longer depends on when in the study a visit falls: a late
-visit few patients reached is generated as often as an early one, though the
-number of observations per patient is kept on average. An arm that never has a
-visit, such as a placebo arm without drug sampling, still has none.
+visit few patients reached is generated as often as an early visit of the same
+endpoint, though each endpoint's number of observations per patient is kept on
+average. An arm that never has a visit, such as a placebo arm without drug
+sampling, still has none.
 
 A study where nobody reduces, skips or stops early has all three rates at zero
 and one level, and the model then reproduces the planned schedule exactly. No
@@ -693,10 +694,10 @@ patient came":
 
 - A dose-change rate whose events fewer than `min_arm_patients` patients had,
   across every arm, is zero.
-- Where fewer than `min_arm_patients` patients missed any visit, the
-  attendance rate is 1, since a rate below 1 would describe their misses. An
-  arm with fewer than `min_arm_patients` of its patients observed at a visit
-  does not have that visit.
+- Where fewer than `min_arm_patients` patients missed any of an endpoint's
+  visits, its attendance rate is 1, since a rate below 1 would describe their
+  misses. An arm with fewer than `min_arm_patients` of its patients observed
+  at a visit does not have that visit.
 
 Each arm also carries the values of its `strata` and `keep` columns, copied from
 the arm's first patient as declared. A `keep` value of any type that fewer than
@@ -742,11 +743,11 @@ pooled over arms, the visit model, arm sizes, the covariate distributions, the
 censoring boundary, the schema and the roles.
 
 **Printing the object reports every input to Step 6** — the dose reduction,
-skipped cycle and early stop rates, the attendance frequency behind a
-missed observation, how each covariate is drawn, which cells are drawn from
-recorded values rather than simulated, the assay limit and how many observations
-sit below it, the floor nothing is emitted below, and the columns the generated
-table will carry — and the diagnostics beside them. `model_report()` returns the
+skipped cycle and early stop rates, each endpoint's attendance rate, which
+decides a missed observation, how each covariate is drawn, which cells are
+drawn from recorded values rather than simulated, the assay limit and how many
+observations sit below it, the floor nothing is emitted below, and the columns
+the generated table will carry — and the diagnostics beside them. `model_report()` returns the
 same account as a list.
 
 **Only the release leaves the study.** The fit also carries diagnostics
@@ -880,7 +881,7 @@ badly is fitted, and told about.
 | Rare discrete-endpoint level | `min_category_patients` = 3 over the whole study, or per arm under `pd_by_arm` | Fold the level into the endpoint's most common level. An endpoint with no level held by that many patients is not drawn. |
 | Single-patient influence | a move of 15 or more, in % or points | Leaves the patient out of the PK, PD and covariate estimates and estimates again, at most a tenth of the cohort, naming them on the console. A move still at 15 is a review and at 30 a failure that warns; `drop_influential = FALSE` skips the leaving out. Read by `model_privacy_checks()` and scorecard row E3; nothing per patient is stored. |
 | Thin dose-change rate | fewer than `min_arm_patients` patients with the event, over every arm | The rate, pooled over arms, is zero. |
-| Attendance rate | fewer than `min_arm_patients` patients who missed any visit; fewer than `min_arm_patients` of an arm's patients at a visit | The rate is 1. An arm with too few of its patients at a visit does not have it. |
+| Attendance rate | fewer than `min_arm_patients` patients who missed any of an endpoint's visits; fewer than `min_arm_patients` of an arm's patients at a visit | That endpoint's rate is 1. An arm with too few of its patients at a visit does not have it. |
 | Rare kept value | a `keep` value of any type fewer than `min_category_patients` patients in the arm hold | Written as missing, with a warning. `strata` columns are carried unchanged. |
 | Rare level in the schema | a factor column's level, or a binary or ordinal endpoint's level, fewer than `min_category_patients` patients hold | Not stored. A column copied onto arms keeps the values its arms carry. An inferred binary or ordinal type left with fewer than two levels is stored as whole numbers. |
 | No grid cell shared | `min_arm_patients` | The cell is dropped. A nominal time one patient attended is that patient. |

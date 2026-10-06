@@ -394,34 +394,46 @@ test_that("the PCA summary's log offset is not one patient's value (REV-064)", {
   expect_false(isTRUE(all.equal(offsets[["cp"]], min(data$dv[observed]) / 2)))
 })
 
-test_that("attendance is one rate for the study, left at 1 where one or two patients missed a visit (REV-065, REV-072)", {
+test_that("attendance is one rate per endpoint, left at 1 where one or two patients missed its visits (REV-065, REV-072, REV-075)", {
   roles <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",
                      dv = "DV", amt = "AMT", evid = "EVID", dvid = "NAME")
-  # Twenty patients dosed at time 0 and sampled at times 1 to 5, the patients
-  # in `missing` each missing the sample at time 3.
-  study <- function(missing) {
+  # Twenty patients dosed at time 0, each with a concentration and a marker
+  # scheduled at times 1 to 5. The patients in `cp_missing` miss the
+  # concentration at time 3, and those in `pd_missing` the marker at times 2
+  # and 4.
+  study <- function(cp_missing, pd_missing) {
     do.call(rbind, lapply(1:20, function(id) {
-      times <- setdiff(1:5, if (id %in% missing) 3)
+      cp <- setdiff(1:5, if (id %in% cp_missing) 3)
+      pd <- setdiff(1:5, if (id %in% pd_missing) c(2, 4))
       rbind(data.frame(ID = id, TIME = 0, NTIME = 0, DV = NA_real_, AMT = 100,
                        EVID = 1L, NAME = NA_character_),
-            data.frame(ID = id, TIME = times, NTIME = times, DV = 10 / times,
-                       AMT = 0, EVID = 0L, NAME = "cp"))
+            data.frame(ID = id, TIME = cp, NTIME = cp, DV = 10 / cp,
+                       AMT = 0, EVID = 0L, NAME = "cp"),
+            data.frame(ID = id, TIME = pd, NTIME = pd, DV = 50 + pd,
+                       AMT = 0, EVID = 0L, NAME = "pd"))
     }))
   }
-  rate <- function(data) {
+  rates <- function(data) {
     group <- .model_subject_arms(data, roles)
-    cells <- .model_cells(data, roles, "cp", 3L)
+    cells <- .model_cells(data, roles, c("cp", "pd"), 3L)
     models <- .arm_models(data, roles, cells, group, 3L)
-    list(rate = unique(as.numeric(models$visits[[1L]]$probability)),
+    p <- as.numeric(models$visits[[1L]]$probability)
+    # One value per endpoint, or `vapply()` stops.
+    list(rate = vapply(split(p, cells$endpoint), unique, numeric(1)),
          audit = models$audit$attendance)
   }
-  two <- rate(study(1:2))
-  expect_equal(two$rate, 1)
-  expect_true(two$audit$rounded)
-  five <- rate(study(1:5))
-  expect_equal(five$rate, 95 / 100)
-  expect_false(five$audit$rounded)
-  expect_equal(five$audit$misses, 5)
+  apart <- rates(study(1:5, 1:10))
+  expect_equal(apart$rate[["cp"]], 95 / 100)
+  expect_equal(apart$rate[["pd"]], 80 / 100)
+  expect_equal(apart$audit$endpoint, c("cp", "pd"))
+  expect_equal(apart$audit$misses, c(5, 10))
+  expect_false(any(apart$audit$rounded))
+  # Two patients missing the marker leave its rate at 1, and the
+  # concentration keeps its own.
+  two <- rates(study(1:5, 1:2))
+  expect_equal(two$rate[["pd"]], 1)
+  expect_equal(two$rate[["cp"]], 95 / 100)
+  expect_equal(two$audit$rounded, c(FALSE, TRUE))
 })
 
 test_that("dose-change rates and the ladder are pooled over arms, and zero below the floor (REV-065, REV-071)", {
@@ -460,7 +472,7 @@ test_that("dose-change rates and the ladder are pooled over arms, and zero below
   expect_equal(alone$dosing$A$interruption, 0)
 })
 
-test_that("attendance and discrete frequencies are pooled over the arms and visits (REV-071, REV-072)", {
+test_that("attendance and discrete frequencies are pooled over the arms and visits (REV-071, REV-072, REV-075)", {
   roles <- pmx_roles(id = "ID", time = "TIME", nominal_time = "NTIME",
                      dv = "DV", amt = "AMT", evid = "EVID", cmt = "CMT",
                      dvid = "NAME", strata = "ARM", addl = "ADDL", ii = "II")
@@ -501,9 +513,15 @@ test_that("attendance and discrete frequencies are pooled over the arms and visi
   expect_equal(p[both, "Everolimus 10 mg"], p[both, "Placebo"])
   # The day-56 visit is not a cell at all: two patients.
   expect_false(any(cells$endpoint == "RESP" & cells$time == 56))
-  # One rate for the study, at every visit an arm has.
-  expect_length(unique(p[p > 0]), 1L)
+  # One rate per endpoint, at every visit of it an arm has: the response's is
+  # the 60 of 200 patients seen at its one visit, whatever the tumour
+  # measurements' is.
+  for (name in unique(cells$endpoint)) {
+    mine <- p[cells$endpoint == name, , drop = FALSE]
+    expect_length(unique(mine[mine > 0]), 1L)
+  }
   day28 <- which(cells$endpoint == "RESP" & cells$time == 28)
+  expect_equal(unname(p[day28, ]), rep(60 / 200, 2))
 
   pooled <- .discrete_model(data, roles, cells, group, "RESP", 3L,
                             visits = models$visits)

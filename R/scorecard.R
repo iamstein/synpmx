@@ -527,19 +527,22 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
     # two real patients held. That is a disclosure question only where the set
     # was taken from somebody: `synpmx_avatar()` reuses a donor's attendance
     # pattern, so a match there is a match. `synpmx_pca()` and `synpmx_model()`
-    # decide each visit independently from a per-arm probability, onto a grid
-    # the caller declared, so a match is a coincidence with a computable chance
-    # of happening -- and it does happen. Three measurements, all on 2026-09-01:
+    # decide each visit independently at its endpoint's attendance rate, onto a
+    # grid the caller declared, so a match is a coincidence with a computable
+    # chance of happening -- and it does happen. Three measurements:
     #
     #   - Of the source's own visit sets, the share held by exactly one patient
     #     is 93% on `warfarin`, 83% on `wbcSim`, and 100% on `theo_sd` and
-    #     `theo_md`. A threshold that selects nearly the whole source is not
-    #     selecting anything.
-    #   - Over 200 seeds on `warfarin`, `synpmx_model()` reproduces a mean of
-    #     1.26 such sets and fires on 83% of them. The count is the chance rate.
+    #     `theo_md` (2026-09-01). A threshold that selects nearly the whole
+    #     source is not selecting anything.
+    #   - Over 200 seeds on `warfarin`, `synpmx_model()` reproduces one such set
+    #     on 3 of them (2026-10-05, one attendance rate per endpoint; 1.26 sets
+    #     a seed on 2026-09-01, when each visit had its own share). The count is
+    #     the chance rate, and the visit model's parameters decide it.
     #   - Jittering the source's recorded times by a few minutes, which changes
-    #     no synthetic value and no privacy property, takes the row from 2 to 0.
-    #     The verdict tracks whether a study rounded its visit times.
+    #     no synthetic value and no privacy property, takes the row from 1 to 0
+    #     on each of those seeds. The verdict tracks whether a study rounded its
+    #     visit times.
     #
     # B4b is the row that answers the disclosure question for these generators,
     # and it reads 0: no value any patient measured is reproduced.

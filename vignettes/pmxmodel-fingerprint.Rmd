@@ -328,13 +328,14 @@ from it, a synthetic subject who steps down has the lower exposure that implies.
 
 ## The visit model
 
-The visits each arm has, and one attendance rate for the study, applied at
-every one of them. Attendance is drawn per visit at generation.
+The visits each arm has, and one attendance rate per endpoint, applied at
+every visit of that endpoint an arm has. Attendance is drawn per visit at
+generation. The rates, then the number of visits, per endpoint:
 
 ```{r visits, eval=run}
-rate <- unlist(lapply(fit$visits, function(v) as.numeric(v$probability)))
-c(attendance_rate = signif(unique(rate[rate > 0]), 3),
-  visits = nrow(fit$cells))
+rate <- do.call(pmax, unname(lapply(fit$visits, function(v) v$probability)))
+signif(tapply(rate, fit$cells$endpoint, max), 3)
+table(fit$cells$endpoint)
 ```
 
 A cell is kept only where at least `min_arm_patients` distinct patients hold an

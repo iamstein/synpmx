@@ -511,9 +511,10 @@ synpmx_pca_summarize <- function(data, roles, seed = NULL,
 #'
 #' Each generated subject is assigned an arm, keeping each arm's share of the
 #' cohort. Its scores are that arm's mean plus a fresh residual, its dose
-#' schedule is the one the arm holds in common, and it attends each visit with
-#' the frequency the arm attended it. No individual's schedule and no
-#' individual's visit set exists in the model to be copied.
+#' schedule is drawn from the arm's planned schedule and the pooled dose-change
+#' rates, and it attends each visit its arm has at the attendance rate of that
+#' visit's endpoint. No individual's schedule and no individual's visit set
+#' exists in the model to be copied.
 #'
 #' @param trial_summary A `pmx_trial_summary` from
 #'   [synpmx_pca_summarize()], or a dataset generated from one.
@@ -911,10 +912,11 @@ pca_dose_rates <- function(x) {
 #'
 #' One row per arm, endpoint and modelled nominal time, giving the probability
 #' that a generated subject in that arm has an observation there. It is one
-#' attendance rate for the study, the share of scheduled visits at which a
-#' patient was observed, at every visit an arm has; an arm has a visit where at
-#' least `min_arm_patients` of its patients were observed there. Attendance is
-#' drawn per visit rather than a real patient's visit set being reused.
+#' attendance rate per endpoint, the share of the endpoint's scheduled visits
+#' at which a patient was observed, at every visit of it an arm has; an arm has
+#' a visit where at least `min_arm_patients` of its patients were observed
+#' there. Attendance is drawn per visit rather than a real patient's visit set
+#' being reused.
 #'
 #' @param x A dataset from [synpmx_pca()], or its trial summary.
 #'
@@ -989,7 +991,7 @@ print.pmx_trial_summary <- function(x, ...) {
   cat("  pca_report()      what it read out of the source data\n")
   cat("  pca_dosing()      the planned dose schedule, per arm\n")
   cat("  pca_dose_rates()  reduction, interruption and discontinuation\n")
-  cat("  pca_visits()      the attendance rate, at each visit an arm has\n")
+  cat("  pca_visits()      each endpoint's attendance rate, at each visit an arm has\n")
   cat("  pca_components()  the loadings, over time\n")
   invisible(x)
 }
@@ -1042,13 +1044,19 @@ pca_report <- function(x) {
     vapply(fit$members, function(m) as.numeric(m$patients %||% NA),
            numeric(1))), na.rm = TRUE))
   if (!is.finite(feature_patients)) feature_patients <- NA_real_
-  # One attendance rate rests on every patient in the arms that have a visit
-  # (REV-071, REV-072).
+  # An endpoint's attendance rate rests on every patient in the arms that have
+  # one of its visits (REV-071, REV-072, REV-075), so the smallest group is the
+  # endpoint fewest arms have.
   sizes <- trial_summary$arms$sizes
-  attending <- vapply(names(sizes), function(arm) {
-    any(as.numeric(trial_summary$visits[[arm]]$probability) > 0)
-  }, logical(1))
-  visit_patients <- if (any(attending)) sum(sizes[attending]) else NA_real_
+  endpoint <- vapply(fit$members[trial_summary$visits[[1L]]$cells],
+                     function(m) m$endpoint, character(1))
+  behind <- vapply(unique(endpoint), function(name) {
+    sum(vapply(names(sizes), function(arm) {
+      p <- as.numeric(trial_summary$visits[[arm]]$probability)
+      if (any(p[endpoint == name] > 0)) sizes[[arm]] else 0
+    }, numeric(1)))
+  }, numeric(1))
+  visit_patients <- if (any(behind > 0)) min(behind[behind > 0]) else NA_real_
   p <- length(fit$columns)
   rows <- data.frame(
     quantity = c("visit grid", "feature centers", "feature scales",
@@ -1066,7 +1074,7 @@ pca_report <- function(x) {
       "Log or identity, per endpoint",
       "Censoring boundary, per endpoint",
       "Planned cycles per arm; the dose ladder and three rates, pooled",
-      "One attendance rate, at the visits each arm has",
+      "One attendance rate per endpoint, at the visits each arm has",
       "Strata and kept columns, one value per arm"
     ),
     numbers = c(

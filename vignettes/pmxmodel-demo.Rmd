@@ -53,7 +53,7 @@ Fit a population model to a study, look at what the fit carries, and generate a
 synthetic dataset by simulating from it. Generation uses fitted population
 parameters and study summaries: structural curves, between-subject variability,
 residual error, endpoint frequencies, a planned dose schedule per arm, and dose
-changes and one attendance rate pooled over the arms.
+changes and one attendance rate per endpoint, pooled over the arms.
 It does not read the original patient rows.
 
 It makes no formal privacy claim, and **it is not for estimation** — the fitted

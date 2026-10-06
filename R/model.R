@@ -607,24 +607,29 @@ print.pmx_model_report <- function(x, ...) {
     field("dose changes", "none")
   }
 
-  # Attendance is the model of a missed observation: one rate for the study,
-  # the share of scheduled slots at which a patient was observed, at every slot
-  # an arm has (REV-072). The grid line says "slot(s)" in those words because
-  # the first readers of this report took "cell(s) of the visit grid" for a
-  # count of nominal times, which it is not, because endpoints are not all
-  # measured at the same times. An arm without the slot is not read as missing
-  # it. A fit stored before the rate was one number still prints its range.
-  attendance <- unlist(lapply(x$visits, function(v) as.numeric(v$probability)))
-  attendance <- unique(attendance[attendance > 0])
+  # Attendance is the model of a missed observation: one rate per endpoint,
+  # the share of its scheduled slots at which a patient was observed, at every
+  # slot of it an arm has (REV-075). The grid line says "slot(s)" in those
+  # words because the first readers of this report took "cell(s) of the visit
+  # grid" for a count of nominal times, which it is not, because endpoints are
+  # not all measured at the same times. An arm without the slot is not read as
+  # missing it. A fit stored before the rate was one number per endpoint prints
+  # each endpoint's range.
+  attendance <- vapply(.unique_in_order(x$cells$endpoint), function(name) {
+    rows <- x$cells$endpoint == name
+    rate <- unlist(lapply(x$visits, function(v) as.numeric(v$probability)[rows]))
+    rate <- unique(rate[rate > 0])
+    if (!length(rate)) NA_character_ else if (length(rate) == 1L)
+      sprintf("%s %.0f%%", name, 100 * rate) else
+        sprintf("%s %.0f%% to %.0f%%", name, 100 * min(rate), 100 * max(rate))
+  }, character(1))
+  attendance <- attendance[!is.na(attendance)]
   field("visit grid", length(unique(x$cells$endpoint)), " endpoint(s) at ",
         length(unique(x$cells$time)), " nominal time(s), ", nrow(x$cells),
         " slot(s) in all")
-  field("visit attendance", if (length(attendance) == 1L) sprintf(
-    "%.0f%% of scheduled slots attended, one rate for the study",
-    100 * attendance) else if (length(attendance)) sprintf(
-    "median %.0f%% of patients attend a slot (%.0f%% to %.0f%%)",
-    100 * stats::median(attendance), 100 * min(attendance),
-    100 * max(attendance)) else "no attendance model")
+  field("visit attendance", if (length(attendance)) paste0(
+    "share of scheduled slots attended, one rate per endpoint: ",
+    paste(attendance, collapse = ", ")) else "no attendance model")
 
   if (length(x$covariates)) {
     field("covariates", paste0(
@@ -638,7 +643,7 @@ print.pmx_model_report <- function(x, ...) {
     function(arm) x$cells$endpoint[!vapply(arm, is.null, logical(1))])))
   if (length(drawn)) {
     field("discrete endpoints", paste(drawn, collapse = ", "),
-          ": drawn from each arm's recorded frequencies at each visit, ",
+          ": drawn from the frequencies of their recorded levels, ",
           "not simulated")
   }
   if (!is.null(x$schema)) {

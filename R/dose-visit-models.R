@@ -313,7 +313,7 @@
 }
 
 # The dosing model and the visit model, one of each per arm, with everything
-# read from patients pooled over the arms (REV-071, REV-072).
+# read from patients pooled over the arms (REV-071, REV-072, REV-075).
 #
 # `cells` is the grid attendance is measured on: one row per endpoint and
 # nominal time, carrying the `index` the caller knows that cell by. Passing the
@@ -323,7 +323,7 @@
 # Both are summaries of the study rather than facts about a patient. The dosing
 # model is built above: a planned schedule per arm, which is the protocol, and
 # three rates and a ladder, pooled over the arms. The visit model is the
-# visits each arm has and one attendance rate for the study, so attendance is
+# visits each arm has and one attendance rate per endpoint, so attendance is
 # drawn per visit rather than a real patient's set of attended visits being
 # reused.
 .arm_models <- function(source, roles, cells, subject_group, floor,
@@ -394,46 +394,55 @@
     }, logical(length(members))), nrow = length(members))
   }
 
-  # One attendance rate for the study (REV-071, REV-072), as the PD shapes are
-  # one time course. An arm has a visit where at least `floor` of its patients
-  # were observed there, which is the protocol's schedule for that arm and keeps
-  # a placebo arm from being sampled for drug; the rate is the share of those
-  # scheduled visits, over every arm, at which a patient was observed. One
-  # number rests on every patient, where a share per visit gave an attacker who
-  # knows a candidate's attendance one more thing to match; what is lost is
-  # when in the study visits were missed. The threshold rule applies to the
-  # patients on each side: fewer than `floor` patients who missed any visit
-  # leaves the rate at 1.
+  # One attendance rate per endpoint (REV-071, REV-072, REV-075), as each PD
+  # endpoint is one time course. An arm has a visit where at least `floor` of
+  # its patients were observed there, which is the protocol's schedule for that
+  # arm and keeps a placebo arm from being sampled for drug; an endpoint's rate
+  # is the share of its scheduled visits, over every arm, at which a patient was
+  # observed. A rate per endpoint rests on every patient whose arm has the
+  # endpoint's visits, where a share per visit gave an attacker who knows a
+  # candidate's attendance one more thing to match; one rate for the study
+  # generated concentrations sampled at 90% and a marker sampled at 50% both at
+  # 70%. What is lost is when in the study an endpoint's visits were missed.
+  # The threshold rule applies to the patients on each side: fewer than `floor`
+  # patients who missed any of an endpoint's visits leaves its rate at 1.
   counts <- vapply(arms, function(arm) colSums(attenders[[arm]]),
                    numeric(nrow(cells)))
   if (!is.matrix(counts)) {
     counts <- matrix(counts, nrow = nrow(cells), dimnames = list(NULL, arms))
   }
   has <- counts >= floor
-  seen <- sum(vapply(arms, function(arm) {
-    sum(attenders[[arm]][, has[, arm], drop = FALSE])
-  }, numeric(1)))
-  scheduled <- sum(vapply(arms, function(arm) {
-    nrow(attenders[[arm]]) * sum(has[, arm])
-  }, numeric(1)))
-  missed_any <- sum(vapply(arms, function(arm) {
-    sum(rowSums(!attenders[[arm]][, has[, arm], drop = FALSE]) > 0)
-  }, numeric(1)))
-  seen_any <- sum(vapply(arms, function(arm) {
-    sum(rowSums(attenders[[arm]][, has[, arm], drop = FALSE]) > 0)
-  }, numeric(1)))
-  rate <- if (scheduled > 0) seen / scheduled else 0
-  thin <- min(missed_any, seen_any) > 0 && min(missed_any, seen_any) < floor
-  if (thin) rate <- as.numeric(rate >= 0.5)
+  endpoints <- .unique_in_order(cells$endpoint)
+  rates <- stats::setNames(numeric(length(endpoints)), endpoints)
+  attendance <- list()
+  for (name in endpoints) {
+    mine <- cells$endpoint == name
+    # Each arm's patients at the endpoint's visits that arm has.
+    scheduled <- lapply(arms, function(arm) {
+      attenders[[arm]][, mine & has[, arm], drop = FALSE]
+    })
+    slots <- sum(vapply(scheduled, length, integer(1)))
+    missed_any <- sum(vapply(scheduled, function(m) sum(rowSums(!m) > 0),
+                             numeric(1)))
+    seen_any <- sum(vapply(scheduled, function(m) sum(rowSums(m) > 0),
+                           numeric(1)))
+    rate <- if (slots > 0) sum(vapply(scheduled, sum, numeric(1))) / slots else 0
+    thin <- min(missed_any, seen_any) > 0 && min(missed_any, seen_any) < floor
+    if (thin) rate <- as.numeric(rate >= 0.5)
+    rates[[name]] <- rate
+    attendance[[name]] <- data.frame(
+      arm = "pooled", endpoint = name, attenders = seen_any,
+      misses = missed_any, rounded = thin,
+      # Arm visits whose one or two patients were left out of them.
+      masked = sum(counts[mine, , drop = FALSE] > 0 &
+                     !has[mine, , drop = FALSE]),
+      stringsAsFactors = FALSE)
+  }
   for (arm in arms) {
     visits[[arm]] <- list(cells = index, probability = .named(
-      ifelse(has[, arm], rate, 0), cells$name))
+      ifelse(has[, arm], unname(rates[cells$endpoint]), 0), cells$name))
   }
-  attendance <- data.frame(
-    arm = "pooled", cell = NA_integer_, attenders = seen_any,
-    misses = missed_any, rounded = thin,
-    # Arm visits whose one or two patients were left out of them.
-    masked = sum(counts > 0 & !has), stringsAsFactors = FALSE)
+  attendance <- do.call(rbind, unname(attendance))
   pooled <- .pool_rates(dosing, floor)
   list(dosing = pooled$dosing, visits = visits, sizes = sizes, arms = arms,
        cells = index,
@@ -505,8 +514,8 @@
 }
 
 # An arm of one or two has no between-subject spread to model: whatever the arm
-# summary is -- a mean score vector, a dose ladder, a per-visit attendance rate
-# -- it is that patient, and its spread is noise around them. So the arm is left
+# summary is -- a mean score vector, a dose ladder, an attendance rate -- it
+# is that patient, and its spread is noise around them. So the arm is left
 # out of the summary rather than modelled from one or two people, and the caller
 # is told which patients went and why: the synthetic cohort is missing an arm the
 # source has, which is a fact about the output rather than a detail of the run.

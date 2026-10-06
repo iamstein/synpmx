@@ -706,11 +706,11 @@ print.pmx_privacy_checks <- function(x, ...) {
                          attendance$misses > 0, , drop = FALSE]
     masked <- attendance$masked %||% rep(0, nrow(attendance))
     rows[[length(rows) + 1L]] <- row(
-      "patients on either side of the attendance rate",
+      "patients on either side of an endpoint's attendance rate",
       smallest_of(pmin(open$attenders, open$misses)),
       sum(attendance$rounded) + sum(masked), k_arm,
-      paste("one rate for the study; fewer patients missing any visit leaves",
-            "it at 1, and an arm with fewer at a visit does not have it"))
+      paste("one rate per endpoint; fewer patients missing any of its visits",
+            "leaves it at 1, and an arm with fewer at a visit does not have it"))
   }
   rates <- arm_models$audit$rates
   if (!is.null(rates)) {

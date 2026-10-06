@@ -179,8 +179,8 @@ model_data <- synpmx_model_generate(model_fit, n_subjects = 12, seed = 11)
 
 What leaves the study is the release and nothing else: a structural model,
 three fixed effects, a covariance matrix, a residual error, a planned dose
-schedule per arm, three dose-change rates and one attendance rate for the
-study. `vignette("pmxmodel-fingerprint")` is the itemised list, and the
+schedule per arm, three dose-change rates and one attendance rate per
+endpoint. `vignette("pmxmodel-fingerprint")` is the itemised list, and the
 parameters are not estimates to report.
 
 ## Mode 2: AVATAR blending
