@@ -292,10 +292,12 @@ from it together.
 shows the same thing as a log-scale figure over the day-1 and last-dose
 windows.
 
-A5a reads `review`: 30.7 observations per patient in the source against
-29 in the synthetic cohort. Attendance is drawn independently per visit
-at the study’s one attendance rate, so the count is right on average and
-not exactly.
+A5a reads `review`, at 30.7 -\> 29 observations per patient, source
+against synthetic. Every patient was seen at every visit the grid
+models, so both endpoints’ attendance rates are 1 and the synthetic
+count is the grid’s. The source also holds two pre-dose concentration
+records per treated patient, at -24 and -0.1 hours, which carry no value
+and are not modelled.
 
 ## mad: five endpoints, including ordinal, count and binary
 
@@ -947,9 +949,9 @@ it is the feature the basis compresses hardest.
 
 **A5a is the row that carries the cost of each grid**, and it is
 `review` on exactly the three studies where something was merged or
-dropped: `case1_pkpd` (the visit draw, 30.7 against 29), `wbcSim` (the
-column guard) and `mavoglurant` (the snapping). The four studies whose
-grids cost nothing read `pass` on it.
+dropped: `case1_pkpd` (two pre-dose records without a value), `wbcSim`
+(the column guard) and `mavoglurant` (the snapping). The four studies
+whose grids cost nothing read `pass` on it.
 
 ### What B4b found
 
@@ -992,7 +994,7 @@ B4b across the nine runs, beside how long a source patient’s record is.
 
 **B4a, the same question asked of the list of observation times, does
 not apply to this generator.** Attendance is drawn independently per
-visit at one rate for the study, onto the declared grid, so a generated
+visit at one rate per endpoint, onto the declared grid, so a generated
 list that equals a real patient’s is a coincidence with a computable
 chance rather than a copy. On a study whose patients’ visit lists are
 nearly all unique, which short records make likely, that chance is high,
@@ -1031,11 +1033,12 @@ Not preserved, and each is a decision rather than a defect:
   [`pca_dosing()`](https://iamstein.github.io/synpmx/reference/pca_dosing.md)
   reports the same quantity per arm.
 - **When patients missed visits, and differences between arms in
-  attendance and dose changes.** Attendance is one rate for the study
-  and the dose changes three rates pooled over the arms, so a late visit
-  few patients reached is drawn as often as an early one, and an arm
-  whose patients dropped out or reduced more often than the others’
-  takes the study’s rates. `onc_sim` is the worked case.
+  attendance and dose changes.** Attendance is one rate per endpoint and
+  the dose changes three rates pooled over the arms, so a late visit few
+  patients reached is drawn as often as an early visit of the same
+  endpoint, and an arm whose patients dropped out or reduced more often
+  than the others’ takes the study’s rates. `onc_sim` is the worked
+  case.
 - **Anything the grid construction merged.** `mavoglurant` is the worked
   case: 117 recorded times onto 15 nominal ones costs nine observations
   per patient.

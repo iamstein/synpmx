@@ -189,7 +189,7 @@ of the scheduled times. Each row is a patient:</p>
 <span><span class="co">#&gt; patient 8        1       0       1       0       0</span></span>
 <span><span class="co">#&gt; patient 9        0       1       1       1       0</span></span>
 <span><span class="co">#&gt; patient 10       0       1       0       1       1</span></span></code></pre></div>
-<p>The release’s visit model holds the share of patients sampled at each
+<p>The simulated release holds the share of patients sampled at each
 visit, after the floor that rounds a share with one or two patients on
 either side to 0 or 1:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
@@ -382,11 +382,13 @@ patient lowers it</strong>, because correlated visits repeat the same
 information. <strong>The floor barely moves it</strong>, because it
 changes only shares near 0 or 1.</p>
 <p><strong>The release does not hold this table.</strong> Its visit
-model is one attendance rate for the whole study, applied at every visit
-an arm has, so an attacker who knows which visits a candidate was
-sampled at has one number to match rather than a share per visit; the
-table above is what a share per visit would expose, and is why the
-release keeps one rate. A binary or ordinal endpoint is released the
+model is one attendance rate per endpoint, applied at every visit of the
+endpoint an arm has, so an attacker who knows which visits a candidate
+was sampled at has one number per endpoint to match rather than a share
+per visit. Pooling an endpoint’s visits into one rate shrinks the
+member’s lean on it and its chance variation alike, so each rate exposes
+about as much as one visit’s share, and a study with five endpoints sits
+near the five-visit rows. A binary or ordinal endpoint is released the
 same way, as one set of level frequencies over the whole study, and dose
 changes as three rates.</p>
 </div>
@@ -464,10 +466,11 @@ one.</p>
 <p>The numbers the attack could use in the release of each stored fit in
 the <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-public-data-examples.html">public-data
 evaluation</a>: the random effects of the population model, the
-attendance rate, and the free level frequencies of the binary and
-ordinal endpoints, each of which rests on every patient in the study. An
-endpoint with several levels has one fewer free frequency than levels,
-because they add up to 1.</p>
+attendance rate of each endpoint, and the free level frequencies of the
+binary and ordinal endpoints, each of which rests on every patient in
+the study or in the arms that measured the endpoint. An endpoint with
+several levels has one fewer free frequency than levels, because they
+add up to 1.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>warfarin <span class="op">=</span> <span class="st">"warfarin-model-fit.rds"</span>,</span>
 <span>           theo_md <span class="op">=</span> <span class="st">"theo-md-model-fit.rds"</span>,</span>
@@ -483,38 +486,41 @@ because they add up to 1.</p>
 <span>  <span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">stored_fit</span><span class="op">(</span><span class="va">files</span><span class="op">[[</span><span class="va">study</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">inherits</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"pmx_fitted_model"</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span>
 <span>  <span class="va">release</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_release.html">model_release</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
+<span>  <span class="co"># One rate per endpoint, listed at each of its visits in each arm.</span></span>
 <span>  <span class="va">rate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">visits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">v</span><span class="op">$</span><span class="va">probability</span><span class="op">)</span></span>
+<span>    <span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">v</span><span class="op">$</span><span class="va">probability</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">cells</span><span class="op">$</span><span class="va">endpoint</span>, <span class="va">p</span><span class="op">)</span><span class="op">[</span><span class="va">p</span> <span class="op">&gt;</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="va">p</span> <span class="op">&lt;</span> <span class="fl">1</span><span class="op">]</span></span>
 <span>  <span class="op">}</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="va">rate</span> <span class="op">&lt;-</span> <span class="va">rate</span><span class="op">[</span><span class="va">rate</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">]</span></span>
 <span>  <span class="va">marginals</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Filter</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Negate</a></span><span class="op">(</span><span class="va">is.null</span><span class="op">)</span>,</span>
 <span>                             <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">discrete</span>, recursive <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>study <span class="op">=</span> <span class="va">study</span>, patients <span class="op">=</span> <span class="va">release</span><span class="op">$</span><span class="va">n_source</span>,</span>
 <span>             random_effects <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">pk_models</span>, <span class="kw">function</span><span class="op">(</span><span class="va">model</span><span class="op">)</span> <span class="op">{</span></span>
 <span>               <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">model</span><span class="op">$</span><span class="va">parameters</span><span class="op">$</span><span class="va">omega</span><span class="op">)</span></span>
 <span>             <span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">integer</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>             attendance_rate <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">rate</span><span class="op">)</span> <span class="op">==</span> <span class="fl">1L</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">signif</a></span><span class="op">(</span><span class="va">rate</span>, <span class="fl">2</span><span class="op">)</span> <span class="kw">else</span> <span class="cn">NA</span>,</span>
+<span>             attendance_rates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">rate</span><span class="op">)</span>,</span>
 <span>             discrete_frequencies <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">marginals</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="op">{</span></span>
 <span>               <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">levels</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span></span>
 <span>             <span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="va">rows</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">rows</span>, <span class="va">is.null</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">logical</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt;           study patients random_effects attendance_rate discrete_frequencies</span></span>
-<span><span class="co">#&gt; 1      warfarin       32              5            0.68                    0</span></span>
-<span><span class="co">#&gt; 2       theo_md       12              5            0.87                    0</span></span>
-<span><span class="co">#&gt; 3           mad       60              5            1.00                    3</span></span>
-<span><span class="co">#&gt; 4    case1_pkpd      180              5            1.00                    0</span></span>
-<span><span class="co">#&gt; 5        wbcSim       45              0            0.28                    0</span></span>
-<span><span class="co">#&gt; 6   mavoglurant      120              4            0.80                    0</span></span>
-<span><span class="co">#&gt; 7      nimoData       12              4            0.84                    0</span></span>
-<span><span class="co">#&gt; 8      pheno_sd       59              4            0.28                    0</span></span>
-<span><span class="co">#&gt; 9  mixroute_sim       90              5            1.00                    0</span></span>
-<span><span class="co">#&gt; 10      onc_sim      200              5            0.78                    0</span></span></code></pre></div>
-<p>An attendance rate of 1 tells the attacker nothing; one below 1 is a
-single number for the cohort. For the population model, the cohort size
-places a study among the rows of the second table; a study fitted with
-more random effects than five gives the attacker more numbers to add
-up.</p>
+<span><span class="co">#&gt;           study patients random_effects attendance_rates discrete_frequencies</span></span>
+<span><span class="co">#&gt; 1      warfarin       32              5                2                    0</span></span>
+<span><span class="co">#&gt; 2       theo_md       12              5                1                    0</span></span>
+<span><span class="co">#&gt; 3           mad       60              5                0                    3</span></span>
+<span><span class="co">#&gt; 4    case1_pkpd      180              5                0                    0</span></span>
+<span><span class="co">#&gt; 5        wbcSim       45              0                1                    0</span></span>
+<span><span class="co">#&gt; 6   mavoglurant      120              4                1                    0</span></span>
+<span><span class="co">#&gt; 7      nimoData       12              4                1                    0</span></span>
+<span><span class="co">#&gt; 8      pheno_sd       59              4                1                    0</span></span>
+<span><span class="co">#&gt; 9  mixroute_sim       90              5                0                    0</span></span>
+<span><span class="co">#&gt; 10      onc_sim      200              5                2                    0</span></span></code></pre></div>
+<p>An attendance rate of 1 tells the attacker nothing, so
+<code>attendance_rates</code> counts the endpoints whose rate is below
+1, each a single number for the patients behind it and each worth about
+one visit in the attendance table. For the population model, the cohort
+size places a study among the rows of the second table; a study fitted
+with more random effects than five gives the attacker more numbers to
+add up.</p>
 </div>
 <div class="section level2">
 <h2 id="what-the-simulation-leaves-out">What the Simulation Leaves Out<a class="anchor" aria-label="anchor" href="#what-the-simulation-leaves-out"></a>

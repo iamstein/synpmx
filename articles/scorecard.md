@@ -650,8 +650,8 @@ means what it says.
 [`synpmx_pca()`](https://iamstein.github.io/synpmx/reference/synpmx_pca.md)
 and
 [`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md)
-decide each visit independently from a per-arm probability onto a grid
-the caller declared, so a match is a coincidence — and one with a
+decide each visit independently, at its endpoint’s attendance rate, onto
+a grid the caller declared, so a match is a coincidence — and one with a
 computable chance of happening. Three measurements say how little the
 row is worth there:
 
@@ -661,12 +661,13 @@ row is worth there:
   selecting anything.
 - Over 200 seeds on `warfarin`,
   [`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md)
-  reproduces a mean of 1.26 such sets and fires on 83% of them. What the
-  row reports is the chance rate.
+  reproduces one such set on 3 of them. What the row reports is the
+  chance of independent draws landing on a real set, which the
+  attendance rates and the width of the grid decide.
 - Jittering that study’s recorded visit times by a few minutes — which
   changes no synthetic value and no privacy property — takes the row
-  from 2 to 0. The verdict tracks whether a study happened to round its
-  visit times.
+  from 1 to 0 on each of those seeds. The verdict tracks whether a study
+  happened to round its visit times.
 
 B4b is the row that answers the disclosure question for those
 generators, and it is not weakened: reproducing a value a patient

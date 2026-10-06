@@ -64,7 +64,7 @@ trial_summary
 #>   pca_report()      what it read out of the source data
 #>   pca_dosing()      the planned dose schedule, per arm
 #>   pca_dose_rates()  reduction, interruption and discontinuation
-#>   pca_visits()      the attendance rate, at each visit an arm has
+#>   pca_visits()      each endpoint's attendance rate, at each visit an arm has
 #>   pca_components()  the loadings, over time
 ```
 
@@ -497,18 +497,21 @@ then differ from one another as the source patients did.
 
 ## The visit model
 
-One attendance rate for the study, listed for each arm, endpoint and
+One attendance rate per endpoint, listed for each arm, endpoint and
 modelled time it applies at. Attendance is drawn independently per
-visit, so no real patient’s set of attended visits is reused.
+visit, so no real patient’s set of attended visits is reused. The rates,
+then the number of modelled visits, per endpoint:
 
 ``` r
 
 visits <- pca_visits(trial_summary)
-c(attendance_rate = signif(unique(visits$probability[visits$probability > 0]),
-                           3),
-  visits = nrow(unique(visits[, c("endpoint", "time")])))
-#> attendance_rate          visits 
-#>               1              33
+signif(tapply(visits$probability, visits$endpoint, max), 3)
+#>  PD - Continuous PK Concentration 
+#>                1                1
+table(unique(visits[, c("endpoint", "time")])$endpoint)
+#> 
+#>  PD - Continuous PK Concentration 
+#>                9               24
 ```
 
 ## The schema

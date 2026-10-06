@@ -499,10 +499,12 @@ lower limit of quantification the reported value and <code>CENS</code>
 are rebuilt from it together. <code><a href="../articles/pca-demo.html">vignette("pca-demo")</a></code> shows
 the same thing as a log-scale figure over the day-1 and last-dose
 windows.</p>
-<p>A5a reads <code>review</code>: 30.7 observations per patient in the
-source against 29 in the synthetic cohort. Attendance is drawn
-independently per visit at the study’s one attendance rate, so the count
-is right on average and not exactly.</p>
+<p>A5a reads <code>review</code>, at 30.7 -&gt; 29 observations per
+patient, source against synthetic. Every patient was seen at every visit
+the grid models, so both endpoints’ attendance rates are 1 and the
+synthetic count is the grid’s. The source also holds two pre-dose
+concentration records per treated patient, at -24 and -0.1 hours, which
+carry no value and are not modelled.</p>
 </div>
 <div class="section level2">
 <h2 id="mad-five-endpoints-including-ordinal-count-and-binary">mad: five endpoints, including ordinal, count and binary<a class="anchor" aria-label="anchor" href="#mad-five-endpoints-including-ordinal-count-and-binary"></a>
@@ -1303,8 +1305,8 @@ subject and carries no trajectory for the components to reconstruct it
 from, so it is the feature the basis compresses hardest.</p>
 <p><strong>A5a is the row that carries the cost of each grid</strong>,
 and it is <code>review</code> on exactly the three studies where
-something was merged or dropped: <code>case1_pkpd</code> (the visit
-draw, 30.7 against 29), <code>wbcSim</code> (the column guard) and
+something was merged or dropped: <code>case1_pkpd</code> (two pre-dose
+records without a value), <code>wbcSim</code> (the column guard) and
 <code>mavoglurant</code> (the snapping). The four studies whose grids
 cost nothing read <code>pass</code> on it.</p>
 <div class="section level3">
@@ -1386,7 +1388,7 @@ record is.</caption>
 </table>
 <p><strong>B4a, the same question asked of the list of observation
 times, does not apply to this generator.</strong> Attendance is drawn
-independently per visit at one rate for the study, onto the declared
+independently per visit at one rate per endpoint, onto the declared
 grid, so a generated list that equals a real patient’s is a coincidence
 with a computable chance rather than a copy. On a study whose patients’
 visit lists are nearly all unique, which short records make likely, that
@@ -1427,11 +1429,12 @@ report it and reads <code>not applicable</code>;
 <code><a href="../reference/pca_dosing.html">pca_dosing()</a></code> reports the same quantity per arm.</li>
 <li>
 <strong>When patients missed visits, and differences between arms in
-attendance and dose changes.</strong> Attendance is one rate for the
-study and the dose changes three rates pooled over the arms, so a late
-visit few patients reached is drawn as often as an early one, and an arm
-whose patients dropped out or reduced more often than the others’ takes
-the study’s rates. <code>onc_sim</code> is the worked case.</li>
+attendance and dose changes.</strong> Attendance is one rate per
+endpoint and the dose changes three rates pooled over the arms, so a
+late visit few patients reached is drawn as often as an early visit of
+the same endpoint, and an arm whose patients dropped out or reduced more
+often than the others’ takes the study’s rates. <code>onc_sim</code> is
+the worked case.</li>
 <li>
 <strong>Anything the grid construction merged.</strong>
 <code>mavoglurant</code> is the worked case: 117 recorded times onto 15

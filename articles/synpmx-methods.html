@@ -281,8 +281,8 @@ so this article reads a stored result of
 <span><span class="co">#&gt;                      all (12)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         1 endpoint(s) at 25 nominal time(s), 25 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   87% of scheduled slots attended, one rate for the</span></span>
-<span><span class="co">#&gt;                      study</span></span>
+<span><span class="co">#&gt;   visit attendance   share of scheduled slots attended, one rate per</span></span>
+<span><span class="co">#&gt;                      endpoint: DV 87%</span></span>
 <span><span class="co">#&gt;   covariates         WT lognormal, drawn once for the whole study,</span></span>
 <span><span class="co">#&gt;                      independently of the profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT</span></span>
@@ -313,8 +313,8 @@ so this article reads a stored result of
 <span><span class="co">#&gt;   fixed effects      cl 3, v 30, q 2, v2 4, ka 1 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.2, v 0.141, ka 0.548, q 0.245, v2 0.283 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.2 </span></span>
-<span><span class="co">#&gt;   time to fit        51.6 s</span></span>
-<span><span class="co">#&gt;   whole call         51.6 s, against 51.6 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        52.1 s</span></span>
+<span><span class="co">#&gt;   whole call         52.2 s, against 52.1 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: DV: ka typical value, 9.92 %;</span></span>
@@ -323,7 +323,7 @@ so this article reads a stored result of
 <p>What leaves the study is the release and nothing else: a structural
 model, three fixed effects, a covariance matrix, a residual error, a
 planned dose schedule per arm, three dose-change rates and one
-attendance rate for the study.
+attendance rate per endpoint.
 <code><a href="../articles/pmxmodel-fingerprint.html">vignette("pmxmodel-fingerprint")</a></code> is the itemised list, and
 the parameters are not estimates to report.</p>
 </div>
@@ -504,7 +504,7 @@ holding on to any subject’s values.</p>
 <span><span class="co">#&gt;   pca_report()      what it read out of the source data</span></span>
 <span><span class="co">#&gt;   pca_dosing()      the planned dose schedule, per arm</span></span>
 <span><span class="co">#&gt;   pca_dose_rates()  reduction, interruption and discontinuation</span></span>
-<span><span class="co">#&gt;   pca_visits()      the attendance rate, at each visit an arm has</span></span>
+<span><span class="co">#&gt;   pca_visits()      each endpoint's attendance rate, at each visit an arm has</span></span>
 <span><span class="co">#&gt;   pca_components()  the loadings, over time</span></span>
 <span><span class="va">pca_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_pca_generate.html">synpmx_pca_generate</a></span><span class="op">(</span><span class="va">pca_summary</span>, seed <span class="op">=</span> <span class="fl">22</span><span class="op">)</span></span></code></pre></div>
 <p>Twelve subjects buy two components, holding 78% of the variance, as

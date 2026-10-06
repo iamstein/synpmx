@@ -205,8 +205,8 @@ it is an input to the generation step.</p>
 <span><span class="co">#&gt;                      all (32)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         2 endpoint(s) at 16 nominal time(s), 22 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   68% of scheduled slots attended, one rate for the</span></span>
-<span><span class="co">#&gt;                      study</span></span>
+<span><span class="co">#&gt;   visit attendance   share of scheduled slots attended, one rate per</span></span>
+<span><span class="co">#&gt;                      endpoint: cp 55%, pca 91%</span></span>
 <span><span class="co">#&gt;   covariates         wt lognormal, age lognormal, sex categorical, drawn</span></span>
 <span><span class="co">#&gt;                      once for the whole study, independently of the</span></span>
 <span><span class="co">#&gt;                      profiles</span></span>
@@ -244,8 +244,8 @@ it is an input to the generation step.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.1, v 7, q 0.1, v2 2, ka 0.4 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.265, v 0.2, ka 0.548, q 0.0775, v2 0.632 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.2 </span></span>
-<span><span class="co">#&gt;   time to fit        56.7 s</span></span>
-<span><span class="co">#&gt;   whole call         56.9 s, against 56.7 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        57.3 s</span></span>
+<span><span class="co">#&gt;   whole call         57.5 s, against 57.3 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: cp: ka between-subject SD, 9.84 points;</span></span>
@@ -309,7 +309,7 @@ the object telling you how little evidence it had, and
 <span><span class="co">#&gt; [1] "2cmt_oral"</span></span>
 <span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged accepted      aic seconds note</span></span>
-<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  56.676</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  57.294</span></span></code></pre></div>
 <p>Each row is an attempted fit. The default stops when two compartments
 pass the acceptance checks; a rejected fit is followed by one
 compartment. <code>pk</code> names a particular model, or several to
@@ -514,15 +514,19 @@ implies.</p>
 <div class="section level2">
 <h2 id="the-visit-model">The visit model<a class="anchor" aria-label="anchor" href="#the-visit-model"></a>
 </h2>
-<p>The visits each arm has, and one attendance rate for the study,
-applied at every one of them. Attendance is drawn per visit at
-generation.</p>
+<p>The visits each arm has, and one attendance rate per endpoint,
+applied at every visit of that endpoint an arm has. Attendance is drawn
+per visit at generation. The rates, then the number of visits, per
+endpoint:</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">rate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">visits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">v</span><span class="op">$</span><span class="va">probability</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>attendance_rate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">signif</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">rate</span><span class="op">[</span><span class="va">rate</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span>,</span>
-<span>  visits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">cells</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; attendance_rate          visits </span></span>
-<span><span class="co">#&gt;            0.68           22.00</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">rate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">pmax</span>, <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">visits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="va">v</span><span class="op">$</span><span class="va">probability</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">signif</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="va">rate</span>, <span class="va">fit</span><span class="op">$</span><span class="va">cells</span><span class="op">$</span><span class="va">endpoint</span>, <span class="va">max</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    cp   pca </span></span>
+<span><span class="co">#&gt; 0.551 0.906</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">cells</span><span class="op">$</span><span class="va">endpoint</span><span class="op">)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;  cp pca </span></span>
+<span><span class="co">#&gt;  14   8</span></span></code></pre></div>
 <p>A cell is kept only where at least <code>min_arm_patients</code>
 distinct patients hold an observation there. A nominal time one patient
 attended is that patient, and generating from it would put them
@@ -566,7 +570,7 @@ attaches to the data it returns.</p>
 <span>  subjects <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  valid <span class="op">=</span> <span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span><span class="op">)</span></span>
 <span><span class="co">#&gt;     rows subjects    valid </span></span>
-<span><span class="co">#&gt;      519       32        1</span></span></code></pre></div>
+<span><span class="co">#&gt;      525       32        1</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="where-to-go-next">Where to go next<a class="anchor" aria-label="anchor" href="#where-to-go-next"></a>

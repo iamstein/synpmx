@@ -172,8 +172,8 @@ model_fit
 #>                      all (12)
 #>   dose changes       none
 #>   visit grid         1 endpoint(s) at 25 nominal time(s), 25 slot(s) in all
-#>   visit attendance   87% of scheduled slots attended, one rate for the
-#>                      study
+#>   visit attendance   share of scheduled slots attended, one rate per
+#>                      endpoint: DV 87%
 #>   covariates         WT lognormal, drawn once for the whole study,
 #>                      independently of the profiles
 #>   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT
@@ -204,8 +204,8 @@ model_fit
 #>   fixed effects      cl 3, v 30, q 2, v2 4, ka 1 
 #>   between-subject    cl 0.2, v 0.141, ka 0.548, q 0.245, v2 0.283 (as SD on the log scale)
 #>   residual error     proportional 0.2 
-#>   time to fit        51.6 s
-#>   whole call         51.6 s, against 51.6 s in the fitter
+#>   time to fit        52.1 s
+#>   whole call         52.2 s, against 52.1 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: DV: ka typical value, 9.92 %;
@@ -216,7 +216,7 @@ model_data <- synpmx_model_generate(model_fit, n_subjects = 12, seed = 11)
 What leaves the study is the release and nothing else: a structural
 model, three fixed effects, a covariance matrix, a residual error, a
 planned dose schedule per arm, three dose-change rates and one
-attendance rate for the study.
+attendance rate per endpoint.
 [`vignette("pmxmodel-fingerprint")`](https://iamstein.github.io/synpmx/articles/pmxmodel-fingerprint.md)
 is the itemised list, and the parameters are not estimates to report.
 
@@ -412,7 +412,7 @@ pca_summary
 #>   pca_report()      what it read out of the source data
 #>   pca_dosing()      the planned dose schedule, per arm
 #>   pca_dose_rates()  reduction, interruption and discontinuation
-#>   pca_visits()      the attendance rate, at each visit an arm has
+#>   pca_visits()      each endpoint's attendance rate, at each visit an arm has
 #>   pca_components()  the loadings, over time
 pca_data <- synpmx_pca_generate(pca_summary, seed = 22)
 ```

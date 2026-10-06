@@ -361,7 +361,7 @@ endpoint’s time course by least squares.</li>
 <strong>Fit a dosing model and a visit model</strong>: a planned
 dose schedule per arm, rates for reduction, interruption and
 discontinuation pooled over the arms, the visits each arm has, and one
-attendance rate for the study.</li>
+attendance rate per endpoint.</li>
 <li>
 <strong>Store the fit</strong>: the structural model, the
 parameters, the arm models and the schema, and no per-subject
@@ -815,7 +815,7 @@ checks.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged accepted      aic seconds note</span></span>
-<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  56.676</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  57.294</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="covariates">Covariates<a class="anchor" aria-label="anchor" href="#covariates"></a>
@@ -977,9 +977,9 @@ pooled over arms</td>
 <td>Visit model</td>
 <td>The visits each arm has, where at least
 <code>min_arm_patients</code> of its patients were observed, and one
-attendance rate for the study: the share of those scheduled visits at
-which a patient was observed</td>
-<td>Attendance, drawn per visit at that one rate</td>
+attendance rate per endpoint: the share of that endpoint’s scheduled
+visits at which a patient was observed</td>
+<td>Attendance, drawn per visit at its endpoint’s rate</td>
 </tr>
 </tbody>
 </table>
@@ -988,9 +988,10 @@ whose patients reduced, stopped or missed visits more often than the
 others’ takes the study’s rates, so a dose-dependent discontinuation is
 not reproduced, and that attendance no longer depends on when in the
 study a visit falls: a late visit few patients reached is generated as
-often as an early one, though the number of observations per patient is
-kept on average. An arm that never has a visit, such as a placebo arm
-without drug sampling, still has none.</p>
+often as an early visit of the same endpoint, though each endpoint’s
+number of observations per patient is kept on average. An arm that never
+has a visit, such as a placebo arm without drug sampling, still has
+none.</p>
 <p>A study where nobody reduces, skips or stops early has all three
 rates at zero and one level, and the model then reproduces the planned
 schedule exactly. No detector decides which kind of study this is,
@@ -1009,9 +1010,10 @@ patient came”:</p>
 <code>min_arm_patients</code> patients had, across every arm, is
 zero.</li>
 <li>Where fewer than <code>min_arm_patients</code> patients missed any
-visit, the attendance rate is 1, since a rate below 1 would describe
-their misses. An arm with fewer than <code>min_arm_patients</code> of
-its patients observed at a visit does not have that visit.</li>
+of an endpoint’s visits, its attendance rate is 1, since a rate below 1
+would describe their misses. An arm with fewer than
+<code>min_arm_patients</code> of its patients observed at a visit does
+not have that visit.</li>
 </ul>
 <p>Each arm also carries the values of its <code>strata</code> and
 <code>keep</code> columns, copied from the arm’s first patient as
@@ -1058,13 +1060,13 @@ fitting and the whole call took.</p>
 three rates pooled over arms, the visit model, arm sizes, the covariate
 distributions, the censoring boundary, the schema and the roles.</p>
 <p><strong>Printing the object reports every input to Step 6</strong> —
-the dose reduction, skipped cycle and early stop rates, the attendance
-frequency behind a missed observation, how each covariate is drawn,
-which cells are drawn from recorded values rather than simulated, the
-assay limit and how many observations sit below it, the floor nothing is
-emitted below, and the columns the generated table will carry — and the
-diagnostics beside them. <code><a href="../reference/model_report.html">model_report()</a></code> returns the same
-account as a list.</p>
+the dose reduction, skipped cycle and early stop rates, each endpoint’s
+attendance rate, which decides a missed observation, how each covariate
+is drawn, which cells are drawn from recorded values rather than
+simulated, the assay limit and how many observations sit below it, the
+floor nothing is emitted below, and the columns the generated table will
+carry — and the diagnostics beside them. <code><a href="../reference/model_report.html">model_report()</a></code>
+returns the same account as a list.</p>
 <p><strong>Only the release leaves the study.</strong> The fit also
 carries diagnostics for whoever ran it: the AIC of every candidate, the
 starting values, the correlations between covariates and the individual
@@ -1143,8 +1145,8 @@ seen.</p>
 <span><span class="co">#&gt;                      all (32)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         2 endpoint(s) at 16 nominal time(s), 22 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   68% of scheduled slots attended, one rate for the</span></span>
-<span><span class="co">#&gt;                      study</span></span>
+<span><span class="co">#&gt;   visit attendance   share of scheduled slots attended, one rate per</span></span>
+<span><span class="co">#&gt;                      endpoint: cp 55%, pca 91%</span></span>
 <span><span class="co">#&gt;   covariates         wt lognormal, age lognormal, sex categorical, drawn</span></span>
 <span><span class="co">#&gt;                      once for the whole study, independently of the</span></span>
 <span><span class="co">#&gt;                      profiles</span></span>
@@ -1182,8 +1184,8 @@ seen.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.1, v 7, q 0.1, v2 2, ka 0.4 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.265, v 0.2, ka 0.548, q 0.0775, v2 0.632 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.2 </span></span>
-<span><span class="co">#&gt;   time to fit        56.7 s</span></span>
-<span><span class="co">#&gt;   whole call         56.9 s, against 56.7 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        57.3 s</span></span>
+<span><span class="co">#&gt;   whole call         57.5 s, against 57.3 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: cp: ka between-subject SD, 9.84 points;</span></span>
@@ -1340,11 +1342,11 @@ over every arm</td>
 </tr>
 <tr class="odd">
 <td>Attendance rate</td>
-<td>fewer than <code>min_arm_patients</code> patients who missed any
-visit; fewer than <code>min_arm_patients</code> of an arm’s patients at
-a visit</td>
-<td>The rate is 1. An arm with too few of its patients at a visit does
-not have it.</td>
+<td>fewer than <code>min_arm_patients</code> patients who missed any of
+an endpoint’s visits; fewer than <code>min_arm_patients</code> of an
+arm’s patients at a visit</td>
+<td>That endpoint’s rate is 1. An arm with too few of its patients at a
+visit does not have it.</td>
 </tr>
 <tr class="even">
 <td>Rare kept value</td>

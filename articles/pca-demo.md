@@ -10,7 +10,8 @@ builds a dataset from those summaries alone. No number a patient
 measured reaches the output. What it carries out of the source is a
 mean, a scale, a set of principal-component loadings, one mean score
 vector per arm, a residual covariance, a planned dose schedule per arm,
-and dose-change rates and one attendance rate pooled over the arms.
+and dose-change rates and one attendance rate per endpoint, pooled over
+the arms.
 
 It makes no formal privacy claim, and it is not for estimation. The full
 specification is in
@@ -83,7 +84,7 @@ trial_summary
 #>   pca_report()      what it read out of the source data
 #>   pca_dosing()      the planned dose schedule, per arm
 #>   pca_dose_rates()  reduction, interruption and discontinuation
-#>   pca_visits()      the attendance rate, at each visit an arm has
+#>   pca_visits()      each endpoint's attendance rate, at each visit an arm has
 #>   pca_components()  the loadings, over time
 ```
 
@@ -168,14 +169,17 @@ comparison_colours <- c(source = "#1B6CA8", synthetic = "#D95F02")
 ``` r
 
 visits <- pca_visits(trial_summary)
-unique(visits$probability[visits$probability > 0])
-#> [1] 1
+print(unique(visits[visits$probability > 0, c("endpoint", "probability")]),
+      row.names = FALSE)
+#>          endpoint probability
+#>   PD - Continuous           1
+#>  PK Concentration           1
 ```
 
-That is the attendance rate: one number for the study, the share of
-scheduled visits at which a patient was observed. Attendance is drawn
-per visit at that rate, so no real patient’s set of attended visits is
-reused.
+Those are the attendance rates, one per endpoint: the share of the
+endpoint’s scheduled visits at which a patient was observed. Attendance
+is drawn per visit at its endpoint’s rate, so no real patient’s set of
+attended visits is reused.
 
 ## Generate Synthetic Data
 

@@ -87,8 +87,8 @@ model_report(fit)
 #>                      all (32)
 #>   dose changes       none
 #>   visit grid         2 endpoint(s) at 16 nominal time(s), 22 slot(s) in all
-#>   visit attendance   68% of scheduled slots attended, one rate for the
-#>                      study
+#>   visit attendance   share of scheduled slots attended, one rate per
+#>                      endpoint: cp 55%, pca 91%
 #>   covariates         wt lognormal, age lognormal, sex categorical, drawn
 #>                      once for the whole study, independently of the
 #>                      profiles
@@ -126,8 +126,8 @@ model_report(fit)
 #>   fixed effects      cl 0.1, v 7, q 0.1, v2 2, ka 0.4 
 #>   between-subject    cl 0.265, v 0.2, ka 0.548, q 0.0775, v2 0.632 (as SD on the log scale)
 #>   residual error     proportional 0.2 
-#>   time to fit        56.7 s
-#>   whole call         56.9 s, against 56.7 s in the fitter
+#>   time to fit        57.3 s
+#>   whole call         57.5 s, against 57.3 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: cp: ka between-subject SD, 9.84 points;
@@ -201,7 +201,7 @@ fit$structural
 #> [1] "2cmt_oral"
 model_candidates(fit)
 #>       model converged accepted      aic seconds note
-#> 1 2cmt_oral      TRUE     TRUE 922.2948  56.676
+#> 1 2cmt_oral      TRUE     TRUE 922.2948  57.294
 ```
 
 Each row is an attempted fit. The default stops when two compartments
@@ -434,16 +434,20 @@ subject who steps down has the lower exposure that implies.
 
 ## The visit model
 
-The visits each arm has, and one attendance rate for the study, applied
-at every one of them. Attendance is drawn per visit at generation.
+The visits each arm has, and one attendance rate per endpoint, applied
+at every visit of that endpoint an arm has. Attendance is drawn per
+visit at generation. The rates, then the number of visits, per endpoint:
 
 ``` r
 
-rate <- unlist(lapply(fit$visits, function(v) as.numeric(v$probability)))
-c(attendance_rate = signif(unique(rate[rate > 0]), 3),
-  visits = nrow(fit$cells))
-#> attendance_rate          visits 
-#>            0.68           22.00
+rate <- do.call(pmax, unname(lapply(fit$visits, function(v) v$probability)))
+signif(tapply(rate, fit$cells$endpoint, max), 3)
+#>    cp   pca 
+#> 0.551 0.906
+table(fit$cells$endpoint)
+#> 
+#>  cp pca 
+#>  14   8
 ```
 
 A cell is kept only where at least `min_arm_patients` distinct patients
@@ -496,7 +500,7 @@ c(rows = nrow(synthetic),
   subjects = length(unique(synthetic$id)),
   valid = validate_pmx(synthetic, roles)$valid)
 #>     rows subjects    valid 
-#>      519       32        1
+#>      525       32        1
 ```
 
 ## Where to go next

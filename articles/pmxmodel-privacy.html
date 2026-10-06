@@ -166,13 +166,13 @@ models.</p>
 out: the number of patients in each treatment group
 (<strong>arm</strong>), each arm’s dose schedule, how often doses were
 reduced, skipped or stopped, the share of scheduled visits at which
-patients were measured, the distribution of each baseline covariate such
-as body weight, age or sex, and, for an endpoint recorded in levels such
-as a yes/no response or a toxicity grade, how often each level was
-recorded. Everything in that list read from how patients behaved, rather
-than from the protocol, is one set of numbers for the whole study,
-pooled over the arms and the visits, as the PD time courses are pooled
-over the arms.</p>
+patients were measured, for each kind of measurement, the distribution
+of each baseline covariate such as body weight, age or sex, and, for an
+endpoint recorded in levels such as a yes/no response or a toxicity
+grade, how often each level was recorded. Everything in that list read
+from how patients behaved, rather than from the protocol, is one set of
+numbers for the whole study, pooled over the arms and the visits, as the
+PD time courses are pooled over the arms.</p>
 <p>What leaves the environment that holds the study is the
 <strong>release</strong>: these numbers, assembled by
 <code><a href="../reference/model_release.html">model_release()</a></code> from a list of permitted fields, together
@@ -215,11 +215,13 @@ fitted to 60. This probability is the area under the curve (AUC), where
 to 0.59 and 0.53. The release holds no table per visit, because one
 would be more exposed: a share of patients sampled at each of 20 visits
 gives 0.83 when 10 patients stand behind each share and 0.62 when 100
-do. Attendance is one rate for the study instead, and each binary or
-ordinal endpoint one set of level frequencies. Rounding the estimates to
-one significant figure lowers these numbers by up to 0.05, and the
-three-patient floor moves them by at most 0.01; cohort size and the
-number of released numbers decide them. <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-privacy-simulation.html">Membership
+do. Attendance is one rate per endpoint instead, and each binary or
+ordinal endpoint one set of level frequencies. A rate exposes about as
+much as one visit’s share, so five endpoints’ rates behind 10 patients
+give about 0.67. Rounding the estimates to one significant figure lowers
+these numbers by up to 0.05, and the three-patient floor moves them by
+at most 0.01; cohort size and the number of released numbers decide
+them. <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-privacy-simulation.html">Membership
 inference against the PMX model release</a> shows how each number is
 computed.</p>
 <p><strong>❌ No formal guarantee.</strong> Nothing bounds what an
@@ -380,8 +382,8 @@ reducing, skipping and stopping</td>
 </tr>
 <tr class="even">
 <td align="left">visits</td>
-<td align="left">the visits each arm has, and one attendance rate for
-the study, listed at each of them</td>
+<td align="left">the visits each arm has, and one attendance rate per
+endpoint, listed at each of its visits</td>
 <td align="right">44</td>
 </tr>
 <tr class="odd">
@@ -563,8 +565,9 @@ is fitted;</li>
 where at least <code>min_arm_patients</code> patients reached them, and
 an arm has a visit only where at least that many of its patients were
 observed there;</li>
-<li>attendance is one rate for the study, and is 1 where fewer than
-<code>min_arm_patients</code> patients missed any visit;</li>
+<li>attendance is one rate per endpoint, and is 1 where fewer than
+<code>min_arm_patients</code> patients missed any of the endpoint’s
+visits;</li>
 <li>a dose-change rate, pooled over every arm, whose events fewer than
 <code>min_arm_patients</code> patients had is zero;</li>
 <li>a categorical covariate level, and a binary or ordinal endpoint’s
@@ -585,10 +588,11 @@ behind.</li>
 does not stop membership inference, which adds up small signals over
 many frequencies (<a href="#membership-inference-against-the-release">Membership Inference
 Against the Release</a>). Pooling is what weakens that: attendance is
-one rate, the dose-change rates are three, and a binary or ordinal
-endpoint is one set of level frequencies, each resting on every patient
-rather than on one arm at one visit. <code>pd_by_arm = TRUE</code> reads
-the endpoint frequencies per arm again, with the PD time courses.</p>
+one rate per endpoint, the dose-change rates are three, and a binary or
+ordinal endpoint is one set of level frequencies, each pooled over the
+arms and the visits rather than resting on one arm at one visit.
+<code>pd_by_arm = TRUE</code> reads the endpoint frequencies per arm
+again, with the PD time courses.</p>
 </div>
 <div class="section level3">
 <h3 id="covariate-summaries-without-their-extremes">6. Covariate Summaries Without Their Extremes<a class="anchor" aria-label="anchor" href="#covariate-summaries-without-their-extremes"></a>
@@ -810,12 +814,18 @@ changed to meet it.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">checks</span>, <span class="st">"frequencies"</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"quantity"</span>, <span class="st">"smallest"</span>, <span class="st">"threshold"</span>,</span>
 <span>                                <span class="st">"adjusted"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;                                         quantity smallest threshold adjusted</span></span>
-<span><span class="co">#&gt; 1                             patients in an arm       32         3        0</span></span>
-<span><span class="co">#&gt; 2 patients on either side of the attendance rate       32         3        0</span></span>
-<span><span class="co">#&gt; 3    patients with the dose change behind a rate       NA         3        0</span></span>
-<span><span class="co">#&gt; 4 patients holding a categorical covariate level        5         3        0</span></span>
-<span><span class="co">#&gt; 5    patients holding a level of a factor column       32         3        0</span></span></code></pre></div>
+<span><span class="co">#&gt;                                                   quantity smallest threshold</span></span>
+<span><span class="co">#&gt; 1                                       patients in an arm       32         3</span></span>
+<span><span class="co">#&gt; 2 patients on either side of an endpoint's attendance rate       21         3</span></span>
+<span><span class="co">#&gt; 3              patients with the dose change behind a rate       NA         3</span></span>
+<span><span class="co">#&gt; 4           patients holding a categorical covariate level        5         3</span></span>
+<span><span class="co">#&gt; 5              patients holding a level of a factor column       32         3</span></span>
+<span><span class="co">#&gt;   adjusted</span></span>
+<span><span class="co">#&gt; 1        0</span></span>
+<span><span class="co">#&gt; 2        0</span></span>
+<span><span class="co">#&gt; 3        0</span></span>
+<span><span class="co">#&gt; 4        0</span></span>
+<span><span class="co">#&gt; 5        0</span></span></code></pre></div>
 <p>The same checks on the release report P5 as a verdict only. A passing
 release states that every estimate moved less than 15, and nothing more,
 so the one data-dependent thing it carries about the reading is the
@@ -1159,7 +1169,7 @@ a real patient’s record; B3, B4b and B5 do.</p>
 <span><span class="co">#&gt; 8                                                 no run record not applicable</span></span>
 <span><span class="co">#&gt; 9                                                 no run record not applicable</span></span>
 <span><span class="co">#&gt; 10 not applicable: profiles simulated, not built from a patient not applicable</span></span>
-<span><span class="co">#&gt; 11                                      0.594 in [0.344, 0.688]           pass</span></span>
+<span><span class="co">#&gt; 11                                      0.656 in [0.344, 0.712]           pass</span></span>
 <span><span class="co">#&gt; 12                   not applicable: attendance drawn per visit not applicable</span></span>
 <span><span class="co">#&gt; 13                                                            0           pass</span></span>
 <span><span class="co">#&gt; 14                                               0 of 0 exposed           pass</span></span>
@@ -1208,8 +1218,11 @@ release, so the release holds none.</strong> A share of patients sampled
 at each of 20 visits gives 0.83 with 10 patients behind each share, 0.72
 with 30 and 0.62 with 100, and the three-patient rule moves it by at
 most 0.01, because the rule acts only on shares near 0 or 1. Attendance
-is one rate for the study instead, and a binary or ordinal endpoint one
-set of level frequencies, each resting on every patient.</li>
+is one rate per endpoint instead, and a binary or ordinal endpoint one
+set of level frequencies, each pooled over the arms and the visits. A
+rate exposes about as much as one visit’s share, so a study’s attendance
+rates are about as exposed as a table with one visit for each endpoint:
+0.67 for five endpoints behind 10 patients.</li>
 </ul>
 <p>An AUC averages over members, and the most exposed member is the one
 far from the typical values: that patient moves the release furthest
@@ -1237,7 +1250,8 @@ releasing estimates without noise, or a limit of the checks.</p>
 membership.</strong> <a href="#membership-inference-against-the-release">Membership Inference
 Against the Release</a> measures how well. The release holds no
 per-visit table, so what remains is chiefly the population model of a
-small cohort, which only noise would reduce.</li>
+small cohort and one attendance rate per endpoint, which only noise
+would reduce.</li>
 <li>
 <strong>An attacker who knows every other patient is not
 stopped.</strong> Such an attacker can compute the exact effect of the
@@ -1537,8 +1551,10 @@ planned dose schedule, which is the protocol, is counted apart.</p>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">levels</span>, collapse <span class="op">=</span> <span class="st">"/"</span><span class="op">)</span><span class="op">)</span></span>
 <span>    <span class="op">}</span><span class="op">)</span></span>
 <span>  <span class="op">}</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="co"># One rate per endpoint, listed at each of its visits in each arm.</span></span>
 <span>  <span class="va">attendance</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">visits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">v</span><span class="op">$</span><span class="va">probability</span><span class="op">)</span></span>
+<span>    <span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">v</span><span class="op">$</span><span class="va">probability</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">cells</span><span class="op">$</span><span class="va">endpoint</span>, <span class="va">p</span><span class="op">)</span><span class="op">[</span><span class="va">p</span> <span class="op">&gt;</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="va">p</span> <span class="op">&lt;</span> <span class="fl">1</span><span class="op">]</span></span>
 <span>  <span class="op">}</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="va">marginals</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Filter</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Negate</a></span><span class="op">(</span><span class="va">is.null</span><span class="op">)</span>,</span>
 <span>                             <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">discrete</span>, recursive <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
@@ -1556,7 +1572,7 @@ planned dose schedule, which is the protocol, is counted apart.</p>
 <span>    `dose changes` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/strsplit.html" class="external-link">strsplit</a></span><span class="op">(</span><span class="va">rates</span>, <span class="st">" "</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="op">{</span></span>
 <span>      <span class="fl">3</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/strsplit.html" class="external-link">strsplit</a></span><span class="op">(</span><span class="va">r</span><span class="op">[[</span><span class="fl">4</span><span class="op">]</span><span class="op">]</span>, <span class="st">"/"</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span></span>
 <span>    <span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    attendance <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">attendance</span> <span class="op">&gt;</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="va">attendance</span> <span class="op">&lt;</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>    attendance <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">attendance</span><span class="op">)</span>,</span>
 <span>    `discrete endpoints` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">marginals</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="op">{</span></span>
 <span>      <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">levels</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span></span>
 <span>    <span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -1620,10 +1636,10 @@ planned dose schedule, which is the protocol, is counted apart.</p>
 <td align="right">5</td>
 <td align="right">5</td>
 <td align="right">3</td>
-<td align="right">1</td>
+<td align="right">2</td>
 <td align="right">0</td>
 <td align="right">4</td>
-<td align="right">29</td>
+<td align="right">30</td>
 <td align="right">1</td>
 </tr>
 <tr class="even">
@@ -1737,10 +1753,10 @@ planned dose schedule, which is the protocol, is counted apart.</p>
 <td align="right">4</td>
 <td align="right">5</td>
 <td align="right">4</td>
-<td align="right">1</td>
+<td align="right">2</td>
 <td align="right">0</td>
 <td align="right">4</td>
-<td align="right">29</td>
+<td align="right">30</td>
 <td align="right">842</td>
 </tr>
 </tbody>
@@ -1766,8 +1782,9 @@ categorical one.</li>
 skipping and stopping, and each level of the dose ladder below the full
 dose, a fraction of the starting dose to one significant figure.</li>
 <li>
-<strong>Attendance</strong>: one rate for the study, or none where
-every patient attended every visit their arm had.</li>
+<strong>Attendance</strong>: one rate per endpoint, and none for an
+endpoint whose rate is 1, as where every patient was observed at every
+visit of it their arm had.</li>
 <li>
 <strong>Discrete endpoints</strong>: one fewer level frequency than
 levels, for each binary or ordinal endpoint.</li>

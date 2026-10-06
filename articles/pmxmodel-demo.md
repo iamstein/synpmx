@@ -5,7 +5,8 @@ generate a synthetic dataset by simulating from it. Generation uses
 fitted population parameters and study summaries: structural curves,
 between-subject variability, residual error, endpoint frequencies, a
 planned dose schedule per arm, and dose changes and one attendance rate
-pooled over the arms. It does not read the original patient rows.
+per endpoint, pooled over the arms. It does not read the original
+patient rows.
 
 It makes no formal privacy claim, and **it is not for estimation** — the
 fitted parameters exist to make simulated profiles look like the source
@@ -110,12 +111,13 @@ model_report(fit)
 #>                      1600 mg / 1600 (10)
 #>   dose changes       none
 #>   visit grid         5 endpoint(s) at 28 nominal time(s), 66 slot(s) in all
-#>   visit attendance   100% of scheduled slots attended, one rate for the
-#>                      study
+#>   visit attendance   share of scheduled slots attended, one rate per
+#>                      endpoint: PK Concentration 100%, PD - Continuous 100%,
+#>                      PD - Count 100%, PD - Binary 100%, PD - Ordinal 100%
 #>   covariates         WEIGHTB lognormal, SEX categorical, drawn once for the
 #>                      whole study, independently of the profiles
-#>   discrete endpoints PD - Binary, PD - Ordinal: drawn from each arm's
-#>                      recorded frequencies at each visit, not simulated
+#>   discrete endpoints PD - Binary, PD - Ordinal: drawn from the frequencies
+#>                      of their recorded levels, not simulated
 #>   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, MDV,
 #>                      WEIGHTB, SEX, TRTACT, DOSE
 #> 
@@ -160,8 +162,8 @@ model_report(fit)
 #>   fixed effects      cl 6, v 50, q 5, v2 100, ka 1 
 #>   between-subject    cl 0.447, v 0.447, ka 0.316, q 0.548, v2 0.447 (as SD on the log scale)
 #>   residual error     proportional 0.4 
-#>   time to fit        3 min 8 s
-#>   whole call         3 min 8 s, against 3 min 8 s in the fitter
+#>   time to fit        3 min 13 s
+#>   whole call         3 min 14 s, against 3 min 13 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: PD - Continuous between-subject SD,

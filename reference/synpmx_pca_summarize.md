@@ -139,7 +139,7 @@ trial_summary
 #>   pca_report()      what it read out of the source data
 #>   pca_dosing()      the planned dose schedule, per arm
 #>   pca_dose_rates()  reduction, interruption and discontinuation
-#>   pca_visits()      the attendance rate, at each visit an arm has
+#>   pca_visits()      each endpoint's attendance rate, at each visit an arm has
 #>   pca_components()  the loadings, over time
 pca_report(trial_summary)
 #> What the PCA fit read out of the source data
@@ -168,7 +168,7 @@ pca_report(trial_summary)
 #>                                    Log or identity, per endpoint       2
 #>                                 Censoring boundary, per endpoint       0
 #>  Planned cycles per arm; the dose ladder and three rates, pooled       8
-#>                  One attendance rate, at the visits each arm has      14
+#>     One attendance rate per endpoint, at the visits each arm has      14
 #>                       Strata and kept columns, one value per arm       0
 #>  min_patients
 #>            60

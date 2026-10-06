@@ -38,9 +38,10 @@ attribute.
 
 Each generated subject is assigned an arm, keeping each arm's share of
 the cohort. Its scores are that arm's mean plus a fresh residual, its
-dose schedule is the one the arm holds in common, and it attends each
-visit with the frequency the arm attended it. No individual's schedule
-and no individual's visit set exists in the model to be copied.
+dose schedule is drawn from the arm's planned schedule and the pooled
+dose-change rates, and it attends each visit its arm has at the
+attendance rate of that visit's endpoint. No individual's schedule and
+no individual's visit set exists in the model to be copied.
 
 ## See also
 

@@ -309,8 +309,8 @@ model demo uses <code>mad</code>, whose fit passed the checks.</p>
 <span><span class="co">#&gt;                      300 mg / 300 (30)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         2 endpoint(s) at 25 nominal time(s), 33 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   100% of scheduled slots attended, one rate for the</span></span>
-<span><span class="co">#&gt;                      study</span></span>
+<span><span class="co">#&gt;   visit attendance   share of scheduled slots attended, one rate per</span></span>
+<span><span class="co">#&gt;                      endpoint: PK Concentration 100%, PD - Continuous 100%</span></span>
 <span><span class="co">#&gt;   covariates         WEIGHTB lognormal, drawn once for the whole study,</span></span>
 <span><span class="co">#&gt;                      independently of the profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, CENS,</span></span>
@@ -361,8 +361,8 @@ model demo uses <code>mad</code>, whose fit passed the checks.</p>
 <span><span class="co">#&gt;                      `start_param`; the rest were read off the cohort's</span></span>
 <span><span class="co">#&gt;                      median profile</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.3 </span></span>
-<span><span class="co">#&gt;   time to fit        21 min 2 s</span></span>
-<span><span class="co">#&gt;   whole call         21 min 4 s, against 21 min 2 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        21 min 14 s</span></span>
+<span><span class="co">#&gt;   whole call         21 min 17 s, against 21 min 14 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: PD - Continuous between-subject SD,</span></span>
@@ -389,14 +389,14 @@ so they are worth reading once here. B1a, B1b and C2 need a run record
 that <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> writes and this generator does not.
 B4a asks whether a generated set of observation times copies a real one,
 which is a disclosure question only where the set was taken from
-somebody: this generator decides each visit independently from a per-arm
-probability, so a match is a coincidence with a computable chance. B2
-asks whether a synthetic patient stands out from its stratum, which is a
-disclosure question for a generator that hands a real patient’s
-trajectory to an avatar and a reading about the tail of a distribution
-here. <strong>B4b is the row that carries the claim here, and it is 0 on
-every dataset below</strong>: no value any patient measured is
-reproduced.</p>
+somebody: this generator decides each visit independently, at its
+endpoint’s attendance rate, so a match is a coincidence with a
+computable chance. B2 asks whether a synthetic patient stands out from
+its stratum, which is a disclosure question for a generator that hands a
+real patient’s trajectory to an avatar and a reading about the tail of a
+distribution here. <strong>B4b is the row that carries the claim here,
+and it is 0 on every dataset below</strong>: no value any patient
+measured is reproduced.</p>
 </div>
 <div class="section level2">
 <h2 id="mad-five-endpoints-only-one-of-them-a-concentration">mad: five endpoints, only one of them a concentration<a class="anchor" aria-label="anchor" href="#mad-five-endpoints-only-one-of-them-a-concentration"></a>
@@ -430,12 +430,13 @@ the discrete ones are a question this generator does not answer.</p>
 <span><span class="co">#&gt;                      1600 mg / 1600 (10)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         5 endpoint(s) at 28 nominal time(s), 66 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   100% of scheduled slots attended, one rate for the</span></span>
-<span><span class="co">#&gt;                      study</span></span>
+<span><span class="co">#&gt;   visit attendance   share of scheduled slots attended, one rate per</span></span>
+<span><span class="co">#&gt;                      endpoint: PK Concentration 100%, PD - Continuous 100%,</span></span>
+<span><span class="co">#&gt;                      PD - Count 100%, PD - Binary 100%, PD - Ordinal 100%</span></span>
 <span><span class="co">#&gt;   covariates         WEIGHTB lognormal, SEX categorical, drawn once for the</span></span>
 <span><span class="co">#&gt;                      whole study, independently of the profiles</span></span>
-<span><span class="co">#&gt;   discrete endpoints PD - Binary, PD - Ordinal: drawn from each arm's</span></span>
-<span><span class="co">#&gt;                      recorded frequencies at each visit, not simulated</span></span>
+<span><span class="co">#&gt;   discrete endpoints PD - Binary, PD - Ordinal: drawn from the frequencies</span></span>
+<span><span class="co">#&gt;                      of their recorded levels, not simulated</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NOMTIME, LIDV, AMT, EVID, CMT, NAME, MDV,</span></span>
 <span><span class="co">#&gt;                      WEIGHTB, SEX, TRTACT, DOSE</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -480,8 +481,8 @@ the discrete ones are a question this generator does not answer.</p>
 <span><span class="co">#&gt;   fixed effects      cl 6, v 50, q 5, v2 100, ka 1 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.447, v 0.447, ka 0.316, q 0.548, v2 0.447 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.4 </span></span>
-<span><span class="co">#&gt;   time to fit        3 min 8 s</span></span>
-<span><span class="co">#&gt;   whole call         3 min 8 s, against 3 min 8 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        3 min 13 s</span></span>
+<span><span class="co">#&gt;   whole call         3 min 14 s, against 3 min 13 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: PD - Continuous between-subject SD,</span></span>
@@ -531,8 +532,8 @@ about this study rather than constructing a grid.</p>
 <span><span class="co">#&gt;                      all (32)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         2 endpoint(s) at 16 nominal time(s), 22 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   68% of scheduled slots attended, one rate for the</span></span>
-<span><span class="co">#&gt;                      study</span></span>
+<span><span class="co">#&gt;   visit attendance   share of scheduled slots attended, one rate per</span></span>
+<span><span class="co">#&gt;                      endpoint: cp 55%, pca 91%</span></span>
 <span><span class="co">#&gt;   covariates         wt lognormal, age lognormal, sex categorical, drawn</span></span>
 <span><span class="co">#&gt;                      once for the whole study, independently of the</span></span>
 <span><span class="co">#&gt;                      profiles</span></span>
@@ -570,8 +571,8 @@ about this study rather than constructing a grid.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.1, v 7, q 0.1, v2 2, ka 0.4 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.265, v 0.2, ka 0.548, q 0.0775, v2 0.632 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.2 </span></span>
-<span><span class="co">#&gt;   time to fit        56.7 s</span></span>
-<span><span class="co">#&gt;   whole call         56.9 s, against 56.7 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        57.3 s</span></span>
+<span><span class="co">#&gt;   whole call         57.5 s, against 57.3 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: cp: ka between-subject SD, 9.84 points;</span></span>
@@ -629,8 +630,8 @@ generator looks for is not here: what is recorded is the response.</p>
 <span><span class="co">#&gt;   dose routes        one route, undeclared; infused over 1 h</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         1 endpoint(s) at 11 nominal time(s), 11 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   28% of scheduled slots attended, one rate for the</span></span>
-<span><span class="co">#&gt;                      study</span></span>
+<span><span class="co">#&gt;   visit attendance   share of scheduled slots attended, one rate per</span></span>
+<span><span class="co">#&gt;                      endpoint: DV 28%</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, RATE</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values at the lower limit of what was observed</span></span>
@@ -704,8 +705,8 @@ grid is the one the PCA survey writes down, reused unchanged.</p>
 <span><span class="co">#&gt;   dose routes        one route, undeclared; infused over 0.1667 h</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         1 endpoint(s) at 14 nominal time(s), 14 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   80% of scheduled slots attended, one rate for the</span></span>
-<span><span class="co">#&gt;                      study</span></span>
+<span><span class="co">#&gt;   visit attendance   share of scheduled slots attended, one rate per</span></span>
+<span><span class="co">#&gt;                      endpoint: DV 80%</span></span>
 <span><span class="co">#&gt;   covariates         AGE lognormal, SEX lognormal, WT lognormal, HT</span></span>
 <span><span class="co">#&gt;                      lognormal, drawn once for the whole study,</span></span>
 <span><span class="co">#&gt;                      independently of the profiles</span></span>
@@ -738,8 +739,8 @@ grid is the one the PCA survey writes down, reused unchanged.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.04, v 0.1, q 0.05, v2 0.2 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.316, v 0.447, q 0.316, v2 0.447 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.3 </span></span>
-<span><span class="co">#&gt;   time to fit        41.6 s</span></span>
-<span><span class="co">#&gt;   whole call         41.8 s, against 41.6 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        43.2 s</span></span>
+<span><span class="co">#&gt;   whole call         43.4 s, against 43.2 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: DV: v2 between-subject SD, 2.09 points;</span></span>
@@ -826,8 +827,8 @@ twelve.</p>
 <span><span class="co">#&gt;                      all (12)</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         1 endpoint(s) at 25 nominal time(s), 25 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   87% of scheduled slots attended, one rate for the</span></span>
-<span><span class="co">#&gt;                      study</span></span>
+<span><span class="co">#&gt;   visit attendance   share of scheduled slots attended, one rate per</span></span>
+<span><span class="co">#&gt;                      endpoint: DV 87%</span></span>
 <span><span class="co">#&gt;   covariates         WT lognormal, drawn once for the whole study,</span></span>
 <span><span class="co">#&gt;                      independently of the profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, WT</span></span>
@@ -858,8 +859,8 @@ twelve.</p>
 <span><span class="co">#&gt;   fixed effects      cl 3, v 30, q 2, v2 4, ka 1 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.2, v 0.141, ka 0.548, q 0.245, v2 0.283 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.2 </span></span>
-<span><span class="co">#&gt;   time to fit        51.6 s</span></span>
-<span><span class="co">#&gt;   whole call         51.6 s, against 51.6 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        52.1 s</span></span>
+<span><span class="co">#&gt;   whole call         52.2 s, against 52.1 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: DV: ka typical value, 9.92 %;</span></span>
@@ -935,8 +936,8 @@ seconds.</p>
 <span><span class="co">#&gt;   dose routes        one route, undeclared; infused over 0.2778 to 0.3333 h</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         1 endpoint(s) at 31 nominal time(s), 31 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   84% of scheduled slots attended, one rate for the</span></span>
-<span><span class="co">#&gt;                      study</span></span>
+<span><span class="co">#&gt;   visit attendance   share of scheduled slots attended, one rate per</span></span>
+<span><span class="co">#&gt;                      endpoint: DV 84%</span></span>
 <span><span class="co">#&gt;   covariates         BSA lognormal, AGE lognormal, HGT lognormal, drawn</span></span>
 <span><span class="co">#&gt;                      once for the whole study, independently of the</span></span>
 <span><span class="co">#&gt;                      profiles</span></span>
@@ -962,8 +963,8 @@ seconds.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.06, v 40, q 0.1, v2 300 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.707, v 0.707, q 0.548, v2 0.447 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.4 </span></span>
-<span><span class="co">#&gt;   time to fit        36.0 s</span></span>
-<span><span class="co">#&gt;   whole call         36.0 s, against 36.0 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        37.4 s</span></span>
+<span><span class="co">#&gt;   whole call         37.4 s, against 37.4 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: DV: v2 between-subject SD, 12.7 points;</span></span>
@@ -1078,8 +1079,8 @@ the sample times to the day is that statement, and it is two lines.</p>
 <span><span class="co">#&gt;   dose changes       per planned cycle, pooled over arms: reduce 29%, skip</span></span>
 <span><span class="co">#&gt;                      1%, stop early 10% (4 dose level(s))</span></span>
 <span><span class="co">#&gt;   visit grid         1 endpoint(s) at 9 nominal time(s), 9 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   28% of scheduled slots attended, one rate for the</span></span>
-<span><span class="co">#&gt;                      study</span></span>
+<span><span class="co">#&gt;   visit attendance   share of scheduled slots attended, one rate per</span></span>
+<span><span class="co">#&gt;                      endpoint: DV 28%</span></span>
 <span><span class="co">#&gt;   covariates         WT lognormal, APGR lognormal, drawn once for the whole</span></span>
 <span><span class="co">#&gt;                      study, independently of the profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, MDV, WT, APGR</span></span>
@@ -1103,10 +1104,10 @@ the sample times to the day is that statement, and it is two lines.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.006, v 0.8, q 0.6, v2 0.6 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.316, v 0.707, q 0.1, v2 0.245 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.1 </span></span>
-<span><span class="co">#&gt;   time to fit        2 min 49 s</span></span>
-<span><span class="co">#&gt;                        2cmt_iv                    59.0 s</span></span>
-<span><span class="co">#&gt;                        2cmt_oral                  1 min 50 s</span></span>
-<span><span class="co">#&gt;   whole call         2 min 49 s, against 2 min 49 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        2 min 57 s</span></span>
+<span><span class="co">#&gt;                        2cmt_iv                    1 min 1 s</span></span>
+<span><span class="co">#&gt;                        2cmt_oral                  1 min 56 s</span></span>
+<span><span class="co">#&gt;   whole call         2 min 57 s, against 2 min 57 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: APGR SD on the log scale, 4.32 points;</span></span>
@@ -1179,8 +1180,8 @@ reports whether fallback was needed.</p>
 <span><span class="co">#&gt;   dose routes        iv and extravascular; given as a bolus</span></span>
 <span><span class="co">#&gt;   dose changes       none</span></span>
 <span><span class="co">#&gt;   visit grid         1 endpoint(s) at 17 nominal time(s), 17 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   100% of scheduled slots attended, one rate for the</span></span>
-<span><span class="co">#&gt;                      study</span></span>
+<span><span class="co">#&gt;   visit attendance   share of scheduled slots attended, one rate per</span></span>
+<span><span class="co">#&gt;                      endpoint: DV 100%</span></span>
 <span><span class="co">#&gt;   covariates         WT lognormal, drawn once for the whole study,</span></span>
 <span><span class="co">#&gt;                      independently of the profiles</span></span>
 <span><span class="co">#&gt;   columns emitted    ID, TIME, NTIME, DV, AMT, EVID, CMT, CENS, ADM, WT,</span></span>
@@ -1218,8 +1219,8 @@ reports whether fallback was needed.</p>
 <span><span class="co">#&gt;   fixed effects      cl 2, v 10, q 2, v2 0.1, ka 0.5, f 0.7 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.316, v 0.265, q 0.316, v2 0.283, ka 0.316 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.3 </span></span>
-<span><span class="co">#&gt;   time to fit        36.2 s</span></span>
-<span><span class="co">#&gt;   whole call         36.3 s, against 36.2 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        40.2 s</span></span>
+<span><span class="co">#&gt;   whole call         40.4 s, against 40.2 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: DV: ka between-subject SD, 4.25 points;</span></span>
@@ -1293,8 +1294,8 @@ the curve.</p>
 <span><span class="co">#&gt;   dose changes       per planned cycle, pooled over arms: reduce 0%, skip</span></span>
 <span><span class="co">#&gt;                      5%, stop early 0% (2 dose level(s))</span></span>
 <span><span class="co">#&gt;   visit grid         2 endpoint(s) at 24 nominal time(s), 30 slot(s) in all</span></span>
-<span><span class="co">#&gt;   visit attendance   78% of scheduled slots attended, one rate for the</span></span>
-<span><span class="co">#&gt;                      study</span></span>
+<span><span class="co">#&gt;   visit attendance   share of scheduled slots attended, one rate per</span></span>
+<span><span class="co">#&gt;                      endpoint: Everolimus trough 65%, SLD 89%</span></span>
 <span><span class="co">#&gt;   covariates         BSLD lognormal, AGE lognormal, SEX categorical, drawn</span></span>
 <span><span class="co">#&gt;                      once for the whole study, independently of the</span></span>
 <span><span class="co">#&gt;                      profiles</span></span>
@@ -1337,10 +1338,10 @@ the curve.</p>
 <span><span class="co">#&gt;   starting values    ka 5 declared through `start_param`; the rest were</span></span>
 <span><span class="co">#&gt;                      read off the cohort's median profile</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.2 </span></span>
-<span><span class="co">#&gt;   time to fit        39 min 47 s</span></span>
-<span><span class="co">#&gt;                        2cmt_iv                    14 min 15 s</span></span>
-<span><span class="co">#&gt;                        2cmt_oral                  25 min 32 s</span></span>
-<span><span class="co">#&gt;   whole call         39 min 55 s, against 39 min 47 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        42 min 12 s</span></span>
+<span><span class="co">#&gt;                        2cmt_iv                    14 min 50 s</span></span>
+<span><span class="co">#&gt;                        2cmt_oral                  27 min 22 s</span></span>
+<span><span class="co">#&gt;   whole call         42 min 21 s, against 42 min 12 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: Everolimus trough: ka between-subject</span></span>
@@ -1363,7 +1364,7 @@ endpoint and is fitted a time course.</p>
 <div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">onc_run</span><span class="op">$</span><span class="va">card</span>, report <span class="op">=</span> <span class="st">"minimal"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-3f27c09be0c60bb52829" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-3f27c09be0c60bb52829">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5b","D1"],["Doses per patient","Values landing in the same range"],["both","both"],["327 -&gt; 274","sd x1.2 on SLD (furthest of 4)"],["review","review"],["pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Read the tumour endpoint against what it is: a PD time course here is
+<script type="application/json" data-for="htmlwidget-3f27c09be0c60bb52829">{"x":{"filter":"none","vertical":false,"caption":"<caption>14 pass, 2 review, 5 not applicable. The rows that ask to be read:<\/caption>","data":[["A5b","D1"],["Doses per patient","Values landing in the same range"],["both","both"],["327 -&gt; 278","sd x1.2 on SLD (furthest of 4)"],["review","review"],["pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Read the tumour endpoint against what it is: a PD time course here is
 a function of time with no exposure term and no dose term, pooled across
 arms unless <code>pd_by_arm = TRUE</code>. The source’s placebo and 10
 mg arms diverge because the dose drives the tumour; the generated ones
@@ -1617,14 +1618,14 @@ the demo, and <code>onc_sim</code> shows why it matters for an
 exposure-driven tumour response.</li>
 <li>
 <strong>When patients missed visits or responded, and differences
-between arms.</strong> Attendance is one rate for the study, a binary or
+between arms.</strong> Attendance is one rate per endpoint, a binary or
 ordinal endpoint one set of level frequencies (one per arm under
 <code>pd_by_arm = TRUE</code>), and the dose changes three rates pooled
 over the arms. A late visit few patients reached is drawn as often as an
-early one, a response does not change over the visits, and an arm whose
-patients dropped out, reduced or responded more often than the others’
-takes the study’s average. <code>onc_sim</code> and <code>mad</code> are
-the worked cases.</li>
+early visit of the same endpoint, a response does not change over the
+visits, and an arm whose patients dropped out, reduced or responded more
+often than the others’ takes the study’s average. <code>onc_sim</code>
+and <code>mad</code> are the worked cases.</li>
 <li>
 <strong>Per-patient dose schedules, and multiple periods.</strong>
 One planned schedule per arm. <code>mavoglurant</code> is the worked

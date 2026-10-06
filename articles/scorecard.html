@@ -913,9 +913,9 @@ where the visit set was taken from somebody.
 <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> reuses a donor’s attendance pattern, so a
 match is a match and the row means what it says.
 <code><a href="../reference/synpmx_pca.html">synpmx_pca()</a></code> and <code><a href="../reference/synpmx_model.html">synpmx_model()</a></code> decide each
-visit independently from a per-arm probability onto a grid the caller
-declared, so a match is a coincidence — and one with a computable chance
-of happening. Three measurements say how little the row is worth
+visit independently, at its endpoint’s attendance rate, onto a grid the
+caller declared, so a match is a coincidence — and one with a computable
+chance of happening. Three measurements say how little the row is worth
 there:</p>
 <ul>
 <li>Of a study’s own visit sets, the share held by exactly one patient
@@ -923,12 +923,13 @@ is 93% on <code>warfarin</code>, 83% on <code>wbcSim</code>, and 100% on
 <code>theo_sd</code> and <code>theo_md</code>. A threshold that selects
 nearly the whole source is not selecting anything.</li>
 <li>Over 200 seeds on <code>warfarin</code>, <code><a href="../reference/synpmx_model.html">synpmx_model()</a></code>
-reproduces a mean of 1.26 such sets and fires on 83% of them. What the
-row reports is the chance rate.</li>
+reproduces one such set on 3 of them. What the row reports is the chance
+of independent draws landing on a real set, which the attendance rates
+and the width of the grid decide.</li>
 <li>Jittering that study’s recorded visit times by a few minutes — which
 changes no synthetic value and no privacy property — takes the row from
-2 to 0. The verdict tracks whether a study happened to round its visit
-times.</li>
+1 to 0 on each of those seeds. The verdict tracks whether a study
+happened to round its visit times.</li>
 </ul>
 <p>B4b is the row that answers the disclosure question for those
 generators, and it is not weakened: reproducing a value a patient

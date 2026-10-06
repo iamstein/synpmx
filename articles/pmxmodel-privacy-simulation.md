@@ -68,9 +68,9 @@ study
 #> patient 10       0       1       0       1       1
 ```
 
-The release’s visit model holds the share of patients sampled at each
-visit, after the floor that rounds a share with one or two patients on
-either side to 0 or 1:
+The simulated release holds the share of patients sampled at each visit,
+after the floor that rounds a share with one or two patients on either
+side to 0 or 1:
 
 ``` r
 
@@ -282,12 +282,15 @@ correlated visits repeat the same information. **The floor barely moves
 it**, because it changes only shares near 0 or 1.
 
 **The release does not hold this table.** Its visit model is one
-attendance rate for the whole study, applied at every visit an arm has,
-so an attacker who knows which visits a candidate was sampled at has one
-number to match rather than a share per visit; the table above is what a
-share per visit would expose, and is why the release keeps one rate. A
-binary or ordinal endpoint is released the same way, as one set of level
-frequencies over the whole study, and dose changes as three rates.
+attendance rate per endpoint, applied at every visit of the endpoint an
+arm has, so an attacker who knows which visits a candidate was sampled
+at has one number per endpoint to match rather than a share per visit.
+Pooling an endpoint’s visits into one rate shrinks the member’s lean on
+it and its chance variation alike, so each rate exposes about as much as
+one visit’s share, and a study with five endpoints sits near the
+five-visit rows. A binary or ordinal endpoint is released the same way,
+as one set of level frequencies over the whole study, and dose changes
+as three rates.
 
 ## The Population-Model Table
 
@@ -357,11 +360,11 @@ candidate in the study or out; that is why the release rounds to one.
 The numbers the attack could use in the release of each stored fit in
 the [public-data
 evaluation](https://iamstein.github.io/synpmx/articles/pmxmodel-public-data-examples.html):
-the random effects of the population model, the attendance rate, and the
-free level frequencies of the binary and ordinal endpoints, each of
-which rests on every patient in the study. An endpoint with several
-levels has one fewer free frequency than levels, because they add up to
-1.
+the random effects of the population model, the attendance rate of each
+endpoint, and the free level frequencies of the binary and ordinal
+endpoints, each of which rests on every patient in the study or in the
+arms that measured the endpoint. An endpoint with several levels has one
+fewer free frequency than levels, because they add up to 1.
 
 ``` r
 
@@ -379,37 +382,40 @@ rows <- lapply(names(files), function(study) {
   fit <- stored_fit(files[[study]])
   if (!inherits(fit, "pmx_fitted_model")) return(NULL)
   release <- model_release(fit)
+  # One rate per endpoint, listed at each of its visits in each arm.
   rate <- unique(unlist(lapply(release$visits, function(v) {
-    as.numeric(v$probability)
+    p <- as.numeric(v$probability)
+    paste(release$cells$endpoint, p)[p > 0 & p < 1]
   })))
-  rate <- rate[rate > 0]
   marginals <- unique(Filter(Negate(is.null),
                              unlist(release$discrete, recursive = FALSE)))
   data.frame(study = study, patients = release$n_source,
              random_effects = sum(vapply(release$pk_models, function(model) {
                nrow(model$parameters$omega)
              }, integer(1))),
-             attendance_rate = if (length(rate) == 1L) signif(rate, 2) else NA,
+             attendance_rates = length(rate),
              discrete_frequencies = sum(vapply(marginals, function(m) {
                max(0, length(m$levels) - 1)
              }, numeric(1))))
 })
 do.call(rbind, rows[!vapply(rows, is.null, logical(1))])
-#>           study patients random_effects attendance_rate discrete_frequencies
-#> 1      warfarin       32              5            0.68                    0
-#> 2       theo_md       12              5            0.87                    0
-#> 3           mad       60              5            1.00                    3
-#> 4    case1_pkpd      180              5            1.00                    0
-#> 5        wbcSim       45              0            0.28                    0
-#> 6   mavoglurant      120              4            0.80                    0
-#> 7      nimoData       12              4            0.84                    0
-#> 8      pheno_sd       59              4            0.28                    0
-#> 9  mixroute_sim       90              5            1.00                    0
-#> 10      onc_sim      200              5            0.78                    0
+#>           study patients random_effects attendance_rates discrete_frequencies
+#> 1      warfarin       32              5                2                    0
+#> 2       theo_md       12              5                1                    0
+#> 3           mad       60              5                0                    3
+#> 4    case1_pkpd      180              5                0                    0
+#> 5        wbcSim       45              0                1                    0
+#> 6   mavoglurant      120              4                1                    0
+#> 7      nimoData       12              4                1                    0
+#> 8      pheno_sd       59              4                1                    0
+#> 9  mixroute_sim       90              5                0                    0
+#> 10      onc_sim      200              5                2                    0
 ```
 
-An attendance rate of 1 tells the attacker nothing; one below 1 is a
-single number for the cohort. For the population model, the cohort size
+An attendance rate of 1 tells the attacker nothing, so
+`attendance_rates` counts the endpoints whose rate is below 1, each a
+single number for the patients behind it and each worth about one visit
+in the attendance table. For the population model, the cohort size
 places a study among the rows of the second table; a study fitted with
 more random effects than five gives the attacker more numbers to add up.
 

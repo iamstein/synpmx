@@ -37,13 +37,13 @@ for fitting population models.
 The generator also summarizes the study’s design as it was carried out:
 the number of patients in each treatment group (**arm**), each arm’s
 dose schedule, how often doses were reduced, skipped or stopped, the
-share of scheduled visits at which patients were measured, the
-distribution of each baseline covariate such as body weight, age or sex,
-and, for an endpoint recorded in levels such as a yes/no response or a
-toxicity grade, how often each level was recorded. Everything in that
-list read from how patients behaved, rather than from the protocol, is
-one set of numbers for the whole study, pooled over the arms and the
-visits, as the PD time courses are pooled over the arms.
+share of scheduled visits at which patients were measured, for each kind
+of measurement, the distribution of each baseline covariate such as body
+weight, age or sex, and, for an endpoint recorded in levels such as a
+yes/no response or a toxicity grade, how often each level was recorded.
+Everything in that list read from how patients behaved, rather than from
+the protocol, is one set of numbers for the whole study, pooled over the
+arms and the visits, as the PD time courses are pooled over the arms.
 
 What leaves the environment that holds the study is the **release**:
 these numbers, assembled by
@@ -90,12 +90,13 @@ fitted to 60. This probability is the area under the curve (AUC), where
 to 0.59 and 0.53. The release holds no table per visit, because one
 would be more exposed: a share of patients sampled at each of 20 visits
 gives 0.83 when 10 patients stand behind each share and 0.62 when 100
-do. Attendance is one rate for the study instead, and each binary or
-ordinal endpoint one set of level frequencies. Rounding the estimates to
-one significant figure lowers these numbers by up to 0.05, and the
-three-patient floor moves them by at most 0.01; cohort size and the
-number of released numbers decide them. [Membership inference against
-the PMX model
+do. Attendance is one rate per endpoint instead, and each binary or
+ordinal endpoint one set of level frequencies. A rate exposes about as
+much as one visit’s share, so five endpoints’ rates behind 10 patients
+give about 0.67. Rounding the estimates to one significant figure lowers
+these numbers by up to 0.05, and the three-patient floor moves them by
+at most 0.01; cohort size and the number of released numbers decide
+them. [Membership inference against the PMX model
 release](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy-simulation.html)
 shows how each number is computed.
 
@@ -205,7 +206,7 @@ left out.
 | pd | per other continuous endpoint: a time-course shape and its parameters, the spread of patients’ baselines, residual error | 5 |
 | arms | the arms and the number of patients in each | 1 |
 | dosing | per arm: the planned dose at each scheduled time; pooled over arms: the levels doses were reduced to, and the rates of reducing, skipping and stopping | 9 |
-| visits | the visits each arm has, and one attendance rate for the study, listed at each of them | 44 |
+| visits | the visits each arm has, and one attendance rate per endpoint, listed at each of its visits | 44 |
 | cells | the scheduled visits kept, as endpoint and nominal time | 44 |
 | discrete | per binary or ordinal endpoint: one set of level frequencies for the study, listed at each visit | 0 |
 | covariates | per baseline covariate: a trimmed mean and SD, or level frequencies | 6 |
@@ -293,8 +294,8 @@ one patient says about the one who came. Here *k* is 3 by default:
   where at least `min_arm_patients` patients reached them, and an arm
   has a visit only where at least that many of its patients were
   observed there;
-- attendance is one rate for the study, and is 1 where fewer than
-  `min_arm_patients` patients missed any visit;
+- attendance is one rate per endpoint, and is 1 where fewer than
+  `min_arm_patients` patients missed any of the endpoint’s visits;
 - a dose-change rate, pooled over every arm, whose events fewer than
   `min_arm_patients` patients had is zero;
 - a categorical covariate level, and a binary or ordinal endpoint’s
@@ -313,11 +314,11 @@ The rule stops a frequency from singling out one or two patients. It
 does not stop membership inference, which adds up small signals over
 many frequencies ([Membership Inference Against the
 Release](#membership-inference-against-the-release)). Pooling is what
-weakens that: attendance is one rate, the dose-change rates are three,
-and a binary or ordinal endpoint is one set of level frequencies, each
-resting on every patient rather than on one arm at one visit.
-`pd_by_arm = TRUE` reads the endpoint frequencies per arm again, with
-the PD time courses.
+weakens that: attendance is one rate per endpoint, the dose-change rates
+are three, and a binary or ordinal endpoint is one set of level
+frequencies, each pooled over the arms and the visits rather than
+resting on one arm at one visit. `pd_by_arm = TRUE` reads the endpoint
+frequencies per arm again, with the PD time courses.
 
 ### 6. Covariate Summaries Without Their Extremes
 
@@ -503,12 +504,18 @@ meet it.
 
 attr(checks, "frequencies")[, c("quantity", "smallest", "threshold",
                                 "adjusted")]
-#>                                         quantity smallest threshold adjusted
-#> 1                             patients in an arm       32         3        0
-#> 2 patients on either side of the attendance rate       32         3        0
-#> 3    patients with the dose change behind a rate       NA         3        0
-#> 4 patients holding a categorical covariate level        5         3        0
-#> 5    patients holding a level of a factor column       32         3        0
+#>                                                   quantity smallest threshold
+#> 1                                       patients in an arm       32         3
+#> 2 patients on either side of an endpoint's attendance rate       21         3
+#> 3              patients with the dose change behind a rate       NA         3
+#> 4           patients holding a categorical covariate level        5         3
+#> 5              patients holding a level of a factor column       32         3
+#>   adjusted
+#> 1        0
+#> 2        0
+#> 3        0
+#> 4        0
+#> 5        0
 ```
 
 The same checks on the release report P5 as a verdict only. A passing
@@ -899,7 +906,7 @@ as.data.frame(card)[substr(card$check, 1, 1) %in% c("B", "E"),
 #> 8                                                 no run record not applicable
 #> 9                                                 no run record not applicable
 #> 10 not applicable: profiles simulated, not built from a patient not applicable
-#> 11                                      0.594 in [0.344, 0.688]           pass
+#> 11                                      0.656 in [0.344, 0.712]           pass
 #> 12                   not applicable: attendance drawn per visit not applicable
 #> 13                                                            0           pass
 #> 14                                               0 of 0 exposed           pass
@@ -947,8 +954,11 @@ readings:
   visits gives 0.83 with 10 patients behind each share, 0.72 with 30 and
   0.62 with 100, and the three-patient rule moves it by at most 0.01,
   because the rule acts only on shares near 0 or 1. Attendance is one
-  rate for the study instead, and a binary or ordinal endpoint one set
-  of level frequencies, each resting on every patient.
+  rate per endpoint instead, and a binary or ordinal endpoint one set of
+  level frequencies, each pooled over the arms and the visits. A rate
+  exposes about as much as one visit’s share, so a study’s attendance
+  rates are about as exposed as a table with one visit for each
+  endpoint: 0.67 for five endpoints behind 10 patients.
 
 An AUC averages over members, and the most exposed member is the one far
 from the typical values: that patient moves the release furthest toward
@@ -975,7 +985,8 @@ releasing estimates without noise, or a limit of the checks.
   membership.** [Membership Inference Against the
   Release](#membership-inference-against-the-release) measures how well.
   The release holds no per-visit table, so what remains is chiefly the
-  population model of a small cohort, which only noise would reduce.
+  population model of a small cohort and one attendance rate per
+  endpoint, which only noise would reduce.
 - **An attacker who knows every other patient is not stopped.** Such an
   attacker can compute the exact effect of the one patient they do not
   know, so any move at all is detectable, however far under a threshold
@@ -1197,8 +1208,10 @@ parameter_count <- function(release) {
             paste(d$levels, collapse = "/"))
     })
   })))
+  # One rate per endpoint, listed at each of its visits in each arm.
   attendance <- unique(unlist(lapply(release$visits, function(v) {
-    as.numeric(v$probability)
+    p <- as.numeric(v$probability)
+    paste(release$cells$endpoint, p)[p > 0 & p < 1]
   })))
   marginals <- unique(Filter(Negate(is.null),
                              unlist(release$discrete, recursive = FALSE)))
@@ -1216,7 +1229,7 @@ parameter_count <- function(release) {
     `dose changes` = sum(vapply(strsplit(rates, " "), function(r) {
       3 + length(strsplit(r[[4]], "/")[[1]]) - 1
     }, numeric(1))),
-    attendance = sum(attendance > 0 & attendance < 1),
+    attendance = length(attendance),
     `discrete endpoints` = sum(vapply(marginals, function(m) {
       max(0, length(m$levels) - 1)
     }, numeric(1))),
@@ -1249,7 +1262,7 @@ knitr::kable(counted, row.names = FALSE)
 
 | study | patients | PK model | PD time courses | covariates | dose changes | attendance | discrete endpoints | counts and floors | total | planned cycles (protocol) |
 |:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| warfarin | 32 | 11 | 5 | 5 | 3 | 1 | 0 | 4 | 29 | 1 |
+| warfarin | 32 | 11 | 5 | 5 | 3 | 2 | 0 | 4 | 30 | 1 |
 | theo_md | 12 | 11 | 0 | 2 | 3 | 1 | 0 | 3 | 20 | 7 |
 | mad | 60 | 11 | 10 | 3 | 3 | 0 | 3 | 9 | 39 | 36 |
 | case1_pkpd | 180 | 11 | 5 | 2 | 3 | 0 | 0 | 7 | 28 | 510 |
@@ -1258,7 +1271,7 @@ knitr::kable(counted, row.names = FALSE)
 | nimoData | 12 | 9 | 0 | 6 | 3 | 1 | 0 | 3 | 22 | 10 |
 | pheno_sd | 59 | 9 | 0 | 4 | 6 | 1 | 0 | 3 | 23 | 14 |
 | mixroute_sim | 90 | 12 | 0 | 2 | 3 | 0 | 0 | 4 | 21 | 9 |
-| onc_sim | 200 | 11 | 4 | 5 | 4 | 1 | 0 | 4 | 29 | 842 |
+| onc_sim | 200 | 11 | 4 | 5 | 4 | 2 | 0 | 4 | 30 | 842 |
 
 What each column holds:
 
@@ -1275,8 +1288,9 @@ What each column holds:
 - **Dose changes**: the three pooled rates of reducing, skipping and
   stopping, and each level of the dose ladder below the full dose, a
   fraction of the starting dose to one significant figure.
-- **Attendance**: one rate for the study, or none where every patient
-  attended every visit their arm had.
+- **Attendance**: one rate per endpoint, and none for an endpoint whose
+  rate is 1, as where every patient was observed at every visit of it
+  their arm had.
 - **Discrete endpoints**: one fewer level frequency than levels, for
   each binary or ordinal endpoint.
 - **Counts and floors**: the size of each arm and of the cohort, an
