@@ -1,23 +1,182 @@
 # Privacy Protections in the PMX Model Generator
 
+## Introduction
+
 The pharmacometric (PMX) model generator,
 [`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md),
-fits a population pharmacokinetic (PK) and pharmacodynamic (PD) model to
-a clinical study inside the environment that holds the study’s data, and
-generates synthetic patients from the fit. This article sets out what of
-the study leaves that environment, how each number that leaves is
-protected, how the protections are checked, and what risk remains. The
-first section summarizes all four for a privacy reviewer, and the
-sections after it give the evidence behind each statement in it.
+fits a set of models to a study and then simulates from these models a
+synthetic dataset. The models that are fit are:
 
-**No formal privacy guarantee is made.** Nothing here bounds what an
-attacker can learn in the sense of differential privacy (DP), a property
-of a release procedure that limits how much any one person’s data can
-change what is released \[1\]. The protections below reduce what is
-released and measure how much one patient moves it. A release that has
-to withstand a determined attacker needs a DP mechanism; the closing
-sections make the case that this generator’s use does not, say where
-that case fails, and show what a mechanism would cost.
+1.  PopPK model fit to the PK data
+2.  PD model fit to each PD observation type, pooled across cohorts
+3.  An attendance model, to allow for simulation of missed visits
+4.  A dosing model to simulate dose reductions and missed doses
+
+This article clarifies what information from a study (via the model
+parameters) can leave the GxP computing environment, and what risk
+remains. While this approach offers many privacy protections which
+reduce how much any one patient can impact the synthetic data, the
+algorithm does not offer a formal differential privacy (DP) guarantee.
+
+## Why we chose a method that does not formally guarantee DP
+
+DP is a property of a release procedure: it limits how much any one
+person’s data can change what is released, whatever else an attacker
+knows \[1\]. A DP mechanism achieves it by adding calibrated noise to
+every released number.
+
+**For the use this generator is built for, a DP guarantee would drown
+the data it releases and protect against an attacker that use does not
+face.** That use is synthetic data for developing analysis code, shared
+with people who work under the study’s own access controls or an
+agreement like them. The case rests on four points:
+
+1.  **The release holds what the study’s own reports make public, more
+    coarsely.** A population PK report gives each typical value, its
+    between-subject variability and the residual error, with their
+    standard errors, and regulators ask for exactly that \[18, 19\]. The
+    study’s main publication gives each arm’s baseline characteristics
+    and how many patients discontinued \[20\]. This release holds the
+    same kinds of number at one significant figure, pooled over the arms
+    and the visits, without standard errors, and a few dozen at most
+    ([Released Parameters at a
+    Glance](#released-parameters-at-a-glance)).
+2.  **The attacker the remaining risk needs already holds the answer.**
+    Membership inference needs the candidate’s own measurements of the
+    kind the study made: their concentrations, which visits they
+    attended, how their dose changed. Outside the study these exist at
+    its sites, in a related study, or in routine care measuring the same
+    things. Whoever holds a candidate’s trial record knows the candidate
+    was in the trial, and learning it again from the release discloses
+    nothing.
+3.  **What remains is measured, and it is close to chance.** An attacker
+    holding a candidate’s own random effects and the population’s exact
+    values ranks a member above a non-member with probability 0.70 at 12
+    patients and 0.56 at 60, where 0.5 is chance. With the population’s
+    values taken from another study of the drug, off by 20%, that falls
+    to 0.59 and 0.53. Nothing released is one patient’s value, every
+    frequency rests on at least three patients, no patient moves an
+    estimate by 15%, and the release holds no table per visit ([The
+    Protections](#the-protections)).
+4.  **DP at these cohort sizes replaces the study with noise**, as [What
+    It Would Cost](#what-it-would-cost) computes, and for this use noise
+    is worse than no data. The [calibrated generator’s
+    evaluation](https://iamstein.github.io/synpmx/articles/calibrated-public-data-examples.html)
+    finds a DP release at phase 1 sizes worse than generating from a
+    public prior, which reads nothing.
+
+### What a Formal Guarantee Would Take
+
+Generation would need no change, because it reads only the release. The
+release would change in three ways:
+
+1.  **Each patient’s influence is bounded by construction rather than
+    measured.** A population fit has no such bound: one patient given a
+    thousand times the recorded dose moves its variances far past any
+    threshold. Subsample-and-aggregate bounds it while keeping the fit
+    as it is: the patients are split into disjoint groups of about
+    twenty, the model is fitted in each, and the mean of the groups’
+    estimates, each clipped to a public range, is released with noise
+    \[17, 21\]. The per-patient route estimates each patient’s
+    parameters from that patient’s own measurements, clips them to a
+    public range and releases their mean with noise, which is how
+    [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
+    releases its one number. The textbook DP methods for regression
+    perturb a convex loss with bounded gradients \[22\], and a
+    population likelihood has neither.
+2.  **Fewer numbers are released.** The privacy budget $`\varepsilon`$
+    is split across every released number, so the design, meaning the
+    arms, schedules, visits and endpoint types, would come from the
+    protocol rather than the data, as
+    [`pmx_trial_design()`](https://iamstein.github.io/synpmx/reference/pmx_trial_design.md)
+    already provides for the other generators.
+3.  **The noise comes from a vetted mechanism, with the budget
+    accounted.** The package already has both for
+    [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md),
+    through OpenDP.
+
+### What It Would Cost
+
+With $`\varepsilon = 1`$ split evenly over *d* released numbers, each
+clipped to a public range spanning sixteenfold on the log scale
+(fourfold either side of a prior, as
+[`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
+uses), each number gets Laplace noise of scale $`b = dS/(n\varepsilon)`$
+on the log scale by the per-patient route, and $`b = dS/(k\varepsilon)`$
+with $`k = n/20`$ groups by subsample-and-aggregate. The table gives the
+median fold error of one released number, $`e^{b \ln 2}`$, and the
+noise’s spread against the uncertainty an estimate already has from
+sampling, for a between-subject SD of 0.3:
+
+``` r
+
+span <- log(16)
+dp_scale <- function(patients, released) released * span / patients
+dp_fold <- function(patients, released) {
+  exp(log(2) * dp_scale(patients, released))
+}
+dp_over_sampling <- function(patients, released) {
+  sqrt(2) * dp_scale(patients, released) / (0.3 / sqrt(patients))
+}
+grid <- expand.grid(patients = c(30, 60, 200, 1000), released = c(11, 30))
+fold_text <- function(x) {
+  ifelse(x > 100, "over 100-fold", sprintf("%.2f-fold", x))
+}
+knitr::kable(data.frame(
+  patients = grid$patients,
+  released_numbers = grid$released,
+  per_patient_median_error = fold_text(dp_fold(grid$patients, grid$released)),
+  noise_over_sampling_error = sprintf("%.0f times", dp_over_sampling(
+    grid$patients, grid$released)),
+  subsample_median_error = fold_text(dp_fold(grid$patients / 20,
+                                             grid$released))))
+```
+
+| patients | released_numbers | per_patient_median_error | noise_over_sampling_error | subsample_median_error |
+|---:|---:|:---|:---|:---|
+| 30 | 11 | 2.02-fold | 26 times | over 100-fold |
+| 60 | 11 | 1.42-fold | 19 times | over 100-fold |
+| 200 | 11 | 1.11-fold | 10 times | 8.28-fold |
+| 1000 | 11 | 1.02-fold | 5 times | 1.53-fold |
+| 30 | 30 | 6.83-fold | 72 times | over 100-fold |
+| 60 | 30 | 2.61-fold | 51 times | over 100-fold |
+| 200 | 30 | 1.33-fold | 28 times | over 100-fold |
+| 1000 | 30 | 1.06-fold | 12 times | 3.17-fold |
+
+Eleven numbers are a two-compartment population model alone, and thirty
+a whole release. At 60 patients the per-patient route leaves half of the
+population model’s numbers off by more than 1.42-fold, with noise 19
+times the sampling error each estimate already carries, and a whole
+release off by 2.6-fold. At 30 patients the population model alone is
+off by 2.0-fold. Even at 1,000 patients the noise is 4.5 times the
+sampling error. Subsample-and-aggregate, which keeps the fit as it is,
+is unusable below about a thousand patients. Gaussian noise with tighter
+accounting grows with the square root of the count rather than the
+count, and does not change this picture at these cohort sizes. At the 12
+to 200 patients this generator sees, a DP release would say less about
+the study than a public prior does. Neither route is implemented beyond
+the one number
+[`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
+releases.
+
+### Where the Case Fails
+
+The case assumes the release reaches people who will not try to identify
+anyone in it, as the study’s own data would. A mechanism with a formal
+guarantee is needed when:
+
+- the release or the synthetic data will be published openly;
+- being in the study is itself sensitive, as in a trial for HIV, a
+  psychiatric condition or a rare disease, and someone outside the study
+  could hold a candidate’s measurements, such as drug levels from
+  therapeutic monitoring or routine laboratory tests;
+- the same study will be released more than once, since releases add up
+  and nothing here accounts for that;
+- a regulator or a data-use agreement asks for a formal guarantee.
+
+[What differential privacy does and does not
+guarantee](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html)
+sets out that choice.
 
 ## Summary for a Privacy Reviewer
 
@@ -103,9 +262,9 @@ shows how each number is computed.
 **❌ No formal guarantee.** Nothing bounds what an attacker who knows
 every other patient learns about the remaining one. That attacker is the
 one DP is defined against, and no DP mechanism is implemented for this
-generator. [Why the release is not differentially
-private](#why-the-release-is-not-differentially-private) makes the case
-for its use, and says where that case fails.
+generator. [Why we chose a method that does not formally guarantee
+DP](#why-not-dp) makes the case for its use, and says where that case
+fails.
 
 ### How to Share a Release
 
@@ -1033,159 +1192,6 @@ releasing estimates without noise, or a limit of the checks.
 - **Rarity in the world is not measured.** A covariate level held by
   many patients in this study can still identify someone if few people
   alive hold it.
-
-## Why the Release Is Not Differentially Private
-
-**For the use this generator is built for, a DP guarantee would drown
-the data it releases and protect against an attacker that use does not
-face.** That use is synthetic data for developing analysis code, shared
-with people who work under the study’s own access controls or an
-agreement like them. The case rests on four points, and the paragraph
-after them says where it fails.
-
-1.  **The release holds what the study’s own reports make public, more
-    coarsely.** A population PK report gives each typical value, its
-    between-subject variability and the residual error, with their
-    standard errors, and regulators ask for exactly that \[18, 19\]. The
-    study’s main publication gives each arm’s baseline characteristics
-    and how many patients discontinued \[20\]. This release holds the
-    same kinds of number at one significant figure, pooled over the arms
-    and the visits, without standard errors, and a few dozen at most
-    ([Released Parameters at a
-    Glance](#released-parameters-at-a-glance)).
-2.  **The attacker the remaining risk needs already holds the answer.**
-    Membership inference needs the candidate’s own measurements of the
-    kind the study made: their concentrations, which visits they
-    attended, how their dose changed. Outside the study these exist at
-    its sites, in a related study, or in routine care measuring the same
-    things. Whoever holds a candidate’s trial record knows the candidate
-    was in the trial, and learning it again from the release discloses
-    nothing.
-3.  **What remains is measured, and it is close to chance.** An attacker
-    holding a candidate’s own random effects and the population’s exact
-    values ranks a member above a non-member with probability 0.70 at 12
-    patients and 0.56 at 60. With the population’s values taken from
-    another study of the drug, off by 20%, that falls to 0.59 and 0.53.
-    Nothing released is one patient’s value, every frequency rests on at
-    least three patients, no patient moves an estimate by 15%, and the
-    release holds no table per visit.
-4.  **DP at these cohort sizes replaces the study with noise**, as the
-    next section computes, and for this use noise is worse than no data.
-    The [calibrated generator’s
-    evaluation](https://iamstein.github.io/synpmx/articles/calibrated-public-data-examples.html)
-    finds a DP release at phase 1 sizes worse than generating from a
-    public prior, which reads nothing.
-
-**Where the case fails.** It assumes the release reaches people who will
-not try to identify anyone in it, as the study’s own data would. A
-mechanism with a formal guarantee is needed when:
-
-- the release or the synthetic data will be published openly;
-- being in the study is itself sensitive, as in a trial for HIV, a
-  psychiatric condition or a rare disease, and someone outside the study
-  could hold a candidate’s measurements, such as drug levels from
-  therapeutic monitoring or routine laboratory tests;
-- the same study will be released more than once, since releases add up
-  and nothing here accounts for that;
-- a regulator or a data-use agreement asks for a formal guarantee.
-
-[What differential privacy does and does not
-guarantee](https://iamstein.github.io/synpmx/articles/synpmx-privacy.html)
-sets out that choice.
-
-## What a Formal Guarantee Would Take
-
-**A formal guarantee is possible, and at these cohort sizes its noise
-would be larger than what the study says.** Generation needs no change,
-because it reads only the release. The release would change in three
-ways:
-
-1.  **Each patient’s influence is bounded by construction rather than
-    measured.** A population fit has no such bound: one patient given a
-    thousand times the recorded dose moves its variances far past any
-    threshold. Subsample-and-aggregate bounds it while keeping the fit
-    as it is: the patients are split into disjoint groups of about
-    twenty, the model is fitted in each, and the mean of the groups’
-    estimates, each clipped to a public range, is released with noise
-    \[17, 21\]. The per-patient route estimates each patient’s
-    parameters from that patient’s own measurements, clips them to a
-    public range and releases their mean with noise, which is how
-    [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
-    releases its one number. The textbook DP methods for regression
-    perturb a convex loss with bounded gradients \[22\], and a
-    population likelihood has neither.
-2.  **Fewer numbers are released.** The privacy budget $`\varepsilon`$
-    is split across every released number, so the design, meaning the
-    arms, schedules, visits and endpoint types, would come from the
-    protocol rather than the data, as
-    [`pmx_trial_design()`](https://iamstein.github.io/synpmx/reference/pmx_trial_design.md)
-    already provides for the other generators.
-3.  **The noise comes from a vetted mechanism, with the budget
-    accounted.** The package already has both for
-    [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md),
-    through OpenDP.
-
-**What the noise costs.** With $`\varepsilon = 1`$ split evenly over *d*
-released numbers, each clipped to a public range spanning sixteenfold on
-the log scale (fourfold either side of a prior, as
-[`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
-uses), each number gets Laplace noise of scale $`b = dS/(n\varepsilon)`$
-on the log scale by the per-patient route, and $`b = dS/(k\varepsilon)`$
-with $`k = n/20`$ groups by subsample-and-aggregate. The table gives the
-median fold error of one released number, $`e^{b \ln 2}`$, and the
-noise’s spread against the uncertainty an estimate already has from
-sampling, for a between-subject SD of 0.3:
-
-``` r
-
-span <- log(16)
-dp_scale <- function(patients, released) released * span / patients
-dp_fold <- function(patients, released) {
-  exp(log(2) * dp_scale(patients, released))
-}
-dp_over_sampling <- function(patients, released) {
-  sqrt(2) * dp_scale(patients, released) / (0.3 / sqrt(patients))
-}
-grid <- expand.grid(patients = c(30, 60, 200, 1000), released = c(11, 30))
-fold_text <- function(x) {
-  ifelse(x > 100, "over 100-fold", sprintf("%.2f-fold", x))
-}
-knitr::kable(data.frame(
-  patients = grid$patients,
-  released_numbers = grid$released,
-  per_patient_median_error = fold_text(dp_fold(grid$patients, grid$released)),
-  noise_over_sampling_error = sprintf("%.0f times", dp_over_sampling(
-    grid$patients, grid$released)),
-  subsample_median_error = fold_text(dp_fold(grid$patients / 20,
-                                             grid$released))))
-```
-
-| patients | released_numbers | per_patient_median_error | noise_over_sampling_error | subsample_median_error |
-|---:|---:|:---|:---|:---|
-| 30 | 11 | 2.02-fold | 26 times | over 100-fold |
-| 60 | 11 | 1.42-fold | 19 times | over 100-fold |
-| 200 | 11 | 1.11-fold | 10 times | 8.28-fold |
-| 1000 | 11 | 1.02-fold | 5 times | 1.53-fold |
-| 30 | 30 | 6.83-fold | 72 times | over 100-fold |
-| 60 | 30 | 2.61-fold | 51 times | over 100-fold |
-| 200 | 30 | 1.33-fold | 28 times | over 100-fold |
-| 1000 | 30 | 1.06-fold | 12 times | 3.17-fold |
-
-Eleven numbers are a two-compartment population model alone, and thirty
-a whole release. At 60 patients the per-patient route leaves half of the
-population model’s numbers off by more than 1.42-fold, with noise 19
-times the sampling error each estimate already carries, and a whole
-release off by 2.6-fold. At 30 patients the population model alone is
-off by 2.0-fold. Even at 1,000 patients the noise is 4.5 times the
-sampling error. Subsample-and-aggregate, which keeps the fit as it is,
-is unusable below about a thousand patients. Gaussian noise with tighter
-accounting grows with the square root of the count rather than the
-count, and does not change this picture at these cohort sizes. At the 12
-to 200 patients this generator sees, a DP release would say less about
-the study than a public prior does. Neither route is implemented beyond
-the one number
-[`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
-releases.
 
 ## Released Parameters at a Glance
 
