@@ -114,8 +114,8 @@ model_report(fit)
 #>   fixed effects      cl 0.1, v 7, q 0.1, v2 2, ka 0.4 
 #>   between-subject    cl 0.265, v 0.2, ka 0.548, q 0.0775, v2 0.632 (as SD on the log scale)
 #>   residual error     proportional 0.2 
-#>   time to fit        57.3 s
-#>   whole call         57.5 s, against 57.3 s in the fitter
+#>   time to fit        50.9 s
+#>   whole call         51.1 s, against 50.9 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: cp: ka between-subject SD, 9.84 points;
@@ -156,7 +156,7 @@ release$structural
 #> [1] "2cmt_oral"
 model_candidates(fit)
 #>       model converged accepted      aic seconds note
-#> 1 2cmt_oral      TRUE     TRUE 922.2948  57.294
+#> 1 2cmt_oral      TRUE     TRUE 922.2948  50.869
 ```
 
 By default the fit tries two compartments and falls back to one only if

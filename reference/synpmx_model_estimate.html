@@ -308,8 +308,9 @@ observed levels. This does not filter discrete observation endpoints.</p></dd>
 <dt id="arg-drop-influential">drop_influential<a class="anchor" aria-label="anchor" href="#arg-drop-influential"></a></dt>
 <dd><p>Leave out of the estimates any patient who moves a
 released estimate by 15 or more – in percent for a typical value, in
-points of the between-subject SD on the log scale for a spread – and
-estimate again without them. The patient is left out of the PK fit, the PD
+points of the between-subject SD on the log scale for a spread, and for a
+PD shape parameter also by at least one standard error – and estimate
+again without them. The patient is left out of the PK fit, the PD
 fits and the covariate summaries, and stays in the dosing, visit and arm
 models, so the cohort and arm sizes do not change. At most a tenth of the
 cohort is left out. Each patient left out is named on the console and

@@ -236,8 +236,8 @@ if (inherits(case1_fit, "pmx_example_rejection")) {
 #>                      `start_param`; the rest were read off the cohort's
 #>                      median profile
 #>   residual error     proportional 0.3 
-#>   time to fit        21 min 14 s
-#>   whole call         21 min 17 s, against 21 min 14 s in the fitter
+#>   time to fit        19 min 18 s
+#>   whole call         19 min 20 s, against 19 min 18 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: PD - Continuous between-subject SD,
@@ -463,8 +463,8 @@ model_report(warfarin_run$fit)
 #>   fixed effects      cl 0.1, v 7, q 0.1, v2 2, ka 0.4 
 #>   between-subject    cl 0.265, v 0.2, ka 0.548, q 0.0775, v2 0.632 (as SD on the log scale)
 #>   residual error     proportional 0.2 
-#>   time to fit        57.3 s
-#>   whole call         57.5 s, against 57.3 s in the fitter
+#>   time to fit        50.9 s
+#>   whole call         51.1 s, against 50.9 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: cp: ka between-subject SD, 9.84 points;
@@ -780,8 +780,8 @@ theo_run$fit
 #>   fixed effects      cl 3, v 30, q 2, v2 4, ka 1 
 #>   between-subject    cl 0.2, v 0.141, ka 0.548, q 0.245, v2 0.283 (as SD on the log scale)
 #>   residual error     proportional 0.2 
-#>   time to fit        52.1 s
-#>   whole call         52.2 s, against 52.1 s in the fitter
+#>   time to fit        46.1 s
+#>   whole call         46.1 s, against 46.1 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: DV: ka typical value, 9.92 %;

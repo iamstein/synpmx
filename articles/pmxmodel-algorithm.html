@@ -291,9 +291,9 @@ subject.</td>
 <td><code>drop_influential</code></td>
 <td><code>TRUE</code></td>
 <td>Leave out of the PK, PD and covariate estimates any patient who
-moves a released estimate by 15 or more, and estimate again (Step 5).
-<code>FALSE</code> keeps every patient and only reports the
-reading.</td>
+moves a released estimate by 15 or more (for a PD shape parameter, also
+one standard error), and estimate again (Step 5). <code>FALSE</code>
+keeps every patient and only reports the reading.</td>
 </tr>
 </tbody>
 </table>
@@ -815,7 +815,7 @@ checks.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged accepted      aic seconds note</span></span>
-<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  57.294</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 2cmt_oral      TRUE     TRUE 922.2948  50.869</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="covariates">Covariates<a class="anchor" aria-label="anchor" href="#covariates"></a>
@@ -1106,6 +1106,16 @@ all patients is kept per estimate, in percent for a typical value and in
 points of the between-subject SD on the log scale for a spread.
 Shrinkage pulls every random effect toward zero and makes the reading
 understate the move, so it is reported beside it.</p>
+<p><strong>A PD shape’s other parameters are refitted without each
+patient.</strong> The PD shapes are least-squares curves fitted in
+milliseconds, so the slope, plateau and rate are each refitted with
+every patient left out in turn. A percentage is the wrong unit for a
+parameter near zero, where any patient moves a slope by hundreds of
+percent, so the move is also measured in standard errors, from a
+jackknife over the other patients. A move counts only if it is large on
+both scales: 15% and one standard error is a review, 30% and two a
+failure. The row reads in percent for a well-determined estimate and in
+standard errors for one near zero.</p>
 <p><strong>A patient who moves an estimate by 15 or more is left out of
 the estimates, and estimation runs again.</strong> The patient is left
 out of the PK fit, the PD fits and the covariate summaries, and stays in
@@ -1184,8 +1194,8 @@ seen.</p>
 <span><span class="co">#&gt;   fixed effects      cl 0.1, v 7, q 0.1, v2 2, ka 0.4 </span></span>
 <span><span class="co">#&gt;   between-subject    cl 0.265, v 0.2, ka 0.548, q 0.0775, v2 0.632 (as SD on the log scale)</span></span>
 <span><span class="co">#&gt;   residual error     proportional 0.2 </span></span>
-<span><span class="co">#&gt;   time to fit        57.3 s</span></span>
-<span><span class="co">#&gt;   whole call         57.5 s, against 57.3 s in the fitter</span></span>
+<span><span class="co">#&gt;   time to fit        50.9 s</span></span>
+<span><span class="co">#&gt;   whole call         51.1 s, against 50.9 s in the fitter</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Privacy</span></span>
 <span><span class="co">#&gt;   one patient's pull pass: largest: cp: ka between-subject SD, 9.84 points;</span></span>
@@ -1326,7 +1336,8 @@ with no level held by that many patients is not drawn.</td>
 </tr>
 <tr class="odd">
 <td>Single-patient influence</td>
-<td>a move of 15 or more, in % or points</td>
+<td>a move of 15 or more, in % or points; for a PD shape parameter, also
+one standard error or more</td>
 <td>Leaves the patient out of the PK, PD and covariate estimates and
 estimates again, at most a tenth of the cohort, naming them on the
 console. A move still at 15 is a review and at 30 a failure that warns;

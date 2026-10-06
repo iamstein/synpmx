@@ -349,26 +349,44 @@ average and 33% at worst. In exchange, the released value is usually the
 same whether a given patient is in the study or not, because a
 one-figure step is about as wide as an estimate’s sampling variation.
 Rounding does not hide an outlier’s effect on a variance, which
-protection 5 measures. The full-precision estimates stay on the fit,
-outside the release.</p>
+protection 5 measures.</p>
 </div>
 <div class="section level3">
 <h3 id="how-far-one-patient-moves-each-estimate">5. How Far One Patient Moves Each Estimate<a class="anchor" aria-label="anchor" href="#how-far-one-patient-moves-each-estimate"></a>
 </h3>
-<p>For each released estimate, estimation approximates how far it would
-move if each patient in turn were left out, from that patient’s random
-effects and without refitting. This is <em>local sensitivity</em>, the
-study-specific version of DP’s sensitivity [1], and in regression the
-same idea is Cook’s distance [5]. A move of 15 (percent for a typical
-value; points of between-subject SD on the log scale, close to CV%, for
-a spread) triggers a review, and 30 fails.</p>
-<p>A patient who moves an estimate by 15 or more is left out of the PK
-fit, the PD fits and the covariate summaries, and estimation runs again.
-The patient stays in the dosing, visit and arm models, so cohort and arm
-sizes do not change. Rounds repeat until nobody is flagged, because
-leaving out the most influential patients makes the next ones the most
-influential [6], and stop at a tenth of the cohort. Patients left out
-are named on the console only; the fit records how many.
+<p>For each released estimate, estimation measures how far it would move
+if each patient in turn were left out. This is <em>local
+sensitivity</em>, the study-specific version of DP’s sensitivity [1],
+and in regression the same idea is Cook’s distance [5]. How the move is
+measured depends on the estimate:</p>
+<ul>
+<li>
+<strong>PK parameters</strong> are approximated from each patient’s
+random effects, without refitting the population model.</li>
+<li>
+<strong>The PD baseline and its between-subject spread, and the
+covariate summaries</strong>, are recomputed exactly with the patient
+left out.</li>
+<li>
+<strong>The other PD shape parameters</strong> (a slope, or a
+plateau and a rate) are refitted with the patient left out, which takes
+milliseconds because the PD time courses are simple least-squares
+curves.</li>
+</ul>
+<p>A move of 15 triggers a review and 30 fails: percent for a typical
+value, and points of between-subject SD on the log scale (close to CV%)
+for a spread. A percentage misleads for a PD shape parameter near zero,
+where any patient moves a slope by hundreds of percent, so for these
+parameters a move must also reach one standard error to be a review, and
+two to fail. The standard error comes from refitting without each of the
+other patients.</p>
+<p>A patient whose move reaches review is left out of the PK fit, the PD
+fits and the covariate summaries, and estimation runs again. The patient
+stays in the dosing, visit and arm models, so cohort and arm sizes do
+not change. Rounds repeat until nobody is flagged, because leaving out
+the most influential patients makes the next ones the most influential
+[6], and stop at a tenth of the cohort. Patients left out are named on
+the console only; the fit records how many.
 <code>drop_influential = FALSE</code> keeps every patient.</p>
 </div>
 </div>
@@ -450,10 +468,12 @@ is about a patient.</p>
 <span><span class="co">#&gt; 10        PK cp: v2  between-subject SD    0.632   3.63 points       32</span></span>
 <span><span class="co">#&gt; 11        PD    pca    typical baseline      100   2.11      %       32</span></span>
 <span><span class="co">#&gt; 12        PD    pca  between-subject SD      0.1   5.86 points       32</span></span>
-<span><span class="co">#&gt; 13 covariate     wt      geometric mean       69   1.22      %       32</span></span>
-<span><span class="co">#&gt; 14 covariate     wt SD on the log scale     0.18   1.71 points       32</span></span>
-<span><span class="co">#&gt; 15 covariate    age      geometric mean       29   2.05      %       32</span></span>
-<span><span class="co">#&gt; 16 covariate    age SD on the log scale     0.34    2.3 points       32</span></span>
+<span><span class="co">#&gt; 13        PD    pca             plateau       30   5.59      %       32</span></span>
+<span><span class="co">#&gt; 14        PD    pca                rate      0.1   7.82      %       32</span></span>
+<span><span class="co">#&gt; 15 covariate     wt      geometric mean       69   1.22      %       32</span></span>
+<span><span class="co">#&gt; 16 covariate     wt SD on the log scale     0.18   1.71 points       32</span></span>
+<span><span class="co">#&gt; 17 covariate    age      geometric mean       29   2.05      %       32</span></span>
+<span><span class="co">#&gt; 18 covariate    age SD on the log scale     0.34    2.3 points       32</span></span>
 <span><span class="co">#&gt;    shrinkage verdict</span></span>
 <span><span class="co">#&gt; 1     0.0153    pass</span></span>
 <span><span class="co">#&gt; 2     0.0153    pass</span></span>
@@ -470,7 +490,9 @@ is about a patient.</p>
 <span><span class="co">#&gt; 13        NA    pass</span></span>
 <span><span class="co">#&gt; 14        NA    pass</span></span>
 <span><span class="co">#&gt; 15        NA    pass</span></span>
-<span><span class="co">#&gt; 16        NA    pass</span></span></code></pre></div>
+<span><span class="co">#&gt; 16        NA    pass</span></span>
+<span><span class="co">#&gt; 17        NA    pass</span></span>
+<span><span class="co">#&gt; 18        NA    pass</span></span></code></pre></div>
 <p>The recount behind P4: for each kind of released frequency, the
 smallest group of patients behind any one of them, and how many values
 the rules changed to meet the floor.</p>
@@ -724,9 +746,9 @@ use.</strong> A stricter rule needs <code>min_arm_patients</code> and
 <strong>The influence reading is approximate, and its thresholds are
 empirical.</strong> They were set so that ordinary patients pass and a
 gross data error fails, not derived from a privacy target. Shrinkage
-makes it understate a patient’s effect, and the residual error, a
-parameter without between-subject variability, and PD shape parameters
-other than the baseline are not read.</li>
+makes it understate a patient’s effect on a PK parameter, and the
+residual errors and a PK parameter without between-subject variability
+are not read.</li>
 <li>
 <strong>The full fit and the estimation log are not safe to
 share.</strong> The fit holds diagnostics the release does not, and the

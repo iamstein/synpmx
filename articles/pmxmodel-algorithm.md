@@ -72,7 +72,7 @@ Beyond the roles and the seed:
 | `min_time_bins` | `6L` | Warn and fit anyway below this many distinct nominal times after a dose; no post-dose observation at all still refuses. |
 | `max_fit_subjects` | `60L` | Fit the population model to this many subjects, drawn in proportion to the arms. The dosing, visit and covariate models read every subject. |
 | `estimation` | `"focei"` | Passed to `nlmixr2`. |
-| `drop_influential` | `TRUE` | Leave out of the PK, PD and covariate estimates any patient who moves a released estimate by 15 or more, and estimate again (Step 5). `FALSE` keeps every patient and only reports the reading. |
+| `drop_influential` | `TRUE` | Leave out of the PK, PD and covariate estimates any patient who moves a released estimate by 15 or more (for a PD shape parameter, also one standard error), and estimate again (Step 5). `FALSE` keeps every patient and only reports the reading. |
 
 **The default tries two compartments first**, with a one-compartment
 fallback only if the first fit fails acceptance checks. An ambiguous
@@ -604,7 +604,7 @@ and acceptance checks.
 
 model_candidates(fit)
 #>       model converged accepted      aic seconds note
-#> 1 2cmt_oral      TRUE     TRUE 922.2948  57.294
+#> 1 2cmt_oral      TRUE     TRUE 922.2948  50.869
 ```
 
 ### Covariates
@@ -858,6 +858,16 @@ points of the between-subject SD on the log scale for a spread.
 Shrinkage pulls every random effect toward zero and makes the reading
 understate the move, so it is reported beside it.
 
+**A PD shape’s other parameters are refitted without each patient.** The
+PD shapes are least-squares curves fitted in milliseconds, so the slope,
+plateau and rate are each refitted with every patient left out in turn.
+A percentage is the wrong unit for a parameter near zero, where any
+patient moves a slope by hundreds of percent, so the move is also
+measured in standard errors, from a jackknife over the other patients. A
+move counts only if it is large on both scales: 15% and one standard
+error is a review, 30% and two a failure. The row reads in percent for a
+well-determined estimate and in standard errors for one near zero.
+
 **A patient who moves an estimate by 15 or more is left out of the
 estimates, and estimation runs again.** The patient is left out of the
 PK fit, the PD fits and the covariate summaries, and stays in the
@@ -941,8 +951,8 @@ model_report(fit)
 #>   fixed effects      cl 0.1, v 7, q 0.1, v2 2, ka 0.4 
 #>   between-subject    cl 0.265, v 0.2, ka 0.548, q 0.0775, v2 0.632 (as SD on the log scale)
 #>   residual error     proportional 0.2 
-#>   time to fit        57.3 s
-#>   whole call         57.5 s, against 57.3 s in the fitter
+#>   time to fit        50.9 s
+#>   whole call         51.1 s, against 50.9 s in the fitter
 #> 
 #> Privacy
 #>   one patient's pull pass: largest: cp: ka between-subject SD, 9.84 points;
@@ -1020,7 +1030,7 @@ fit badly is fitted, and told about.
 | `nominal_time` undeclared | — | Errors. The grid is a statement about the protocol only the caller can make. |
 | Rare categorical level | `min_category_patients` = 3 | Exclude levels held by fewer distinct patients; renormalize remaining counts. If none remain, warn and generate missing values. Set to 1 to retain all observed levels. |
 | Rare discrete-endpoint level | `min_category_patients` = 3 over the whole study, or per arm under `pd_by_arm` | Fold the level into the endpoint’s most common level. An endpoint with no level held by that many patients is not drawn. |
-| Single-patient influence | a move of 15 or more, in % or points | Leaves the patient out of the PK, PD and covariate estimates and estimates again, at most a tenth of the cohort, naming them on the console. A move still at 15 is a review and at 30 a failure that warns; `drop_influential = FALSE` skips the leaving out. Read by [`model_privacy_checks()`](https://iamstein.github.io/synpmx/reference/model_privacy_checks.md) and scorecard row E3; nothing per patient is stored. |
+| Single-patient influence | a move of 15 or more, in % or points; for a PD shape parameter, also one standard error or more | Leaves the patient out of the PK, PD and covariate estimates and estimates again, at most a tenth of the cohort, naming them on the console. A move still at 15 is a review and at 30 a failure that warns; `drop_influential = FALSE` skips the leaving out. Read by [`model_privacy_checks()`](https://iamstein.github.io/synpmx/reference/model_privacy_checks.md) and scorecard row E3; nothing per patient is stored. |
 | Thin dose-change rate | fewer than `min_arm_patients` patients with the event, over every arm | The rate, pooled over arms, is zero. |
 | Attendance rate | fewer than `min_arm_patients` patients who missed any of an endpoint’s visits; fewer than `min_arm_patients` of an arm’s patients at a visit | That endpoint’s rate is 1. An arm with too few of its patients at a visit does not have it. |
 | Rare kept value | a `keep` value of any type fewer than `min_category_patients` patients in the arm hold | Written as missing, with a warning. `strata` columns are carried unchanged. |

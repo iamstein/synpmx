@@ -229,7 +229,8 @@ synpmx_model_estimate(
 
   Leave out of the estimates any patient who moves a released estimate
   by 15 or more – in percent for a typical value, in points of the
-  between-subject SD on the log scale for a spread – and estimate again
+  between-subject SD on the log scale for a spread, and for a PD shape
+  parameter also by at least one standard error – and estimate again
   without them. The patient is left out of the PK fit, the PD fits and
   the covariate summaries, and stays in the dosing, visit and arm
   models, so the cohort and arm sizes do not change. At most a tenth of

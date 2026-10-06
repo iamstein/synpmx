@@ -191,26 +191,39 @@ and 33% at worst. In exchange, the released value is usually the same
 whether a given patient is in the study or not, because a one-figure
 step is about as wide as an estimate’s sampling variation. Rounding does
 not hide an outlier’s effect on a variance, which protection 5 measures.
-The full-precision estimates stay on the fit, outside the release.
 
 ### 5. How Far One Patient Moves Each Estimate
 
-For each released estimate, estimation approximates how far it would
-move if each patient in turn were left out, from that patient’s random
-effects and without refitting. This is *local sensitivity*, the
+For each released estimate, estimation measures how far it would move if
+each patient in turn were left out. This is *local sensitivity*, the
 study-specific version of DP’s sensitivity \[1\], and in regression the
-same idea is Cook’s distance \[5\]. A move of 15 (percent for a typical
-value; points of between-subject SD on the log scale, close to CV%, for
-a spread) triggers a review, and 30 fails.
+same idea is Cook’s distance \[5\]. How the move is measured depends on
+the estimate:
 
-A patient who moves an estimate by 15 or more is left out of the PK fit,
-the PD fits and the covariate summaries, and estimation runs again. The
-patient stays in the dosing, visit and arm models, so cohort and arm
-sizes do not change. Rounds repeat until nobody is flagged, because
-leaving out the most influential patients makes the next ones the most
-influential \[6\], and stop at a tenth of the cohort. Patients left out
-are named on the console only; the fit records how many.
-`drop_influential = FALSE` keeps every patient.
+- **PK parameters** are approximated from each patient’s random effects,
+  without refitting the population model.
+- **The PD baseline and its between-subject spread, and the covariate
+  summaries**, are recomputed exactly with the patient left out.
+- **The other PD shape parameters** (a slope, or a plateau and a rate)
+  are refitted with the patient left out, which takes milliseconds
+  because the PD time courses are simple least-squares curves.
+
+A move of 15 triggers a review and 30 fails: percent for a typical
+value, and points of between-subject SD on the log scale (close to CV%)
+for a spread. A percentage misleads for a PD shape parameter near zero,
+where any patient moves a slope by hundreds of percent, so for these
+parameters a move must also reach one standard error to be a review, and
+two to fail. The standard error comes from refitting without each of the
+other patients.
+
+A patient whose move reaches review is left out of the PK fit, the PD
+fits and the covariate summaries, and estimation runs again. The patient
+stays in the dosing, visit and arm models, so cohort and arm sizes do
+not change. Rounds repeat until nobody is flagged, because leaving out
+the most influential patients makes the next ones the most influential
+\[6\], and stop at a tenth of the cohort. Patients left out are named on
+the console only; the fit records how many. `drop_influential = FALSE`
+keeps every patient.
 
 ## The Five Checks
 
@@ -265,10 +278,12 @@ digits3(attr(checks, "influence"))
 #> 10        PK cp: v2  between-subject SD    0.632   3.63 points       32
 #> 11        PD    pca    typical baseline      100   2.11      %       32
 #> 12        PD    pca  between-subject SD      0.1   5.86 points       32
-#> 13 covariate     wt      geometric mean       69   1.22      %       32
-#> 14 covariate     wt SD on the log scale     0.18   1.71 points       32
-#> 15 covariate    age      geometric mean       29   2.05      %       32
-#> 16 covariate    age SD on the log scale     0.34    2.3 points       32
+#> 13        PD    pca             plateau       30   5.59      %       32
+#> 14        PD    pca                rate      0.1   7.82      %       32
+#> 15 covariate     wt      geometric mean       69   1.22      %       32
+#> 16 covariate     wt SD on the log scale     0.18   1.71 points       32
+#> 17 covariate    age      geometric mean       29   2.05      %       32
+#> 18 covariate    age SD on the log scale     0.34    2.3 points       32
 #>    shrinkage verdict
 #> 1     0.0153    pass
 #> 2     0.0153    pass
@@ -286,6 +301,8 @@ digits3(attr(checks, "influence"))
 #> 14        NA    pass
 #> 15        NA    pass
 #> 16        NA    pass
+#> 17        NA    pass
+#> 18        NA    pass
 ```
 
 The recount behind P4: for each kind of released frequency, the smallest
@@ -561,9 +578,9 @@ serious first:
 - **The influence reading is approximate, and its thresholds are
   empirical.** They were set so that ordinary patients pass and a gross
   data error fails, not derived from a privacy target. Shrinkage makes
-  it understate a patient’s effect, and the residual error, a parameter
-  without between-subject variability, and PD shape parameters other
-  than the baseline are not read.
+  it understate a patient’s effect on a PK parameter, and the residual
+  errors and a PK parameter without between-subject variability are not
+  read.
 - **The full fit and the estimation log are not safe to share.** The fit
   holds diagnostics the release does not, and the console names patients
   left out. Share the release or the synthetic data only.
