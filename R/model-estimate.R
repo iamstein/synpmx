@@ -1138,6 +1138,9 @@
   # not a subject's value; the release does not carry it.
   chosen$influence <- .pd_influence(
     stats::setNames(levels$baseline, as.character(unique(rows$subject))))
+  # The shape's other parameters, by refitting it without each subject.
+  chosen$shape_influence <- .pd_shape_influence(chosen, time, value,
+                                                rows$subject)
   # `sd()` of one number is `NA`, and an `NA` residual reaches generation as an
   # `NA` observation. One observation shows no scatter, which is a measurement
   # this study cannot make rather than a claim that the endpoint is noiseless.
@@ -1514,8 +1517,9 @@
 #' @param quiet Suppress the per-candidate progress messages.
 #' @param drop_influential Leave out of the estimates any patient who moves a
 #'   released estimate by 15 or more -- in percent for a typical value, in
-#'   points of the between-subject SD on the log scale for a spread -- and
-#'   estimate again without them. The patient is left out of the PK fit, the PD
+#'   points of the between-subject SD on the log scale for a spread, and for a
+#'   PD shape parameter also by at least one standard error -- and estimate
+#'   again without them. The patient is left out of the PK fit, the PD
 #'   fits and the covariate summaries, and stays in the dosing, visit and arm
 #'   models, so the cohort and arm sizes do not change. At most a tenth of the
 #'   cohort is left out. Each patient left out is named on the console and
@@ -1574,8 +1578,8 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
     influence <- fitted$privacy$influence
     who <- attr(fitted, ".influence_who")
     flagged <- if (is.null(influence) || is.null(who)) logical() else
-      is.finite(influence$change) &
-      influence$change >= .influence_thresholds[["review"]] & !is.na(who)
+      .influence_verdict(influence$change, influence$unit) %in%
+        c("review", "FAIL") & !is.na(who)
     culprits <- setdiff(unique(who[flagged]), left_out)
     if (!drop_influential || !length(culprits) ||
         length(left_out) + length(culprits) > cap) break

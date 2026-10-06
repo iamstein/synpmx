@@ -150,7 +150,9 @@ print.pmx_model_release <- function(x, ...) {
 # the sum of squares. Shrinkage pulls every random effect toward zero, which
 # understates both, so the shrinkage is reported beside them. The PD baselines
 # and the covariate summaries need no approximation: each is recomputed with the
-# patient left out.
+# patient left out. A PD shape's other parameters are refitted with the patient
+# left out, and judged on standard errors as well as percent
+# (`.pd_shape_influence()`).
 #
 # The thresholds are a move of 15 (a review) and 30 (a failure), in percent for
 # a typical value and in points of the between-subject SD on the log scale,
@@ -162,12 +164,31 @@ print.pmx_model_release <- function(x, ...) {
 # dose moves spreads past 50. The verdicts are recomputed whenever the reading
 # is read, so a stored fit never carries a threshold the code has moved past.
 .influence_thresholds <- c(review = 15, fail = 30)
+# A PD shape parameter's move in standard errors, where that is the scale that
+# governs it (`.pd_shape_influence()`).
+.influence_se_thresholds <- c(review = 1, fail = 2)
 
-.influence_verdict <- function(change) {
-  ifelse(!is.finite(change), "not computable",
-         ifelse(change >= .influence_thresholds[["fail"]], "FAIL",
-                ifelse(change >= .influence_thresholds[["review"]], "review",
-                       "pass")))
+# A move as a multiple of its unit's review threshold, so rows in different
+# units can be ranked and judged together: 1 is a review and 2 a failure on
+# either scale.
+.influence_severity <- function(change, unit = "%") {
+  review <- ifelse(unit == "SE", .influence_se_thresholds[["review"]],
+                   .influence_thresholds[["review"]])
+  change / review
+}
+
+.influence_verdict <- function(change, unit = "%") {
+  severity <- .influence_severity(change, unit)
+  ifelse(!is.finite(severity), "not computable",
+         ifelse(severity >= 2, "FAIL",
+                ifelse(severity >= 1, "review", "pass")))
+}
+
+# The thresholds in words, for messages and the check's criterion.
+.influence_threshold_text <- function(level) {
+  sprintf("%g (%g standard error%s for a PD shape parameter)",
+          .influence_thresholds[[level]], .influence_se_thresholds[[level]],
+          if (.influence_se_thresholds[[level]] == 1) "" else "s")
 }
 
 .influence_row <- function(group, name, quantity, released, change, unit,
@@ -251,6 +272,84 @@ print.pmx_model_release <- function(x, ...) {
   out
 }
 
+# The PD shape's parameters other than the baseline: a linear shape's slope, an
+# exponential's plateau and rate. The shapes are least-squares curves fitted in
+# milliseconds, so each subject is left out and the curve refitted, with no
+# approximation.
+#
+# A percentage is the wrong unit for some of them: a slope near zero turns a
+# negligible move into hundreds of percent. So the move is also measured in
+# standard errors, and only a move large on both scales counts: at least 15% of
+# the estimate and at least one standard error is a review, 30% and two a
+# failure. The row reports whichever scale is the smaller multiple of its
+# threshold, so it reads in percent for a well-determined estimate and in
+# standard errors for one near zero.
+#
+# The standard error is a jackknife over subjects from the same refits. The
+# fit's own standard error treats every observation as independent and a
+# subject contributes many, so it is too small. And for each subject it is
+# taken over the others, since an outlying subject inflates a jackknife that
+# includes them and would set the yardstick they are measured against.
+.pd_shape_influence <- function(shape, time, value, subject) {
+  parameters <- setdiff(names(shape$typical), "baseline")
+  ids <- .unique_in_order(as.character(subject))
+  n <- length(ids)
+  if (!length(parameters) || n < 4L) return(NULL)
+  refit <- function(keep) {
+    t <- time[keep]
+    v <- value[keep]
+    model <- switch(shape$pd,
+      linear = try(stats::lm(v ~ t), silent = TRUE),
+      exponential = try(stats::nls(
+        v ~ plateau + (baseline - plateau) * exp(-rate * pmax(t, 0)),
+        start = as.list(shape$typical)), silent = TRUE),
+      NULL)
+    if (is.null(model) || inherits(model, "try-error")) {
+      return(stats::setNames(rep(NA_real_, length(parameters)), parameters))
+    }
+    coefficients <- stats::coef(model)
+    if (identical(shape$pd, "linear")) names(coefficients) <- c("baseline", "slope")
+    coefficients[parameters]
+  }
+  without <- vapply(ids, function(id) refit(as.character(subject) != id),
+                    numeric(length(parameters)))
+  without <- matrix(without, nrow = length(parameters),
+                    dimnames = list(parameters, ids))
+  rows <- lapply(parameters, function(parameter) {
+    estimate <- unname(shape$typical[[parameter]])
+    loo <- without[parameter, ]
+    ok <- is.finite(loo)
+    if (sum(ok) < 4L) return(NULL)
+    loo <- loo[ok]
+    move <- abs(loo - estimate)
+    se <- vapply(seq_along(loo), function(i) {
+      others <- loo[-i]
+      m <- length(others)
+      sqrt((m - 1) / m * sum((others - mean(others))^2))
+    }, numeric(1))
+    percent <- 100 * move / abs(estimate)
+    standard <- move / se
+    # The smaller multiple of its own review threshold is the one that counts.
+    by_percent <- percent / .influence_thresholds[["review"]] <=
+      standard / .influence_se_thresholds[["review"]]
+    by_percent[is.na(by_percent)] <- TRUE
+    change <- ifelse(by_percent, percent, standard)
+    unit <- ifelse(by_percent, "%", "SE")
+    severity <- .influence_severity(change, unit)
+    worst <- which.max(ifelse(is.finite(severity), severity, -Inf))
+    data.frame(parameter = parameter, released = estimate,
+               change = change[[worst]], unit = unit[[worst]],
+               patients = length(loo), who = names(loo)[[worst]],
+               stringsAsFactors = FALSE)
+  })
+  rows <- do.call(rbind, rows[!vapply(rows, is.null, logical(1))])
+  if (is.null(rows)) return(NULL)
+  who <- rows$who
+  rows$who <- NULL
+  attr(rows, "who") <- who
+  rows
+}
+
 # Every continuous covariate, recomputed without each patient in turn. The
 # summary is the trimmed one the covariate model stores, so a patient at either
 # extreme moves it little, which is the point of the trimming.
@@ -324,6 +423,19 @@ print.pmx_model_release <- function(x, ...) {
                        shape$baseline_cv %||% 0, reading[["spread"]],
                        "points", reading[["patients"]],
                        who = unname(who[["spread"]]))))
+      extra <- shape$shape_influence
+      if (is.data.frame(extra) && nrow(extra)) {
+        who <- attr(extra, "who") %||% rep(NA_character_, nrow(extra))
+        rows[[length(rows) + 1L]] <- .bind_influence(lapply(
+          seq_len(nrow(extra)), function(i) {
+            # The released value is the rounded one on the shape.
+            .influence_row("PD", label, extra$parameter[[i]],
+                           unname(shape$typical[[extra$parameter[[i]]]]),
+                           extra$change[[i]],
+                           extra$unit[[i]], extra$patients[[i]],
+                           who = who[[i]])
+          }))
+      }
     }
   }
   rows[[length(rows) + 1L]] <- .covariate_influence(source, roles, covariates)
@@ -331,7 +443,7 @@ print.pmx_model_release <- function(x, ...) {
   if (!length(rows)) return(NULL)
   out <- .bind_influence(rows)
   who <- attr(out, "who")
-  out$verdict <- .influence_verdict(out$change)
+  out$verdict <- .influence_verdict(out$change, out$unit)
   rownames(out) <- NULL
   attr(out, "who") <- who
   out
@@ -348,8 +460,9 @@ print.pmx_model_release <- function(x, ...) {
     return(list(verdict = "not applicable",
                 result = "no released estimate to read"))
   }
-  worst <- finite[which.max(finite$change), ]
-  list(verdict = .influence_verdict(worst$change),
+  worst <- finite[which.max(.influence_severity(finite$change,
+                                                 finite$unit)), ]
+  list(verdict = .influence_verdict(worst$change, worst$unit),
        result = sprintf("largest: %s %s, %.3g %s", worst$name, worst$quantity,
                         worst$change, worst$unit))
 }
@@ -366,8 +479,8 @@ print.pmx_model_release <- function(x, ...) {
   list(influence = list(
     verdict = summary$verdict,
     result = if (identical(summary$verdict, "pass")) {
-      sprintf("every released estimate moves less than %g",
-              .influence_thresholds[["review"]])
+      paste("every released estimate moves less than",
+            .influence_threshold_text("review"))
     } else summary$result),
     # The frequency verdict travels the same way: the counts stay on the fit.
     frequencies = list(
@@ -496,7 +609,7 @@ model_privacy_checks <- function(fitted_model) {
 
   influence <- fitted_model$privacy$influence
   if (is.data.frame(influence)) {
-    influence$verdict <- .influence_verdict(influence$change)
+    influence$verdict <- .influence_verdict(influence$change, influence$unit)
   }
   summary <- if (inherits(fitted_model, "pmx_model_release")) {
     release$privacy$influence %||%
@@ -531,10 +644,14 @@ model_privacy_checks <- function(fitted_model) {
       sprintf(paste("each side of every released frequency none or at",
                     "least %d patients (%d for categorical levels)"),
               k_arm, k_level),
-      sprintf("pass under %g, review under %g, FAIL from %g (%% or points)",
+      sprintf(paste("pass under %g, review under %g, FAIL from %g (%% or",
+                    "points); %g and %g standard errors for a PD shape",
+                    "parameter"),
               .influence_thresholds[["review"]],
               .influence_thresholds[["fail"]],
-              .influence_thresholds[["fail"]])),
+              .influence_thresholds[["fail"]],
+              .influence_se_thresholds[["review"]],
+              .influence_se_thresholds[["fail"]])),
     verdict = c(verdict(p1$ok), verdict(p2$ok), verdict(p3$ok),
                 verdict(p4$ok), summary$verdict),
     stringsAsFactors = FALSE)
@@ -645,14 +762,14 @@ print.pmx_privacy_checks <- function(x, ...) {
   summary <- .influence_summary(influence)
   who <- attr(influence, "who")
   culprit <- if (!is.null(who) && nrow(influence)) {
-    worst <- which.max(ifelse(is.finite(influence$change), influence$change,
-                              -Inf))
+    severity <- .influence_severity(influence$change, influence$unit)
+    worst <- which.max(ifelse(is.finite(severity), severity, -Inf))
     who[[worst]]
   } else NA_character_
   if (identical(summary$verdict, "FAIL")) {
     warning(.condition_text(
       "One patient moves a released estimate by ",
-      .influence_thresholds[["fail"]], " or more (", summary$result,
+      .influence_threshold_text("fail"), " or more (", summary$result,
       if (!is.na(culprit)) paste0("; patient `", culprit, "`") else "", ").",
       why = paste("The fitted model then describes that patient as much as the",
                   "cohort. A patient who received far more or less drug than",
@@ -663,7 +780,7 @@ print.pmx_privacy_checks <- function(x, ...) {
       call. = FALSE)
   } else if (identical(summary$verdict, "review") && !quiet) {
     message("One patient moves a released estimate by ",
-            .influence_thresholds[["review"]], " or more (", summary$result,
+            .influence_threshold_text("review"), " or more (", summary$result,
             "); see `model_privacy_checks()`.")
   }
   invisible(summary)
@@ -674,6 +791,9 @@ print.pmx_privacy_checks <- function(x, ...) {
 .strip_influence_who <- function(shape) {
   if (is.null(shape)) return(shape)
   if (!is.null(shape$influence)) attr(shape$influence, "who") <- NULL
+  if (!is.null(shape$shape_influence)) {
+    attr(shape$shape_influence, "who") <- NULL
+  }
   if (length(shape$arms)) shape$arms <- lapply(shape$arms, .strip_influence_who)
   shape
 }

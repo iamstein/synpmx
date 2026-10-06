@@ -762,3 +762,53 @@ test_that("the subjects behind a PD reading are not stored with it", {
   expect_null(attr(stripped$influence, "who"))
   expect_null(attr(stripped$arms$x$influence, "who"))
 })
+
+test_that("a PD shape's other parameters are read by refitting without each patient", {
+  set.seed(4)
+  times <- c(0, 2, 4, 8, 12, 24, 36, 48)
+  # Twenty patients falling from 100 towards 30, and `id` set as `outlier`
+  # levelling off at 300 instead.
+  study <- function(outlier = NULL) {
+    do.call(rbind, lapply(sprintf("s%02d", 1:20), function(id) {
+      plateau <- if (identical(id, outlier)) 300 else 30
+      data.frame(subject = id, endpoint = "pd", aligned = times,
+                 dv = plateau + (100 - plateau) * exp(-0.1 * times) +
+                   stats::rnorm(length(times), sd = 2))
+    }))
+  }
+  shape <- .model_fit_pd(study(), "pd")
+  expect_equal(shape$pd, "exponential")
+  reading <- shape$shape_influence
+  expect_equal(reading$parameter, c("plateau", "rate"))
+  expect_true(all(.influence_verdict(reading$change, reading$unit) == "pass"))
+
+  outlying <- .model_fit_pd(study(outlier = "s07"), "pd")
+  flagged <- outlying$shape_influence
+  plateau <- flagged[flagged$parameter == "plateau", ]
+  expect_equal(.influence_verdict(plateau$change, plateau$unit), "FAIL")
+  expect_equal(attr(flagged, "who")[flagged$parameter == "plateau"], "s07")
+  # The rows reach the influence table, and the subject is not stored.
+  table <- .model_influence(list(), list(), list(pd = outlying), NULL, NULL,
+                            list())
+  expect_true(all(c("plateau", "rate") %in% table$quantity))
+  expect_null(attr(.strip_influence_who(outlying)$shape_influence, "who"))
+})
+
+test_that("a slope near zero is judged in standard errors, not percent", {
+  set.seed(5)
+  times <- c(0, 4, 8, 12, 24, 48)
+  flat <- do.call(rbind, lapply(sprintf("s%02d", 1:20), function(id) {
+    data.frame(subject = id, endpoint = "pd", aligned = times,
+               dv = 50 + stats::rnorm(1, sd = 5) +
+                 stats::rnorm(length(times), sd = 3))
+  }))
+  shape <- .model_fit_pd(flat, "pd", shapes = c(pd = "linear"))
+  slope <- shape$shape_influence
+  expect_equal(slope$parameter, "slope")
+  # A percentage of a slope near zero is large for any patient; in standard
+  # errors the same move is ordinary.
+  expect_equal(slope$unit, "SE")
+  expect_equal(.influence_verdict(slope$change, slope$unit), "pass")
+  expect_equal(.influence_verdict(c(20, 0.5, 2.5), c("%", "SE", "SE")),
+               c("review", "pass", "FAIL"))
+})

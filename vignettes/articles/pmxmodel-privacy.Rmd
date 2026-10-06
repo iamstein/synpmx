@@ -127,7 +127,7 @@ These numbers are the **release**, and they are all that leaves the environment 
 Every quantity that would naturally have been one patient's value is computed another way:
 
 | Quantity | How it's computed |
-|------------------------|------------------------|
+|------------------------------------|------------------------------------|
 | Lowest value generated, used for LOQ where no assay limit is declared | half the lowest value at least three patients reached, rounded down to 1, 2 or 5 times a power of ten |
 | Reference weight for body-weight scaling | the median to one significant figure |
 | Planned dose, where patients' doses differ | the arm's mean to two significant figures |
@@ -149,13 +149,19 @@ A continuous covariate is summarized by a mean and SD taken after the highest an
 
 ### 4. One Significant Figure
 
-Every released PK and PD estimate is rounded to one significant figure; covariate summaries are rounded to two, since one would put a mean height of 172 cm at 200. One figure moves an estimate by 9% on average and 33% at worst. In exchange, the released value is usually the same whether a given patient is in the study or not, because a one-figure step is about as wide as an estimate's sampling variation. Rounding does not hide an outlier's effect on a variance, which protection 5 measures. The full-precision estimates stay on the fit, outside the release.
+Every released PK and PD estimate is rounded to one significant figure; covariate summaries are rounded to two, since one would put a mean height of 172 cm at 200. One figure moves an estimate by 9% on average and 33% at worst. In exchange, the released value is usually the same whether a given patient is in the study or not, because a one-figure step is about as wide as an estimate's sampling variation. Rounding does not hide an outlier's effect on a variance, which protection 5 measures.
 
 ### 5. How Far One Patient Moves Each Estimate
 
-For each released estimate, estimation approximates how far it would move if each patient in turn were left out, from that patient's random effects and without refitting. This is *local sensitivity*, the study-specific version of DP's sensitivity [1], and in regression the same idea is Cook's distance [5]. A move of 15 (percent for a typical value; points of between-subject SD on the log scale, close to CV%, for a spread) triggers a review, and 30 fails.
+For each released estimate, estimation measures how far it would move if each patient in turn were left out. This is *local sensitivity*, the study-specific version of DP's sensitivity [1], and in regression the same idea is Cook's distance [5]. How the move is measured depends on the estimate:
 
-A patient who moves an estimate by 15 or more is left out of the PK fit, the PD fits and the covariate summaries, and estimation runs again. The patient stays in the dosing, visit and arm models, so cohort and arm sizes do not change. Rounds repeat until nobody is flagged, because leaving out the most influential patients makes the next ones the most influential [6], and stop at a tenth of the cohort. Patients left out are named on the console only; the fit records how many. `drop_influential = FALSE` keeps every patient.
+- **PK parameters** are approximated from each patient's random effects, without refitting the population model.
+- **The PD baseline and its between-subject spread, and the covariate summaries**, are recomputed exactly with the patient left out.
+- **The other PD shape parameters** (a slope, or a plateau and a rate) are refitted with the patient left out, which takes milliseconds because the PD time courses are simple least-squares curves.
+
+A move of 15 triggers a review and 30 fails: percent for a typical value, and points of between-subject SD on the log scale (close to CV%) for a spread. A percentage misleads for a PD shape parameter near zero, where any patient moves a slope by hundreds of percent, so for these parameters a move must also reach one standard error to be a review, and two to fail. The standard error comes from refitting without each of the other patients.
+
+A patient whose move reaches review is left out of the PK fit, the PD fits and the covariate summaries, and estimation runs again. The patient stays in the dosing, visit and arm models, so cohort and arm sizes do not change. Rounds repeat until nobody is flagged, because leaving out the most influential patients makes the next ones the most influential [6], and stop at a tenth of the cohort. Patients left out are named on the console only; the fit records how many. `drop_influential = FALSE` keeps every patient.
 
 ## The Five Checks
 
@@ -337,7 +343,7 @@ The ways a release can still disclose something about a patient, most serious fi
 - **An attacker who knows every other patient is not stopped.** They can compute the exact effect of the one patient they do not know. Only a DP mechanism stops them.
 - **Releases compose.** Two releases from overlapping data, such as an interim and a final analysis, differ by exactly what the patients between them contributed. Nothing here accounts for that.
 - **Three patients is the smallest threshold in common use.** A stricter rule needs `min_arm_patients` and `min_category_patients` raised.
-- **The influence reading is approximate, and its thresholds are empirical.** They were set so that ordinary patients pass and a gross data error fails, not derived from a privacy target. Shrinkage makes it understate a patient's effect, and the residual error, a parameter without between-subject variability, and PD shape parameters other than the baseline are not read.
+- **The influence reading is approximate, and its thresholds are empirical.** They were set so that ordinary patients pass and a gross data error fails, not derived from a privacy target. Shrinkage makes it understate a patient's effect on a PK parameter, and the residual errors and a PK parameter without between-subject variability are not read.
 - **The full fit and the estimation log are not safe to share.** The fit holds diagnostics the release does not, and the console names patients left out. Share the release or the synthetic data only.
 - **Rarity in the world is not measured.** A covariate level many patients in this study hold can still identify someone if few people hold it.
 
