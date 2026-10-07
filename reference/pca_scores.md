@@ -51,5 +51,5 @@ roles <- pmx_roles(
 )
 pca_scores(synpmx_pca_summarize(data, roles))
 #>   arm component         mean       sd
-#> 1 all       PC1 6.823246e-16 3.741652
+#> 1 all       PC1 6.679842e-16 3.741652
 ```

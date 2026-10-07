@@ -395,6 +395,35 @@ time course already does not, nor over the visits. D1 reads sd x0.74 on
 PK Concentration (furthest of 6), the variable whose synthetic spread
 sits furthest from the source’s.
 
+The continuous PD time course has no exposure term, so the dose ordering
+of the response is lost. The mean response after the last dose, by arm:
+
+``` r
+
+late_pd <- function(data, label) {
+  rows <- data$NAME == "PD - Continuous" & data$EVID == 0 &
+    data$TIME > 144 & !is.na(data$LIDV)
+  out <- aggregate(list(mean_pd = data$LIDV[rows]),
+                   list(arm = data$TRTACT[rows]), function(x) signif(mean(x), 3))
+  stats::setNames(out, c("arm", paste0("mean_pd_", label)))
+}
+knitr::kable(merge(late_pd(mad_run$source, "source"),
+                   late_pd(mad_run$synthetic, "synthetic"), by = "arm"))
+```
+
+| arm     | mean_pd_source | mean_pd_synthetic |
+|:--------|---------------:|------------------:|
+| 100 mg  |           25.6 |              29.8 |
+| 1600 mg |           37.3 |              22.7 |
+| 200 mg  |           26.3 |              26.3 |
+| 400 mg  |           31.5 |              27.9 |
+| 800 mg  |           34.0 |              25.1 |
+| Placebo |           16.3 |              24.1 |
+
+`pd_by_arm = TRUE` fits the shape within each arm and would keep the
+ordering between arms, without saying anything about exposure within
+one.
+
 This is also the study that found a defect: a visit where every patient
 recorded the same level of an ordinal endpoint left the draw with a
 single level, and the draw read that level as a count of levels rather
@@ -1443,8 +1472,8 @@ Not preserved, with the study that shows each:
   smoother than real ones. Visible on every dataset here.
 - **Exposure-response.** The PD shapes are fitted to the pooled
   observations with no exposure term, so a synthetic patient’s arm does
-  not reach their response. `mad` is the worked case in the demo, and
-  `onc_sim` shows why it matters for an exposure-driven tumour response.
+  not reach their response. `mad` is the worked case, and `onc_sim`
+  shows why it matters for an exposure-driven tumour response.
 - **When patients missed visits or responded, and differences between
   arms.** Attendance is one rate per endpoint, a binary or ordinal
   endpoint one set of level frequencies (one per arm under
@@ -1485,3 +1514,6 @@ Not preserved, with the study that shows each:
   and [Evaluating AVATAR on public
   data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
   — the same eight studies through the other two generators.
+- [Privacy protections in the PMX model
+  generator](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html)
+  — the privacy checks on each of these fits.

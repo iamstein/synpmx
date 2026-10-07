@@ -143,9 +143,10 @@ package’s linear models and the covariate model is allometric scaling or
 nothing, which is too little to answer a scientific question, so the
 fitted parameters are not estimates to report, even though the printed
 object looks exactly like the output of a real population analysis.</p>
-<p>No formal privacy guarantee is offered. What leaves the study, the
-protections on it and the checks that measure them are set out in <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html">Privacy
-protections in the PMX model generator</a>.</p>
+<p>No formal privacy guarantee is offered. The protections on what
+leaves the study, and the checks that measure them, are set out in <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html">Privacy
+protections in the PMX model generator</a>; every number that leaves is
+listed in <code><a href="../articles/pmxmodel-fingerprint.html">vignette("pmxmodel-fingerprint")</a></code>.</p>
 <div class="section level2">
 <h2 id="three-exported-functions">Three Exported Functions<a class="anchor" aria-label="anchor" href="#three-exported-functions"></a>
 </h2>
@@ -291,9 +292,9 @@ subject.</td>
 <td><code>drop_influential</code></td>
 <td><code>TRUE</code></td>
 <td>Leave out of the PK, PD and covariate estimates any patient who
-moves a released estimate by 15 or more (for a PD shape parameter, also
-one standard error), and estimate again (Step 5). <code>FALSE</code>
-keeps every patient and only reports the reading.</td>
+moves a released estimate too far, and estimate again (Step 5).
+<code>FALSE</code> keeps every patient and only reports the
+reading.</td>
 </tr>
 </tbody>
 </table>
@@ -996,43 +997,27 @@ none.</p>
 rates at zero and one level, and the model then reproduces the planned
 schedule exactly. No detector decides which kind of study this is,
 because the rates already say it.</p>
-<p>A grid cell is kept only where at least <code>min_arm_patients</code>
-distinct patients hold an observation there. A nominal time one patient
-attended is that patient, and generating from it would put them
-back.</p>
-<p><strong>Every rate and fraction rests on at least
-<code>min_arm_patients</code> patients on each side.</strong> This is
-the threshold rule of statistical disclosure control, applied to both
-sides because “one patient missed this visit” discloses as much as “one
-patient came”:</p>
-<ul>
-<li>A dose-change rate whose events fewer than
-<code>min_arm_patients</code> patients had, across every arm, is
-zero.</li>
-<li>Where fewer than <code>min_arm_patients</code> patients missed any
-of an endpoint’s visits, its attendance rate is 1, since a rate below 1
-would describe their misses. An arm with fewer than
-<code>min_arm_patients</code> of its patients observed at a visit does
-not have that visit.</li>
-</ul>
-<p>Each arm also carries the values of its <code>strata</code> and
-<code>keep</code> columns, copied from the arm’s first patient as
-declared. A <code>keep</code> value of any type that fewer than
-<code>min_category_patients</code> patients in the arm hold is written
-as missing, with a warning. A <code>strata</code> column is exempt,
-because it defines the arm and the arm has its own floor.</p>
+<p><strong>Every arm, visit, rate and level rests on at least
+<code>min_arm_patients</code> patients on each side</strong>, 3 by
+default. A grid cell fewer patients were observed at is dropped, a
+dose-change rate whose events fewer patients had, across every arm, is
+zero, and an endpoint’s attendance rate is 1 where fewer patients missed
+any of its visits. Each arm also carries the values of its
+<code>strata</code> and <code>keep</code> columns, copied from the arm’s
+first patient; a <code>keep</code> value fewer than
+<code>min_category_patients</code> of the arm’s patients hold is written
+as missing, with a warning. Why both sides of a rate are floored is in
+the privacy article.</p>
 <p>Baseline covariates are drawn independently from study-wide
 distributions. Each patient’s first row contributes one value, after
 small arms are excluded.</p>
 <p>A continuous covariate is summarized by a mean and an SD: of its
 logarithm where every value is positive, of the value otherwise. Both
 are taken after the highest and lowest 5% of patients are set aside, at
-least one at each end, so the most extreme patient on either side never
-enters the summary and no single patient can move it far. The SD of the
-patients that remain understates the spread of the whole, since the
-tails are what was removed, so it is divided by the SD a standard normal
-keeps under the same trimming. A cohort too small to leave three values
-after trimming is summarized whole. No median is stored.</p>
+least one at each end, and the SD is divided by the SD a standard normal
+keeps under the same trimming, since the tails are what was removed. A
+cohort too small to leave three values after trimming is summarized
+whole.</p>
 <p>For factor, character and logical covariates, levels held by fewer
 than <code>min_category_patients</code> patients (default 3) are
 excluded. The remaining counts are renormalized to probabilities, and
@@ -1044,9 +1029,9 @@ are folded by the same threshold at each visit (Step 3).</p>
 <p>If no categorical level remains, generation keeps the column with
 missing values and estimation warns. Excluded factor labels are also
 removed from the stored schema. This changes the category proportions
-and can remove a covariate entirely from analysis; it supplies no formal
-privacy guarantee. The threshold is applied during estimation, so stored
-fits must be re-estimated to use it.</p>
+and can remove a covariate entirely from analysis. The threshold is
+applied during estimation, so stored fits must be re-estimated to use
+it.</p>
 </div>
 <div class="section level2">
 <h2 id="step-5-store-the-fit">Step 5: Store the Fit<a class="anchor" aria-label="anchor" href="#step-5-store-the-fit"></a>
@@ -1059,95 +1044,49 @@ fitting and the whole call took.</p>
 <p>Not estimated: the dosing model, a planned schedule per arm with
 three rates pooled over arms, the visit model, arm sizes, the covariate
 distributions, the censoring boundary, the schema and the roles.</p>
-<p><strong>Printing the object reports every input to Step 6</strong> —
-the dose reduction, skipped cycle and early stop rates, each endpoint’s
-attendance rate, which decides a missed observation, how each covariate
-is drawn, which cells are drawn from recorded values rather than
-simulated, the assay limit and how many observations sit below it, the
-floor nothing is emitted below, and the columns the generated table will
-carry — and the diagnostics beside them. <code><a href="../reference/model_report.html">model_report()</a></code>
-returns the same account as a list.</p>
 <p><strong>Only the release leaves the study.</strong> The fit also
-carries diagnostics for whoever ran it: the AIC of every candidate, the
-starting values, the correlations between covariates and the individual
-random effects, the design notes and the timings. Generation reads none
-of them. <code><a href="../reference/model_release.html">model_release()</a></code> builds the part generation reads
-from an allowlist, the fields Step 6 uses and nothing else, and
+carries diagnostics for whoever ran it, such as the AIC of every
+candidate, the starting values and the correlations between covariates
+and random effects, and generation reads none of them.
+<code><a href="../reference/model_release.html">model_release()</a></code> returns the part generation reads, and
 <code><a href="../reference/synpmx_model_generate.html">synpmx_model_generate()</a></code> attaches that to its output rather
-than the fit. An allowlist, so that a field added to the fit later stays
-behind unless someone adds it to the list.</p>
-<p><strong>Every released PK and PD estimate is rounded to one
-significant figure</strong>: the PK fixed effects, the between-subject
-variances, the residual error and the PD shape parameters. The covariate
-summaries are rounded to two, because one would put a mean height of 172
-cm at 200. The acceptance checks of Step 3 run on the fit as estimated,
-before the rounding, and the full-precision PK estimates stay on the fit
-as <code>estimated</code>, outside the release. One figure moves an
-estimate by 9% on average and 33% at worst; in exchange a typical
-patient leaves the released value unchanged, and an outlier’s effect on
-a variance is what the next reading is for.</p>
-<p><strong>How far one patient moves each estimate is read before the
-random effects are dropped.</strong> A typical value on the log scale
-sits close to the mean of the patients’ individual log parameters, so
-leaving out patient
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>
-moves it by about
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>i</mi></msub><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mi>n</mi><mo>−</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\eta_i/(n-1)</annotation></semantics></math>;
-the between-subject variance sits close to the mean of the squared
-random effects, so leaving out patient
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>
-scales it by
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mfrac><mrow><mo stretchy="false" form="prefix">(</mo><mi>S</mi><mo>−</mo><msubsup><mi>η</mi><mi>i</mi><mn>2</mn></msubsup><mo stretchy="false" form="postfix">)</mo><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mi>n</mi><mo>−</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow><mrow><mi>S</mi><mi>/</mi><mi>n</mi></mrow></mfrac><annotation encoding="application/x-tex">\frac{(S-\eta_i^2)/(n-1)}{S/n}</annotation></semantics></math>,
-with
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo>=</mo><msub><mo>∑</mo><mi>j</mi></msub><msubsup><mi>η</mi><mi>j</mi><mn>2</mn></msubsup></mrow><annotation encoding="application/x-tex">S=\sum_j \eta_j^2</annotation></semantics></math>.
-The PD baselines and the covariate summaries are recomputed with each
-patient left out, which needs no approximation. The largest move over
-all patients is kept per estimate, in percent for a typical value and in
-points of the between-subject SD on the log scale for a spread.
-Shrinkage pulls every random effect toward zero and makes the reading
-understate the move, so it is reported beside it.</p>
-<p><strong>A PD shape’s other parameters are refitted without each
-patient.</strong> The PD shapes are least-squares curves fitted in
-milliseconds, so the slope, plateau and rate are each refitted with
-every patient left out in turn. A percentage is the wrong unit for a
-parameter near zero, where any patient moves a slope by hundreds of
-percent, so the move is also measured in standard errors, from a
-jackknife over the other patients. A move counts only if it is large on
-both scales: 15% and one standard error is a review, 30% and two a
-failure. The row reads in percent for a well-determined estimate and in
-standard errors for one near zero.</p>
-<p><strong>A patient who moves an estimate by 15 or more is left out of
-the estimates, and estimation runs again.</strong> The patient is left
-out of the PK fit, the PD fits and the covariate summaries, and stays in
-the dosing, visit and arm models, so the cohort and arm sizes do not
-change. Rounds repeat until the reading flags nobody, and stop before a
-tenth of the cohort has been left out. Each patient left out is named on
-the console, in the environment that holds the study; the fit records
-how many and which estimates they moved, and no identifier. A reading
-that still reaches 15 asks for a review, and 30 fails and warns.
+than the fit. Printing the fit, or <code><a href="../reference/model_report.html">model_report()</a></code>, gives
+the same account; <code><a href="../articles/pmxmodel-fingerprint.html">vignette("pmxmodel-fingerprint")</a></code> lists
+every number in a release.</p>
+<p>Four operations protect the release as it is stored, each set out
+with its evidence in the <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html">privacy
+article</a>:</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Rounding.</strong> Every released PK and PD estimate is
+rounded to one significant figure, and the covariate summaries to two.
+The acceptance checks of Step 3 run on the fit before rounding, and the
+full-precision PK estimates stay on the fit, outside the release.</li>
+<li>
+<strong>Single-patient influence.</strong> Estimation reads how far
+leaving out each patient would move each released estimate. A patient
+who moves one by 15 or more (in percent for a typical value, in points
+of between-subject SD on the log scale for a spread, and also by one
+standard error for a PD shape parameter) is left out of the PK fit, the
+PD fits and the covariate summaries, and estimation runs again. The
+patient stays in the dosing, visit and arm models. Rounds repeat until
+nobody is flagged, and stop before a tenth of the cohort has been left
+out; a reading still at 15 is a review and at 30 a failure.
 <code>drop_influential = FALSE</code> keeps every patient and only
-reports the reading.</p>
-<p><code><a href="../reference/model_privacy_checks.html">model_privacy_checks()</a></code> returns the reading, a recount of
-the smallest group of patients behind each kind of released frequency
-(Step 4), and three structural checks on the release.</p>
-<p><strong>No individual estimates.</strong> Empirical Bayes estimates
-(EBEs) are per-subject quantities, and a fitted model that carried them
-would be writing out a description of each real patient. They are read
-for the covariate correlations and the reading above and then dropped,
-from every concentration endpoint’s model. Generation draws random
-effects from the covariance matrix instead.</p>
-<p><strong>The schema stores no level fewer than
-<code>min_category_patients</code> patients hold.</strong> The schema
-describes the table Step 6 writes: its columns and their types, the
-values copied onto each arm, and each endpoint’s value type. A factor
-column copied onto arms keeps the values its arms carry, and any other
-factor column the levels at least <code>min_category_patients</code>
-patients hold; a binary or ordinal endpoint keeps the levels that many
-patients recorded. The label of an arm too small to keep, or a grade one
-patient reached once, is not written into the release. An inferred
-binary or ordinal type left with fewer than two levels is stored as
-whole numbers, because its type alone would say the rarer level had been
-seen.</p>
+reports the reading.</li>
+<li>
+<strong>No individual estimates.</strong> Each patient’s empirical
+Bayes estimates (EBEs) are read for the covariate correlations and the
+influence reading, then dropped. Generation draws random effects from
+the covariance matrix instead.</li>
+<li>
+<strong>Rare levels.</strong> The schema stores no factor or
+discrete-endpoint level fewer than <code>min_category_patients</code>
+patients hold. An inferred binary or ordinal type left with fewer than
+two levels is stored as whole numbers.</li>
+</ol>
+<p><code><a href="../reference/model_privacy_checks.html">model_privacy_checks()</a></code> runs five checks on the
+result.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_report.html">model_report</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Summarized from the source, not estimated</span></span>

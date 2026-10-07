@@ -122,31 +122,75 @@ model_report(fit)
 #>                      `model_privacy_checks()` has every check
 ```
 
-## The PK model
+## Every Number in the Fingerprint
 
-### Which endpoint is the concentration
+`warfarin` has one PK endpoint, fitted a two-compartment oral model, and
+one PD endpoint, which makes it a typical small study. Each row below is
+one number in its fingerprint that was estimated from patients, and
+`model` says which part of the fingerprint it belongs to:
 
-The fit decides which endpoint is the drug concentration from four
-signals: whether it is observed in a dosing compartment, whether it
-appears only after dosing, whether its median profile rises and falls,
-and whether it scales with dose. This is a diagnostic rather than part
-of the fingerprint, but everything in the PK model depends on it.
+- **PK**: the population PK model, a typical value and a between-subject
+  variance per parameter and one residual error.
+- **PD**: each PD endpoint’s time course, its shape parameters, the
+  spread of the patients’ baselines and a residual error.
+- **Covariates**: a trimmed mean and SD per continuous covariate, and
+  one fewer share than levels per categorical one.
+- **Dose changes**: the rates of reducing, skipping and stopping, pooled
+  over the arms, and each reduced dose level as a fraction of the
+  starting dose.
+- **Missed visits**: one attendance rate per endpoint. An endpoint every
+  patient attended at every visit has a rate of 1 and is not listed.
+- **Discrete endpoints**: one fewer level share than levels for each
+  binary or ordinal endpoint.
+- **Arms and floors**: the size of each arm and of the cohort, the
+  lowest value generated for each endpoint without a declared assay
+  limit, and the reference weight where body-weight scaling was
+  requested.
 
 ``` r
 
-fit$endpoints$signals
-#>   endpoint compartment post_dose shape proportional
-#> 1       cp          NA      TRUE  TRUE           NA
-#> 2      pca          NA     FALSE FALSE           NA
-fit$design$reason
-#> [1] "the median profile rises to a peak at 9 before declining, and 31% of subjects do too"
+items <- fingerprint_items(release)
+show(items, "Every estimated number in the warfarin fingerprint", paged = TRUE)
 ```
 
-`proportional` is `NA` because `warfarin` is dosed by body weight, so
-there are no dose levels to compare and the other three signals decide.
-`endpoint_roles` in
-[`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md)
-overrides the decision.
+``` r
+
+counts <- table(factor(items$model, levels = models))
+c(counts, total = sum(counts), `planned cycles (protocol)` =
+    planned_cycles(release))
+#>                        PK                        PD                Covariates 
+#>                        11                         5                         5 
+#>              Dose changes             Missed visits        Discrete endpoints 
+#>                         3                         2                         0 
+#>           Arms and floors                     total planned cycles (protocol) 
+#>                         4                        30                         1
+```
+
+The planned dose times and amounts are the protocol rather than
+estimates, and are counted apart. So are the nominal visit grid and the
+description of the table to generate, which are not counted.
+
+### Across the Public Studies
+
+The same count for the stored fit of each study in the [public-data
+evaluation](https://iamstein.github.io/synpmx/articles/pmxmodel-public-data-examples.html).
+A study with more endpoints, arms or dose levels has more rows, and a PD
+shape fitted per arm under `pd_by_arm = TRUE` counts once per arm.
+
+| study | patients | PK | PD | Covariates | Dose changes | Missed visits | Discrete endpoints | Arms and floors | total | planned cycles (protocol) |
+|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| warfarin | 32 | 11 | 5 | 5 | 3 | 2 | 0 | 4 | 30 | 1 |
+| theo_md | 12 | 11 | 0 | 2 | 3 | 1 | 0 | 3 | 20 | 7 |
+| mad | 60 | 11 | 10 | 3 | 3 | 0 | 3 | 9 | 39 | 36 |
+| case1_pkpd | 180 | 11 | 5 | 2 | 3 | 0 | 0 | 7 | 28 | 510 |
+| wbcSim | 45 | 0 | 3 | 0 | 3 | 1 | 0 | 3 | 10 | 1 |
+| mavoglurant | 120 | 9 | 0 | 8 | 3 | 1 | 0 | 3 | 24 | 1 |
+| nimoData | 12 | 9 | 0 | 6 | 3 | 1 | 0 | 3 | 22 | 10 |
+| pheno_sd | 59 | 9 | 0 | 4 | 6 | 1 | 0 | 3 | 23 | 14 |
+| mixroute_sim | 90 | 12 | 0 | 2 | 3 | 0 | 0 | 4 | 21 | 9 |
+| onc_sim | 200 | 11 | 4 | 5 | 4 | 2 | 0 | 4 | 30 | 842 |
+
+## The PK model
 
 ### Structural model
 

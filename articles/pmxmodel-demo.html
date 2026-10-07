@@ -146,10 +146,7 @@ with itself. The full specification is in
 <code><a href="../articles/pmxmodel-algorithm.html">vignette("pmxmodel-algorithm")</a></code>.</p>
 <p>The dataset is <code><a href="https://rdrr.io/pkg/xgxr/man/mad.html" class="external-link">xgxr::mad</a></code>: 60 patients in six treatment
 arms, with a pharmacokinetic (PK) concentration endpoint and continuous,
-count, ordinal and binary pharmacodynamic (PD) endpoints. The
-two-compartment fit passed the convergence and generation checks. The
-public-data survey also shows a fit accepted with a false-convergence
-warning.</p>
+count, ordinal and binary pharmacodynamic (PD) endpoints.</p>
 <div class="section level2">
 <h2 id="configuration">Configuration<a class="anchor" aria-label="anchor" href="#configuration"></a>
 </h2>
@@ -192,27 +189,18 @@ compartments with checked fallback to one.</p>
 <p>The chunk above is shown rather than run. Fitting compiles a model,
 so this document reads a stored <code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code> fit
 and <code>R CMD check</code> never needs a compiler.</p>
-<p>The fit report gives the elapsed time and the number of subjects
-used. Each likelihood evaluation reads the dosing history, so
-repeated-dose studies cost more than single-dose studies.
-<code>max_fit_subjects</code> caps the population fit; the dosing, visit
-and covariate models still read every subject.</p>
-<p><code>pk = "1cmt_oral"</code> requests one compartment directly. The
-requested fit must pass the same convergence, parameter and generation
-checks, and is never replaced by another model automatically.</p>
-<p>A clearance of 6 L/h and a volume of 50 L. Whether those are the
-right numbers for this compound is not the question the generator asks:
-they exist to put the simulated profiles where the source’s are, and the
-object prints that warning with itself.</p>
+<p>The fitted clearance is 6 L/h and the volume 50 L. They put the
+simulated profiles where the source’s are, and are not estimates to
+report.</p>
 </div>
 <div class="section level2">
 <h2 id="what-the-fit-carries">What the fit carries<a class="anchor" aria-label="anchor" href="#what-the-fit-carries"></a>
 </h2>
-<p>Two halves. <code><a href="../reference/model_report.html">model_report()</a></code> separates them, because they
-answer to different things — one half is an estimate with all an
-estimate’s caveats, the other is a summary of the study’s apparatus.
-Everything the generator simulates from is in here, which is why
-printing the fitted object shows the same account.</p>
+<p><code><a href="../reference/model_report.html">model_report()</a></code> prints everything the generator will
+simulate from, and the diagnostics beside it.
+<code><a href="../articles/pmxmodel-fingerprint.html">vignette("pmxmodel-fingerprint")</a></code> goes through each part,
+and <code><a href="../articles/pmxmodel-algorithm.html">vignette("pmxmodel-algorithm")</a></code> says how each is
+estimated.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_report.html">model_report</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Summarized from the source, not estimated</span></span>
@@ -286,36 +274,10 @@ printing the fitted object shows the same account.</p>
 <span><span class="co">#&gt;                      for moving PD - Continuous typical baseline by 16 %;</span></span>
 <span><span class="co">#&gt;                      PD - Continuous between-subject SD by 23.7 points; the</span></span>
 <span><span class="co">#&gt;                      dosing and visit models still read them</span></span></code></pre></div>
-<p>The concentration has a proportional residual error. The continuous
-and count PD endpoints have fitted time courses with no exposure term.
-Binary and ordinal endpoints are drawn from arm-by-visit frequencies
-rather than from the compartment model. The signals table explains why
-<code>PK Concentration</code> was identified as the concentration
-endpoint.</p>
-<p>The correlation block is the other thing to read. A covariate that
-moves with a random effect and is not in the model above is generated
-independently of the profiles, so the synthetic data carries no
-relationship between them. <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> keeps those
-relationships without modelling them.</p>
-</div>
-<div class="section level2">
-<h2 id="the-candidates">The candidates<a class="anchor" aria-label="anchor" href="#the-candidates"></a>
-</h2>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">show</span><span class="op">(</span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, <span class="st">"Models attempted and acceptance results"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>Models attempted and acceptance results<\/caption>","data":[["2cmt_oral"],[true],[true],[2720],[168],[""]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>model<\/th>\n      <th>converged<\/th>\n      <th>accepted<\/th>\n      <th>aic<\/th>\n      <th>seconds<\/th>\n      <th>note<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[3,4]},{"name":"model","targets":0},{"name":"converged","targets":1},{"name":"accepted","targets":2},{"name":"aic","targets":3},{"name":"seconds","targets":4},{"name":"note","targets":5}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>The table contains only models actually attempted. An accepted
-two-compartment fit needs no one-compartment comparison. A rejected fit
-retains its convergence status and rejection reason, and the fallback
-has its own row. <code><a href="../reference/model_report.html">model_report()</a></code> explains the selection. A
-vector of model names in <code>pk</code> requests an Akaike information
-criterion (AIC) comparison of those models after acceptance checks.</p>
-<p>A study containing only pharmacodynamic observations can instead
-declare <code>endpoint_roles = c(pd = "response")</code>, using its
-endpoint name. That skips compartment fitting and uses the existing PD
-time courses. A positive baseline can also identify the study as PD-only
-automatically, as the public-data survey demonstrates on
-<code>wbcSim</code>.</p>
+<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>Models attempted and acceptance results<\/caption>","data":[["2cmt_oral"],[true],[true],[2720],[168],[""]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>model<\/th>\n      <th>converged<\/th>\n      <th>accepted<\/th>\n      <th>aic<\/th>\n      <th>seconds<\/th>\n      <th>note<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[3,4]},{"name":"model","targets":0},{"name":"converged","targets":1},{"name":"accepted","targets":2},{"name":"aic","targets":3},{"name":"seconds","targets":4},{"name":"note","targets":5}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
 </div>
 <div class="section level2">
 <h2 id="generating">Generating<a class="anchor" aria-label="anchor" href="#generating"></a>
@@ -394,30 +356,9 @@ window.</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"PD Response"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pmxmodel-demo_files/figure-html/overlay-pd-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
-<p>The continuous PD endpoint has an exponential time course. Its
-parameters are fitted to the pooled study, and subjects differ in their
-baseline draws and residual error.</p>
-<p><strong>What is missing is the dose ordering.</strong> One shape is
-fitted to the pooled observations and each subject gets a draw on its
-baseline, so the arm a subject was assigned to does not reach its
-response.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">late_pd</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">rows</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">$</span><span class="va">NAME</span> <span class="op">==</span> <span class="st">"PD - Continuous"</span> <span class="op">&amp;</span> <span class="va">data</span><span class="op">$</span><span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span> <span class="op">&amp;</span></span>
-<span>    <span class="va">data</span><span class="op">$</span><span class="va">TIME</span> <span class="op">&gt;</span> <span class="fl">144</span> <span class="op">&amp;</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">LIDV</span><span class="op">)</span></span>
-<span>  <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>mean_pd <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">LIDV</span><span class="op">[</span><span class="va">rows</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>                   <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>arm <span class="op">=</span> <span class="va">data</span><span class="op">$</span><span class="va">TRTACT</span><span class="op">[</span><span class="va">rows</span><span class="op">]</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="va">out</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"arm"</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"mean_pd_"</span>, <span class="va">label</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span><span class="va">pd_table</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/merge.html" class="external-link">merge</a></span><span class="op">(</span><span class="fu">late_pd</span><span class="op">(</span><span class="va">raw</span>, <span class="st">"source"</span><span class="op">)</span>, <span class="fu">late_pd</span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"synthetic"</span><span class="op">)</span>,</span>
-<span>                  by <span class="op">=</span> <span class="st">"arm"</span><span class="op">)</span></span>
-<span><span class="fu">show</span><span class="op">(</span><span class="va">pd_table</span>, <span class="st">"Mean PD response after 144 h, by arm"</span><span class="op">)</span></span></code></pre></div>
-<div class="datatables html-widget html-fill-item" id="htmlwidget-36aa3d2a04d42bbc2145" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"caption":"<caption>Mean PD response after 144 h, by arm<\/caption>","data":[["100 mg","1600 mg","200 mg","400 mg","800 mg","Placebo"],[26,37,26,31,34,16],[27,24,25,27,26,28]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>arm<\/th>\n      <th>mean_pd_source<\/th>\n      <th>mean_pd_synthetic<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[1,2]},{"name":"arm","targets":0},{"name":"mean_pd_source","targets":1},{"name":"mean_pd_synthetic","targets":2}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><p>This table compares late responses by arm. The continuous PD model
-carries no exposure term, so any source relationship between dose and
-response is not preserved by construction. A dataset whose purpose is
-exposure-response needs that limitation considered separately from
-numerical fit acceptance.</p>
+<p>The PD time course has no exposure term, so a synthetic patient’s arm
+does not reach their response. The <code>mad</code> section of the <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-public-data-examples.html#mad-five-endpoints-only-one-of-them-a-concentration">public-data
+evaluation</a> compares the late response by arm.</p>
 </div>
 <div class="section level2">
 <h2 id="distributions-of-synthetic-and-original-data">Distributions of Synthetic and Original Data<a class="anchor" aria-label="anchor" href="#distributions-of-synthetic-and-original-data"></a>
@@ -426,7 +367,7 @@ numerical fit acceptance.</p>
 synthetic. <code><a href="../reference/compare_pmx_distributions_height.html">compare_pmx_distributions_height()</a></code> sizes the
 figure, since it grows a row of panels at a time;
 <code>output = "tables"</code> gives the numbers behind it.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_pmx_distributions.html">compare_pmx_distributions</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pmxmodel-demo_files/figure-html/distributions-1.png" class="r-plt" alt="" width="700" style="display: block; margin: auto;"></p>
 </div>
@@ -436,17 +377,13 @@ figure, since it grows a row of panels at a time;
 <p><code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> does not know what produced the
 dataset it scores, so it reads this output the same way it reads an
 AVATAR or PCA one.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/synpmx_scorecard_datatable.html">synpmx_scorecard_datatable</a></span><span class="op">(</span><span class="va">card</span><span class="op">)</span></span></code></pre></div>
-<div class="datatables html-widget html-fill-item" id="htmlwidget-febe03efa1a2d8d52a86" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5","C1","C2","C3","D1","E1","E2","E3"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Arms keeping their source endpoints","Values landing in the same range","Fitted parameters moved off their starting values","Between-subject terms were estimated, not left at their start","No single patient moves a fitted estimate far"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","both","both","run settings","both","both","fitted model","fitted model","fitted model"],["TRUE","TRUE","5 of 5","60 -&gt; 60","61.7 -&gt; 61.7","5 -&gt; 5","3 of 3","no run record","no run record","not applicable: profiles simulated, not built from a patient","0.683 above [0.370, 0.663]","not applicable: attendance drawn per visit","0","0 of 0 exposed","6 of 6","no run record","6 of 6","sd x0.77 on PK Concentration (furthest of 6)","moved (1 model(s))","estimated","every released estimate moves less than 15 (1 standard error for a PD shape parameter)"],["pass","pass","pass","pass","pass","pass","pass","not applicable","not applicable","not applicable","pass","not applicable","pass","pass","pass","not applicable","pass","review","pass","pass","pass"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_rare_levels(source, synthetic, roles)","compare_pmx_strata_sizes(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_strata_endpoints(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")","model_report(attr(synthetic, \"pmx_fitted_model\"))","model_parameters(attr(synthetic, \"pmx_fitted_model\"))$omega","model_privacy_checks(attr(synthetic, \"pmx_fitted_model\"))"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Read the fidelity checks alongside the plots. A passing acceptance
-screen excludes gross fitting and generation failures; it does not
-guarantee that the simulated spread, attendance or endpoint
-relationships match the source. Checks requiring an AVATAR run record
-are not applicable to this generator.</p>
-<p><code><a href="../articles/scorecard.html">vignette("scorecard")</a></code> documents what each row asks and
-what its pass criterion is.</p>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-36aa3d2a04d42bbc2145" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-36aa3d2a04d42bbc2145">{"x":{"filter":"none","vertical":false,"data":[["A1","A2","A3","A4","A5a","A5b","A6","B1a","B1b","B2","B3","B4a","B4b","B5","C1","C2","C3","D1","E1","E2","E3"],["Synthetic table is a legal PMX dataset","Source is legal under the declared roles","Every endpoint survived","Cohort size survived","Observations per patient","Doses per patient","Discrete endpoints keeping their source scale","Avatars with a visit set nobody else shares","Avatars with a dose schedule nobody else shares","Synthetic patients unusual within their stratum","Adversarial accuracy inside its null interval","Generated time vectors copying an exposed real one","Generated DV vectors copying an exposed real one","Rare source levels copied into the output","Strata keeping their source size","Distinct dose-time schedules represented","Arms keeping their source endpoints","Values landing in the same range","Fitted parameters moved off their starting values","Between-subject terms were estimated, not left at their start","No single patient moves a fitted estimate far"],["synthetic","source","both","both","both","both","both","run settings","run settings","synthetic","both","both","both","both","both","run settings","both","both","fitted model","fitted model","fitted model"],["TRUE","TRUE","5 of 5","60 -&gt; 60","61.7 -&gt; 61.7","5 -&gt; 5","3 of 3","no run record","no run record","not applicable: profiles simulated, not built from a patient","0.683 above [0.370, 0.663]","not applicable: attendance drawn per visit","0","0 of 0 exposed","6 of 6","no run record","6 of 6","sd x0.77 on PK Concentration (furthest of 6)","moved (1 model(s))","estimated","every released estimate moves less than 15 (1 standard error for a PD shape parameter)"],["pass","pass","pass","pass","pass","pass","pass","not applicable","not applicable","not applicable","pass","not applicable","pass","pass","pass","not applicable","pass","review","pass","pass","pass"],["validate_pmx(synthetic, roles)","validate_pmx(source, roles, strict = FALSE)","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"anchors\")","compare_pmx_distributions(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","pmx_endpoint_types(source, roles)","unmaskable_strata(source, roles)","unmaskable_strata(source, roles)","flag_identifiable_subjects(synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_proximity(source, synthetic, roles)","compare_pmx_rare_levels(source, synthetic, roles)","compare_pmx_strata_sizes(source, synthetic, roles)","pmx_masking_report(synthetic, source, roles, section = \"dose_schedules\")","compare_pmx_strata_endpoints(source, synthetic, roles)","compare_pmx_distributions(source, synthetic, roles, output = \"tables\")","model_report(attr(synthetic, \"pmx_fitted_model\"))","model_parameters(attr(synthetic, \"pmx_fitted_model\"))$omega","model_privacy_checks(attr(synthetic, \"pmx_fitted_model\"))"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>check<\/th>\n      <th>question<\/th>\n      <th>reads<\/th>\n      <th>result<\/th>\n      <th>verdict<\/th>\n      <th>explore<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"paging":false,"columnDefs":[{"name":"check","targets":0},{"name":"question","targets":1},{"name":"reads","targets":2},{"name":"result","targets":3},{"name":"verdict","targets":4},{"name":"explore","targets":5}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data, displayNum, displayIndex, dataIndex) {\nvar value=data[4]; $(this.api().cell(row, 4).node()).css({'font-weight':value == \"FAIL\" ? \"bold\" : value == \"review\" ? \"bold\" : \"normal\",'color':value == \"FAIL\" ? \"#B00020\" : value == \"review\" ? \"#B45309\" : value == \"not applicable\" ? \"#6C757D\" : \"inherit\",'background-color':value == \"FAIL\" ? \"#FDECEA\" : value == \"review\" ? \"#FFF4E5\" : \"transparent\"});\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script><p>Checks requiring an AVATAR run record are not applicable to this
+generator. <code><a href="../articles/scorecard.html">vignette("scorecard")</a></code> documents what each row
+asks and what its pass criterion is.</p>
 </div>
 <div class="section level2">
 <h2 id="one-call">One call<a class="anchor" aria-label="anchor" href="#one-call"></a>
@@ -455,7 +392,7 @@ what its pass criterion is.</p>
 do not need to look at the fit first. The result carries the fit’s
 release as an attribute, which is what generation read; the candidate
 table and the other diagnostics are only on the fit itself.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model.html">synpmx_model</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="va">SEED</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"pmx_fitted_model"</span><span class="op">)</span></span></code></pre></div>
 </div>

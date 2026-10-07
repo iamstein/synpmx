@@ -166,7 +166,7 @@ round(c(noiseless_correction = theo_noiseless,
         q25 = stats::quantile(theo_01$correction, 0.25, names = FALSE),
         q75 = stats::quantile(theo_01$correction, 0.75, names = FALSE)), 3)
 #> noiseless_correction               median                  q25 
-#>                0.669                0.668                0.250 
+#>                0.669                0.419                0.250 
 #>                  q75 
 #>                4.000
 mean(theo_01$at_boundary)
@@ -186,7 +186,7 @@ subjects:
 
 round(stats::quantile(theo_01$released_n, c(0.05, 0.5, 0.95), names = TRUE), 1)
 #>   5%  50%  95% 
-#>  1.0 10.5 55.0
+#>  1.0 14.0 73.3
 ```
 
 ### A worthless release is worse than no release
@@ -224,8 +224,8 @@ knitr::kable(comparison, row.names = FALSE,
 | mode                      | median_level | typical_fold_error |
 |:--------------------------|-------------:|-------------------:|
 | prior only (epsilon = 0)  |         3.28 |               1.81 |
-| calibrated, epsilon = 0.1 |         4.37 |               2.56 |
-| calibrated, epsilon = 1   |         4.26 |               1.61 |
+| calibrated, epsilon = 0.1 |         5.29 |               2.44 |
+| calibrated, epsilon = 1   |         4.19 |               1.69 |
 
 theo_md, source median 5.89 mg/L {.table}
 
@@ -239,7 +239,7 @@ end of the prior the noise fell against.
 
 mean(abs(log(theo_01$median_dv / source_level)) >
        abs(log(stats::median(prior_only) / source_level)))
-#> [1] 0.46
+#> [1] 0.42
 ```
 
 That fraction of draws is worse than not having asked.
@@ -317,11 +317,11 @@ round(c(noiseless_correction = mixroute_noiseless,
         q25 = stats::quantile(mixroute_01$correction, 0.25, names = FALSE),
         q75 = stats::quantile(mixroute_01$correction, 0.75, names = FALSE)), 3)
 #> noiseless_correction               median                  q25 
-#>                1.166                1.019                0.599 
+#>                1.166                1.008                0.596 
 #>                  q75 
-#>                2.025
+#>                2.034
 mean(mixroute_01$at_boundary)
-#> [1] 0.215
+#> [1] 0.21
 ```
 
 The median release is close to the noiseless one and the interquartile
@@ -336,7 +336,7 @@ way to tell from the release itself which kind of draw you have.
 
 round(stats::quantile(mixroute_01$released_n, c(0.05, 0.5, 0.95)), 1)
 #>    5%   50%   95% 
-#>  43.2  90.2 135.7
+#>  39.5  91.8 144.4
 ```
 
 Ninety subjects, released as a range that wide. Anything downstream that
@@ -372,7 +372,7 @@ knitr::kable(check, row.names = FALSE,
 | study        |   N | predicted | realized |
 |:-------------|----:|----------:|---------:|
 | theo_md      |  12 |      4.00 |     2.68 |
-| mixroute_sim |  90 |      1.85 |     1.86 |
+| mixroute_sim |  90 |      1.85 |     1.91 |
 
 Expected against realized fold-error, epsilon = 0.1 {.table}
 
