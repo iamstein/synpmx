@@ -101,7 +101,7 @@ computed another way:
 | Lowest value generated, used for LOQ where no assay limit is declared | half the lowest value at least three patients reached, rounded down to 1, 2 or 5 times a power of ten |
 | Reference weight for body-weight scaling | the median to one significant figure |
 | Planned dose, where patients’ doses differ | the arm’s mean to two significant figures |
-| Continuous covariate | a trimmed mean and SD after the highest and lowest 5% of patients are set aside |
+| Continuous covariates | a trimmed mean and SD after the highest and lowest 5% of patients are set aside |
 
 ### 3. At Least Three Patients Behind Every Frequency
 
@@ -130,10 +130,7 @@ both 3 by default.
 
 The threshold stops a frequency from singling out one or two patients.
 It does not stop membership inference, which adds up small signals
-across many frequencies. Pooling is what weakens that: attendance is one
-rate per endpoint, the dose-change rates are three, and a graded
-endpoint is one set of level frequencies, each pooled over the arms and
-the visits.
+across many frequencies; pooling is what weakens that.
 
 ### 4. Covariate Summaries Without Their Extremes
 
@@ -148,11 +145,11 @@ influence⁷.
 
 Every released PK and PD estimate is rounded to one significant figure;
 covariate summaries are rounded to two, since one would put a mean
-height of 172 cm at 200. One figure moves an estimate by 9% on average
-and 33% at worst. In exchange, the released value is usually the same
-whether a given patient is in the study or not, because a one-figure
-step is about as wide as an estimate’s sampling variation. Rounding does
-not hide an outlier’s effect on a variance, which protection 6 measures.
+height of 172 cm at 200. One significant figure moves an estimate by 9%
+on average and 33% at worst. The benefit to rounding is that the
+released value is usually the same whether a given patient is in the
+study or not, because a one-figure step is about as wide as an
+estimate’s sampling variation.
 
 ### 6. How Far One Patient Moves Each Estimate
 
@@ -174,61 +171,41 @@ estimate:
 - **The PD baseline and its between-subject spread, and the covariate
   summaries**, are recomputed exactly with the patient left out.
 - **The other PD shape parameters** (a slope, or a plateau and a rate)
-  are refitted with the patient left out, which takes milliseconds
-  because the PD time courses are simple least-squares curves.
+  are refitted with the patient left out.
 
-A move of 15 triggers a review and 30 fails: percent for a typical
-value, and points of between-subject SD on the log scale (close to CV%)
-for a spread. A percentage misleads for a PD shape parameter near zero,
-where any patient moves a slope by hundreds of percent, so for these
-parameters a move must also reach one standard error to be a review, and
-two to fail. The standard error comes from refitting without each of the
-other patients.
+**A move of 15 or more triggers a review, and 30 or more fails.** Each
+move is measured on a scale that reads like a percentage:
 
-A patient whose move reaches review is left out of the PK fit, the PD
-fits and the covariate summaries, and estimation runs again. The patient
-stays in the dosing, visit and arm models, so cohort and arm sizes do
-not change. Rounds repeat until nobody is flagged, because leaving out
-the most influential patients makes the next ones the most influential⁹,
-and stop at a tenth of the cohort. Patients left out are named on the
-console only; the fit records how many. `drop_influential = FALSE` keeps
-every patient.
+- **A typical value** moves by its percent change: a clearance going
+  from 10 to 11.5 L/h is a move of 15.
+- **A between-subject spread** moves by the change in its SD on the log
+  scale, in hundredths, which is close to a change in CV%: an SD going
+  from 0.30 to 0.45 is a move of 15.
+- **A covariate’s mean or SD** moves by the change as a percent of the
+  covariate’s SD.
+- **A PD shape parameter** must clear a second bar as well. A slope or
+  rate can sit near zero, and then any patient changes it by hundreds of
+  percent. So a move counts only if it is also large against the
+  estimate’s own uncertainty: at least one standard error for a review,
+  and two to fail. The standard error comes from the same leave-one-out
+  refits: the spread of the estimates refitted without each of the other
+  patients.
 
-## Outstanding Risks
+**A patient who moves any estimate by 15 or more is left out of every
+estimate, and estimation runs again.** A patient flagged for moving one
+PD slope is left out of the PK fit, every PD fit and the covariate
+summaries alike. The patient stays in the dosing, visit and arm models,
+so cohort and arm sizes do not change.
 
-The ways a fingerprint can still disclose something about a patient,
-most serious first:
+Estimation then runs in rounds. Each round leaves out every patient the
+previous round flagged, refits, and reads the moves again, because with
+the most influential patients gone the next ones become the most
+influential⁹. Rounds stop when nobody is flagged, or when leaving out
+the newly flagged patients would take more than a tenth of the cohort;
+in that case those patients stay in, and the check reports their move as
+a review or a failure.
 
-- **An attacker who holds a candidate’s own trial data can infer
-  membership.** Such an attacker can check whether the released model
-  fits the candidate slightly better than it would fit someone outside
-  the study. In simulation the advantage is small: given one member and
-  one non-member, the attacker picks the member 53% of the time in a
-  60-patient study when its population parameters come from another
-  study (20% off), and 70% of the time in a 12-patient study when it
-  knows the population’s true parameters, where 50% is a coin flip. [The
-  appendix](#membership-inference-against-the-fingerprint) gives the
-  details. Only noise would reduce it.
-- **There is no formal guarantee, so an attacker who knows every other
-  patient is not stopped.** They can compute the exact effect of the one
-  patient they do not know. Only a DP mechanism stops them.
-- **Fingerprints compose.** Two fingerprints from overlapping data, such
-  as an interim and a final analysis, differ by exactly what the
-  patients between them contributed. Nothing here accounts for that.
-- **Three patients is the smallest threshold in common use.** A stricter
-  rule needs `min_arm_patients` and `min_category_patients` raised.
-- **The influence reading is approximate, and its thresholds are
-  empirical.** They were set so that ordinary patients pass and a gross
-  data error fails, not derived from a privacy target. Shrinkage makes
-  it understate a patient’s effect on a PK parameter, and the residual
-  errors and a PK parameter without between-subject variability are not
-  read.
-- **The full fit and the estimation log are not safe to share.** The fit
-  holds diagnostics the fingerprint does not, and the console names
-  patients left out. Share the fingerprint or the synthetic data only.
-- **Rarity in the world is not measured.** A covariate level many
-  patients in this study hold can still identify someone if few people
-  hold it.
+Patients left out are named on the console of the GxP system only.
 
 ## The Five Checks
 
@@ -537,31 +514,38 @@ do.call(rbind, rows[!vapply(rows, is.null, logical(1))])
 #> 10                             largest: SLD slope, 0.635 SE
 ```
 
-## Checks on the Synthetic Table
+## Outstanding Risks
 
-[`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md)
-compares the synthetic table with its source. Three of its rows ask
-whether a synthetic patient reproduces a real one: B3 compares how close
-synthetic patients sit to real ones with how close real patients sit to
-each other, B4b asks whether any synthetic patient copies a real
-patient’s values, and B5 asks whether a level fewer than three real
-patients held reached the output.
+The ways a fingerprint can still disclose something about a patient:
 
-``` r
-
-synthetic <- synpmx_model_generate(fit, seed = 11)
-card <- synpmx_scorecard(warfarin, synthetic, roles)
-as.data.frame(card)[card$check %in% c("B3", "B4b", "B5"),
-                    c("check", "question", "result", "verdict")]
-#>    check                                         question
-#> 11    B3    Adversarial accuracy inside its null interval
-#> 13   B4b Generated DV vectors copying an exposed real one
-#> 14    B5        Rare source levels copied into the output
-#>                     result verdict
-#> 11 0.656 in [0.344, 0.712]    pass
-#> 13                       0    pass
-#> 14          0 of 0 exposed    pass
-```
+- **An attacker who holds a candidate’s own trial data can infer
+  membership.** Such an attacker can check whether the released model
+  fits the candidate slightly better than it would fit someone outside
+  the study. In simulation the advantage is small: given one member and
+  one non-member, the attacker picks the member 53% of the time in a
+  60-patient study when its population parameters come from another
+  study (20% off), and 70% of the time in a 12-patient study when it
+  knows the population’s true parameters, where 50% is a coin flip. [The
+  appendix](#membership-inference-against-the-fingerprint) gives the
+  details. Only noise would reduce it.
+- **There is no formal guarantee, so an attacker who knows every other
+  patient is not stopped.** They can compute the exact effect of the one
+  patient they do not know. Only a DP mechanism stops them.
+- **Fingerprints compose.** Two fingerprints from overlapping data, such
+  as an interim and a final analysis, differ by exactly what the
+  patients between them contributed. Nothing here accounts for that.
+- **Three patients is the smallest threshold in common use.** A stricter
+  rule needs `min_arm_patients` and `min_category_patients` raised.
+- **The influence reading is approximate, and its thresholds are
+  empirical.** They were set so that ordinary patients pass and a gross
+  data error fails, not derived from a privacy target. Shrinkage makes
+  it understate a patient’s effect on a PK parameter. Two kinds of
+  released estimate are not checked at all: the residual errors for PK
+  and PD, and the typical value of a PK parameter fitted without
+  between-subject variability, such as a bioavailability.
+- **Rarity in the world is not measured.** A covariate level many
+  patients in this study hold can still identify someone if few people
+  hold it.
 
 ## Appendix: Membership Inference Against the Fingerprint
 

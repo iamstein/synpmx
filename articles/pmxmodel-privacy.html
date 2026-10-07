@@ -254,7 +254,7 @@ to 1, 2 or 5 times a power of ten</td>
 <td>the arm’s mean to two significant figures</td>
 </tr>
 <tr class="even">
-<td>Continuous covariate</td>
+<td>Continuous covariates</td>
 <td>a trimmed mean and SD after the highest and lowest 5% of patients
 are set aside</td>
 </tr>
@@ -288,10 +288,7 @@ fewer than three of the arm’s patients, is written as missing.</li>
 <code>min_category_patients</code>, both 3 by default.</p>
 <p>The threshold stops a frequency from singling out one or two
 patients. It does not stop membership inference, which adds up small
-signals across many frequencies. Pooling is what weakens that:
-attendance is one rate per endpoint, the dose-change rates are three,
-and a graded endpoint is one set of level frequencies, each pooled over
-the arms and the visits.</p>
+signals across many frequencies; pooling is what weakens that.</p>
 </div>
 <div class="section level3">
 <h3 id="covariate-summaries-without-their-extremes">4. Covariate Summaries Without Their Extremes<a class="anchor" aria-label="anchor" href="#covariate-summaries-without-their-extremes"></a>
@@ -308,12 +305,11 @@ DP mean estimators bound one person’s influence<span class="citation"><sup>7</
 </h3>
 <p>Every released PK and PD estimate is rounded to one significant
 figure; covariate summaries are rounded to two, since one would put a
-mean height of 172 cm at 200. One figure moves an estimate by 9% on
-average and 33% at worst. In exchange, the released value is usually the
-same whether a given patient is in the study or not, because a
-one-figure step is about as wide as an estimate’s sampling variation.
-Rounding does not hide an outlier’s effect on a variance, which
-protection 6 measures.</p>
+mean height of 172 cm at 200. One significant figure moves an estimate
+by 9% on average and 33% at worst. The benefit to rounding is that the
+released value is usually the same whether a given patient is in the
+study or not, because a one-figure step is about as wide as an
+estimate’s sampling variation.</p>
 </div>
 <div class="section level3">
 <h3 id="how-far-one-patient-moves-each-estimate">6. How Far One Patient Moves Each Estimate<a class="anchor" aria-label="anchor" href="#how-far-one-patient-moves-each-estimate"></a>
@@ -349,75 +345,46 @@ covariate summaries</strong>, are recomputed exactly with the patient
 left out.</li>
 <li>
 <strong>The other PD shape parameters</strong> (a slope, or a
-plateau and a rate) are refitted with the patient left out, which takes
-milliseconds because the PD time courses are simple least-squares
-curves.</li>
+plateau and a rate) are refitted with the patient left out.</li>
 </ul>
-<p>A move of 15 triggers a review and 30 fails: percent for a typical
-value, and points of between-subject SD on the log scale (close to CV%)
-for a spread. A percentage misleads for a PD shape parameter near zero,
-where any patient moves a slope by hundreds of percent, so for these
-parameters a move must also reach one standard error to be a review, and
-two to fail. The standard error comes from refitting without each of the
-other patients.</p>
-<p>A patient whose move reaches review is left out of the PK fit, the PD
-fits and the covariate summaries, and estimation runs again. The patient
-stays in the dosing, visit and arm models, so cohort and arm sizes do
-not change. Rounds repeat until nobody is flagged, because leaving out
-the most influential patients makes the next ones the most
-influential<span class="citation"><sup>9</sup></span>, and stop at a
-tenth of the cohort. Patients left out are named on the console only;
-the fit records how many. <code>drop_influential = FALSE</code> keeps
-every patient.</p>
-</div>
-</div>
-<div class="section level2">
-<h2 id="outstanding-risks">Outstanding Risks<a class="anchor" aria-label="anchor" href="#outstanding-risks"></a>
-</h2>
-<p>The ways a fingerprint can still disclose something about a patient,
-most serious first:</p>
+<p><strong>A move of 15 or more triggers a review, and 30 or more
+fails.</strong> Each move is measured on a scale that reads like a
+percentage:</p>
 <ul>
 <li>
-<strong>An attacker who holds a candidate’s own trial data can infer
-membership.</strong> Such an attacker can check whether the released
-model fits the candidate slightly better than it would fit someone
-outside the study. In simulation the advantage is small: given one
-member and one non-member, the attacker picks the member 53% of the time
-in a 60-patient study when its population parameters come from another
-study (20% off), and 70% of the time in a 12-patient study when it knows
-the population’s true parameters, where 50% is a coin flip. <a href="#membership-inference-against-the-fingerprint">The appendix</a>
-gives the details. Only noise would reduce it.</li>
+<strong>A typical value</strong> moves by its percent change: a
+clearance going from 10 to 11.5 L/h is a move of 15.</li>
 <li>
-<strong>There is no formal guarantee, so an attacker who knows every
-other patient is not stopped.</strong> They can compute the exact effect
-of the one patient they do not know. Only a DP mechanism stops
-them.</li>
+<strong>A between-subject spread</strong> moves by the change in its
+SD on the log scale, in hundredths, which is close to a change in CV%:
+an SD going from 0.30 to 0.45 is a move of 15.</li>
 <li>
-<strong>Fingerprints compose.</strong> Two fingerprints from
-overlapping data, such as an interim and a final analysis, differ by
-exactly what the patients between them contributed. Nothing here
-accounts for that.</li>
+<strong>A covariate’s mean or SD</strong> moves by the change as a
+percent of the covariate’s SD.</li>
 <li>
-<strong>Three patients is the smallest threshold in common
-use.</strong> A stricter rule needs <code>min_arm_patients</code> and
-<code>min_category_patients</code> raised.</li>
-<li>
-<strong>The influence reading is approximate, and its thresholds are
-empirical.</strong> They were set so that ordinary patients pass and a
-gross data error fails, not derived from a privacy target. Shrinkage
-makes it understate a patient’s effect on a PK parameter, and the
-residual errors and a PK parameter without between-subject variability
-are not read.</li>
-<li>
-<strong>The full fit and the estimation log are not safe to
-share.</strong> The fit holds diagnostics the fingerprint does not, and
-the console names patients left out. Share the fingerprint or the
-synthetic data only.</li>
-<li>
-<strong>Rarity in the world is not measured.</strong> A covariate
-level many patients in this study hold can still identify someone if few
-people hold it.</li>
+<strong>A PD shape parameter</strong> must clear a second bar as
+well. A slope or rate can sit near zero, and then any patient changes it
+by hundreds of percent. So a move counts only if it is also large
+against the estimate’s own uncertainty: at least one standard error for
+a review, and two to fail. The standard error comes from the same
+leave-one-out refits: the spread of the estimates refitted without each
+of the other patients.</li>
 </ul>
+<p><strong>A patient who moves any estimate by 15 or more is left out of
+every estimate, and estimation runs again.</strong> A patient flagged
+for moving one PD slope is left out of the PK fit, every PD fit and the
+covariate summaries alike. The patient stays in the dosing, visit and
+arm models, so cohort and arm sizes do not change.</p>
+<p>Estimation then runs in rounds. Each round leaves out every patient
+the previous round flagged, refits, and reads the moves again, because
+with the most influential patients gone the next ones become the most
+influential<span class="citation"><sup>9</sup></span>. Rounds stop when
+nobody is flagged, or when leaving out the newly flagged patients would
+take more than a tenth of the cohort; in that case those patients stay
+in, and the check reports their move as a review or a failure.</p>
+<p>Patients left out are named on the console of the GxP system
+only.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="the-five-checks">The Five Checks<a class="anchor" aria-label="anchor" href="#the-five-checks"></a>
@@ -726,27 +693,48 @@ twelve-patient fit about five times as far as a sixty-patient one.</p>
 <span><span class="co">#&gt; 10                             largest: SLD slope, 0.635 SE</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="checks-on-the-synthetic-table">Checks on the Synthetic Table<a class="anchor" aria-label="anchor" href="#checks-on-the-synthetic-table"></a>
+<h2 id="outstanding-risks">Outstanding Risks<a class="anchor" aria-label="anchor" href="#outstanding-risks"></a>
 </h2>
-<p><code><a href="../reference/synpmx_scorecard.html">synpmx_scorecard()</a></code> compares the synthetic table with its
-source. Three of its rows ask whether a synthetic patient reproduces a
-real one: B3 compares how close synthetic patients sit to real ones with
-how close real patients sit to each other, B4b asks whether any
-synthetic patient copies a real patient’s values, and B5 asks whether a
-level fewer than three real patients held reached the output.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">fit</span>, seed <span class="op">=</span> <span class="fl">11</span><span class="op">)</span></span>
-<span><span class="va">card</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_scorecard.html">synpmx_scorecard</a></span><span class="op">(</span><span class="va">warfarin</span>, <span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">card</span><span class="op">)</span><span class="op">[</span><span class="va">card</span><span class="op">$</span><span class="va">check</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"B3"</span>, <span class="st">"B4b"</span>, <span class="st">"B5"</span><span class="op">)</span>,</span>
-<span>                    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"check"</span>, <span class="st">"question"</span>, <span class="st">"result"</span>, <span class="st">"verdict"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;    check                                         question</span></span>
-<span><span class="co">#&gt; 11    B3    Adversarial accuracy inside its null interval</span></span>
-<span><span class="co">#&gt; 13   B4b Generated DV vectors copying an exposed real one</span></span>
-<span><span class="co">#&gt; 14    B5        Rare source levels copied into the output</span></span>
-<span><span class="co">#&gt;                     result verdict</span></span>
-<span><span class="co">#&gt; 11 0.656 in [0.344, 0.712]    pass</span></span>
-<span><span class="co">#&gt; 13                       0    pass</span></span>
-<span><span class="co">#&gt; 14          0 of 0 exposed    pass</span></span></code></pre></div>
+<p>The ways a fingerprint can still disclose something about a
+patient:</p>
+<ul>
+<li>
+<strong>An attacker who holds a candidate’s own trial data can infer
+membership.</strong> Such an attacker can check whether the released
+model fits the candidate slightly better than it would fit someone
+outside the study. In simulation the advantage is small: given one
+member and one non-member, the attacker picks the member 53% of the time
+in a 60-patient study when its population parameters come from another
+study (20% off), and 70% of the time in a 12-patient study when it knows
+the population’s true parameters, where 50% is a coin flip. <a href="#membership-inference-against-the-fingerprint">The appendix</a>
+gives the details. Only noise would reduce it.</li>
+<li>
+<strong>There is no formal guarantee, so an attacker who knows every
+other patient is not stopped.</strong> They can compute the exact effect
+of the one patient they do not know. Only a DP mechanism stops
+them.</li>
+<li>
+<strong>Fingerprints compose.</strong> Two fingerprints from
+overlapping data, such as an interim and a final analysis, differ by
+exactly what the patients between them contributed. Nothing here
+accounts for that.</li>
+<li>
+<strong>Three patients is the smallest threshold in common
+use.</strong> A stricter rule needs <code>min_arm_patients</code> and
+<code>min_category_patients</code> raised.</li>
+<li>
+<strong>The influence reading is approximate, and its thresholds are
+empirical.</strong> They were set so that ordinary patients pass and a
+gross data error fails, not derived from a privacy target. Shrinkage
+makes it understate a patient’s effect on a PK parameter. Two kinds of
+released estimate are not checked at all: the residual errors for PK and
+PD, and the typical value of a PK parameter fitted without
+between-subject variability, such as a bioavailability.</li>
+<li>
+<strong>Rarity in the world is not measured.</strong> A covariate
+level many patients in this study hold can still identify someone if few
+people hold it.</li>
+</ul>
 </div>
 <div class="section level2">
 <h2 id="membership-inference-against-the-fingerprint">Appendix: Membership Inference Against the Fingerprint<a class="anchor" aria-label="anchor" href="#membership-inference-against-the-fingerprint"></a>
@@ -812,7 +800,7 @@ of one released number,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>e</mi><mrow><mi>b</mi><mrow><mi mathvariant="normal">ln</mi><mo>⁡</mo></mrow><mn>2</mn></mrow></msup><annotation encoding="application/x-tex">e^{b \ln 2}</annotation></semantics></math>,
 and the noise’s spread against the uncertainty an estimate already has
 from sampling, for a between-subject SD of 0.3:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">span</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">16</span><span class="op">)</span></span>
 <span><span class="va">dp_scale</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">patients</span>, <span class="va">released</span><span class="op">)</span> <span class="va">released</span> <span class="op">*</span> <span class="va">span</span> <span class="op">/</span> <span class="va">patients</span></span>
 <span><span class="va">dp_fold</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">patients</span>, <span class="va">released</span><span class="op">)</span> <span class="op">{</span></span>
