@@ -165,9 +165,9 @@ Estimation then runs in rounds. Each round leaves out every patient the previous
 
 Patients left out are named on the console of the GxP system only.
 
-## The Five Checks
+### Privacy Checking Function
 
-`model_privacy_checks()` verifies the protections on a fit; a fingerprint carries the verdicts of P4 and P5.
+`model_privacy_checks(fit)` verifies the protections on a fit; a fingerprint carries the verdicts of P4 and P5.
 
 | Check | Question | Passes when |
 |------------------------|------------------------|------------------------|
@@ -177,25 +177,7 @@ Patients left out are named on the console of the GxP system only.
 | P4 | Every released frequency rests on at least three patients | protection 3 holds for every frequency |
 | P5 | No single patient moves a released estimate far | every estimate moves less than 15 (protection 6) |
 
-```{r checks, eval=run}
-checks <- model_privacy_checks(fit)
-as.data.frame(checks)[, c("check", "verdict", "result")]
-```
-
-The reading behind P5, one row per released estimate: the largest move any one patient causes, the number of patients it was read over, the shrinkage of the random effect it came from, and the verdict. No row is about a patient.
-
-```{r influence, eval=run}
-digits3(attr(checks, "influence"))
-```
-
-The recount behind P4: for each kind of released frequency, the smallest group of patients behind any one of them, and how many values the rules changed to meet the floor.
-
-```{r frequencies, eval=run}
-attr(checks, "frequencies")[, c("quantity", "smallest", "threshold",
-                                "adjusted")]
-```
-
-## Three Constructed Cases
+### Three Constructed Test Cases
 
 Each case is `warfarin` with one or more patients changed, fitted once and stored with the package. None is a real study.
 
@@ -282,9 +264,12 @@ summary_of <- function(model) {
              geometric_mean = exp(c(model$wt$meanlog, model$age$meanlog)),
              sd_log = c(model$wt$sdlog, model$age$sdlog))
 }
-rbind(cbind(study = "warfarin", summary_of(fit$covariates)),
-      cbind(study = "with the two extreme patients",
-            summary_of(extreme_fit$covariates)))
+both <- rbind(cbind(summary_of(fit$covariates), study = "warfarin"),
+              cbind(summary_of(extreme_fit$covariates),
+                    study = "with the two extreme patients"))
+both <- both[order(both$covariate != "wt"), ]
+rownames(both) <- NULL
+both
 ```
 
 ### A Category Nobody Else Holds
@@ -319,11 +304,11 @@ rows <- lapply(names(files), function(study) {
   data.frame(study = study, patients = one$n_source,
              left_out = if (is.null(one$privacy$left_out)) 0L else
                one$privacy$left_out$patients, t(verdicts),
-             largest = sub("; after leaving.*$", "",
-                           checks$result[checks$check == "P5"]),
+             largest = sub("^largest: (.*?)(; [0-9]+ left out)?$", "\\1",
+                           checks$result[checks$check == "P5"], perl = TRUE),
              check.names = FALSE)
 })
-do.call(rbind, rows[!vapply(rows, is.null, logical(1))])
+knitr::kable(do.call(rbind, rows[!vapply(rows, is.null, logical(1))]))
 ```
 
 ## Outstanding Risks {#outstanding-risks}

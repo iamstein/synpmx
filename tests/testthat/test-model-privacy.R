@@ -344,7 +344,7 @@ test_that("a patient misdosed a thousandfold is left out of the estimates and na
   expect_equal(fit$privacy$left_out$patients, 1L)
   checks <- model_privacy_checks(fit)
   expect_false(identical(checks$verdict[checks$check == "P5"], "FAIL"))
-  expect_match(checks$result[checks$check == "P5"], "after leaving 1")
+  expect_match(checks$result[checks$check == "P5"], "1 left out")
   # Left out of the estimates and kept in the apparatus: the cohort the
   # dosing and visit models describe is the whole study.
   expect_equal(fit$n_source, length(unique(data$ID)))

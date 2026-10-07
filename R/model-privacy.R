@@ -590,12 +590,8 @@ model_privacy_checks <- function(fitted_model) {
     if (length(unrounded)) "allometric reference not rounded",
     if (length(uncarried)) paste("factor level no arm carries:",
                                  paste(uncarried, collapse = ", ")))
-  p3 <- list(result = if (!length(values)) {
-    paste0("none: ", if (length(floors)) "floors on the 1-2-5 series, " else "",
-           "covariates summarized without their extremes, ",
-           "no median, minimum or maximum stored, ",
-           "no factor level beyond what the arms carry")
-  } else paste(values, collapse = "; "), ok = !length(values))
+  p3 <- list(result = if (!length(values)) "none" else
+    paste(values, collapse = "; "), ok = !length(values))
 
   sizes <- as.integer(fingerprint$arms$sizes)
   frequencies <- if (inherits(fitted_model, "pmx_model_fingerprint")) {
@@ -626,8 +622,7 @@ model_privacy_checks <- function(fitted_model) {
   } else .influence_summary(influence)
   left_out <- fitted_model$privacy$left_out$patients %||% 0L
   if (left_out > 0L) {
-    summary$result <- paste0(summary$result, "; after leaving ", left_out,
-                             " patient(s) out of the estimates")
+    summary$result <- paste0(summary$result, "; ", left_out, " left out")
   }
 
   verdict <- function(ok) {
@@ -1018,13 +1013,10 @@ print.pmx_privacy_checks <- function(x, ...) {
                                                 short$smallest),
                                         collapse = "; "))
     } else if (!is.null(smallest)) {
-      sprintf("smallest group: %g, %s", smallest$smallest, smallest$quantity)
+      sprintf("smallest group %g", smallest$smallest)
     } else "nothing to count",
     if (nrow(adjusted)) {
-      paste0("; adjusted to meet it: ",
-             paste(sprintf("%d (%s)", adjusted$adjusted,
-                           sub("^patients (holding |with the |on either side of |in )",
-                               "", adjusted$quantity)), collapse = ", "))
+      sprintf("; %d adjusted", sum(adjusted$adjusted))
     } else "")
   list(verdict = if (nrow(short)) "FAIL" else "pass", result = result)
 }
