@@ -207,11 +207,10 @@ a review or a failure.
 
 Patients left out are named on the console of the GxP system only.
 
-## The Five Checks
+### Privacy Checking Function
 
-[`model_privacy_checks()`](https://iamstein.github.io/synpmx/reference/model_privacy_checks.md)
-verifies the protections on a fit; a fingerprint carries the verdicts of
-P4 and P5.
+`model_privacy_checks(fit)` verifies the protections on a fit; a
+fingerprint carries the verdicts of P4 and P5.
 
 | Check | Question | Passes when |
 |----|----|----|
@@ -221,95 +220,7 @@ P4 and P5.
 | P4 | Every released frequency rests on at least three patients | protection 3 holds for every frequency |
 | P5 | No single patient moves a released estimate far | every estimate moves less than 15 (protection 6) |
 
-``` r
-
-checks <- model_privacy_checks(fit)
-as.data.frame(checks)[, c("check", "verdict", "result")]
-#>   check verdict
-#> 1    P1    pass
-#> 2    P2    pass
-#> 3    P3    pass
-#> 4    P4    pass
-#> 5    P5    pass
-#>                                                                                                                                                             result
-#> 1                                                                                                                                                             none
-#> 2                                                                                                                                                             none
-#> 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored, no factor level beyond what the arms carry
-#> 4                                                                                                smallest group: 5, patients holding a categorical covariate level
-#> 5                                                                                                                  largest: cp: ka between-subject SD, 9.84 points
-```
-
-The reading behind P5, one row per released estimate: the largest move
-any one patient causes, the number of patients it was read over, the
-shrinkage of the random effect it came from, and the verdict. No row is
-about a patient.
-
-``` r
-
-digits3(attr(checks, "influence"))
-#>        group   name            quantity released change   unit patients
-#> 1         PK cp: cl       typical value      0.1   2.62      %       32
-#> 2         PK cp: cl  between-subject SD    0.265   4.13 points       32
-#> 3         PK  cp: v       typical value        7   1.01      %       32
-#> 4         PK  cp: v  between-subject SD      0.2    1.9 points       32
-#> 5         PK cp: ka       typical value      0.4    3.2      %       32
-#> 6         PK cp: ka  between-subject SD    0.548   9.84 points       32
-#> 7         PK  cp: q       typical value      0.1 0.0146      %       32
-#> 8         PK  cp: q  between-subject SD   0.0775  0.829 points       32
-#> 9         PK cp: v2       typical value        2   2.31      %       32
-#> 10        PK cp: v2  between-subject SD    0.632   3.63 points       32
-#> 11        PD    pca    typical baseline      100   2.11      %       32
-#> 12        PD    pca  between-subject SD      0.1   5.86 points       32
-#> 13        PD    pca             plateau       30   5.59      %       32
-#> 14        PD    pca                rate      0.1   7.82      %       32
-#> 15 covariate     wt      geometric mean       69   1.22      %       32
-#> 16 covariate     wt SD on the log scale     0.18   1.71 points       32
-#> 17 covariate    age      geometric mean       29   2.05      %       32
-#> 18 covariate    age SD on the log scale     0.34    2.3 points       32
-#>    shrinkage verdict
-#> 1     0.0153    pass
-#> 2     0.0153    pass
-#> 3      0.359    pass
-#> 4      0.359    pass
-#> 5      0.447    pass
-#> 6      0.447    pass
-#> 7      0.977    pass
-#> 8      0.977    pass
-#> 9      0.474    pass
-#> 10     0.474    pass
-#> 11        NA    pass
-#> 12        NA    pass
-#> 13        NA    pass
-#> 14        NA    pass
-#> 15        NA    pass
-#> 16        NA    pass
-#> 17        NA    pass
-#> 18        NA    pass
-```
-
-The recount behind P4: for each kind of released frequency, the smallest
-group of patients behind any one of them, and how many values the rules
-changed to meet the floor.
-
-``` r
-
-attr(checks, "frequencies")[, c("quantity", "smallest", "threshold",
-                                "adjusted")]
-#>                                                   quantity smallest threshold
-#> 1                                       patients in an arm       32         3
-#> 2 patients on either side of an endpoint's attendance rate       21         3
-#> 3              patients with the dose change behind a rate       NA         3
-#> 4           patients holding a categorical covariate level        5         3
-#> 5              patients holding a level of a factor column       32         3
-#>   adjusted
-#> 1        0
-#> 2        0
-#> 3        0
-#> 4        0
-#> 5        0
-```
-
-## Three Constructed Cases
+### Three Constructed Test Cases
 
 Each case is `warfarin` with one or more patients changed, fitted once
 and stored with the package. None is a real study.
@@ -354,18 +265,12 @@ implies. Kept in with `drop_influential = FALSE`, the patient fails P5:
 
 kept_checks <- model_privacy_checks(misdosed_kept_fit)
 as.data.frame(kept_checks)[, c("check", "verdict", "result")]
-#>   check verdict
-#> 1    P1    pass
-#> 2    P2    pass
-#> 3    P3    pass
-#> 4    P4    pass
-#> 5    P5    FAIL
-#>                                                                                                                                                             result
-#> 1                                                                                                                                                             none
-#> 2                                                                                                                                                             none
-#> 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored, no factor level beyond what the arms carry
-#> 4                                                                                                smallest group: 5, patients holding a categorical covariate level
-#> 5                                                                                                                  largest: cp: v2 between-subject SD, 70.7 points
+#>   check verdict                                          result
+#> 1    P1    pass                                            none
+#> 2    P2    pass                                            none
+#> 3    P3    pass                                            none
+#> 4    P4    pass                                smallest group 5
+#> 5    P5    FAIL largest: cp: v2 between-subject SD, 70.7 points
 ```
 
 By default the patient is left out, and the checks pass:
@@ -376,18 +281,12 @@ misdosed_fit$privacy$left_out$patients
 #> [1] 1
 as.data.frame(model_privacy_checks(misdosed_fit))[, c("check", "verdict",
                                                       "result")]
-#>   check verdict
-#> 1    P1    pass
-#> 2    P2    pass
-#> 3    P3    pass
-#> 4    P4    pass
-#> 5    P5    pass
-#>                                                                                                                                                             result
-#> 1                                                                                                                                                             none
-#> 2                                                                                                                                                             none
-#> 3 none: floors on the 1-2-5 series, covariates summarized without their extremes, no median, minimum or maximum stored, no factor level beyond what the arms carry
-#> 4                                                                                                smallest group: 4, patients holding a categorical covariate level
-#> 5                                                                 largest: cp: ka between-subject SD, 9.02 points; after leaving 1 patient(s) out of the estimates
+#>   check verdict                                                      result
+#> 1    P1    pass                                                        none
+#> 2    P2    pass                                                        none
+#> 3    P3    pass                                                        none
+#> 4    P4    pass                                            smallest group 4
+#> 5    P5    pass largest: cp: ka between-subject SD, 9.02 points; 1 left out
 ```
 
 Kept, the patient’s exposure becomes between-subject variability and the
@@ -433,14 +332,17 @@ summary_of <- function(model) {
              geometric_mean = exp(c(model$wt$meanlog, model$age$meanlog)),
              sd_log = c(model$wt$sdlog, model$age$sdlog))
 }
-rbind(cbind(study = "warfarin", summary_of(fit$covariates)),
-      cbind(study = "with the two extreme patients",
-            summary_of(extreme_fit$covariates)))
-#>                           study covariate geometric_mean sd_log
-#> 1                      warfarin        wt             69   0.18
-#> 2                      warfarin       age             29   0.34
-#> 3 with the two extreme patients        wt             70   0.19
-#> 4 with the two extreme patients       age             29   0.36
+both <- rbind(cbind(summary_of(fit$covariates), study = "warfarin"),
+              cbind(summary_of(extreme_fit$covariates),
+                    study = "with the two extreme patients"))
+both <- both[order(both$covariate != "wt"), ]
+rownames(both) <- NULL
+both
+#>   covariate geometric_mean sd_log                         study
+#> 1        wt             69   0.18                      warfarin
+#> 2        wt             70   0.19 with the two extreme patients
+#> 3       age             29   0.34                      warfarin
+#> 4       age             29   0.36 with the two extreme patients
 ```
 
 ### A Category Nobody Else Holds
@@ -485,34 +387,25 @@ rows <- lapply(names(files), function(study) {
   data.frame(study = study, patients = one$n_source,
              left_out = if (is.null(one$privacy$left_out)) 0L else
                one$privacy$left_out$patients, t(verdicts),
-             largest = sub("; after leaving.*$", "",
-                           checks$result[checks$check == "P5"]),
+             largest = sub("^largest: (.*?)(; [0-9]+ left out)?$", "\\1",
+                           checks$result[checks$check == "P5"], perl = TRUE),
              check.names = FALSE)
 })
-do.call(rbind, rows[!vapply(rows, is.null, logical(1))])
-#>           study patients left_out   P1   P2   P3   P4   P5
-#> 1      warfarin       32        0 pass pass pass pass pass
-#> 2       theo_md       12        0 pass pass pass pass pass
-#> 3           mad       60        1 pass pass pass pass pass
-#> 4    case1_pkpd      180        0 pass pass pass pass pass
-#> 5        wbcSim       45        1 pass pass pass pass pass
-#> 6   mavoglurant      120        0 pass pass pass pass pass
-#> 7      nimoData       12        0 pass pass pass pass pass
-#> 8      pheno_sd       59        0 pass pass pass pass pass
-#> 9  mixroute_sim       90        0 pass pass pass pass pass
-#> 10      onc_sim      200        0 pass pass pass pass pass
-#>                                                     largest
-#> 1           largest: cp: ka between-subject SD, 9.84 points
-#> 2                     largest: DV: ka typical value, 9.92 %
-#> 3  largest: PD - Continuous between-subject SD, 10.3 points
-#> 4  largest: PD - Continuous between-subject SD, 6.44 points
-#> 5               largest: DV between-subject SD, 2.39 points
-#> 6           largest: DV: v2 between-subject SD, 2.09 points
-#> 7           largest: DV: v2 between-subject SD, 12.7 points
-#> 8            largest: APGR SD on the log scale, 4.32 points
-#> 9           largest: DV: ka between-subject SD, 4.25 points
-#> 10                             largest: SLD slope, 0.635 SE
+knitr::kable(do.call(rbind, rows[!vapply(rows, is.null, logical(1))]))
 ```
+
+| study | patients | left_out | P1 | P2 | P3 | P4 | P5 | largest |
+|:---|---:|---:|:---|:---|:---|:---|:---|:---|
+| warfarin | 32 | 0 | pass | pass | pass | pass | pass | cp: ka between-subject SD, 9.84 points |
+| theo_md | 12 | 0 | pass | pass | pass | pass | pass | DV: ka typical value, 9.92 % |
+| mad | 60 | 1 | pass | pass | pass | pass | pass | PD - Continuous between-subject SD, 10.3 points |
+| case1_pkpd | 180 | 0 | pass | pass | pass | pass | pass | PD - Continuous between-subject SD, 6.44 points |
+| wbcSim | 45 | 1 | pass | pass | pass | pass | pass | DV between-subject SD, 2.39 points |
+| mavoglurant | 120 | 0 | pass | pass | pass | pass | pass | DV: v2 between-subject SD, 2.09 points |
+| nimoData | 12 | 0 | pass | pass | pass | pass | pass | DV: v2 between-subject SD, 12.7 points |
+| pheno_sd | 59 | 0 | pass | pass | pass | pass | pass | APGR SD on the log scale, 4.32 points |
+| mixroute_sim | 90 | 0 | pass | pass | pass | pass | pass | DV: ka between-subject SD, 4.25 points |
+| onc_sim | 200 | 0 | pass | pass | pass | pass | pass | SLD slope, 0.635 SE |
 
 ## Outstanding Risks
 
