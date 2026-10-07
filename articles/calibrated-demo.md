@@ -130,11 +130,11 @@ which is the honest way to read a single one.
 release <- attr(synthetic, "synpmx_release")
 release
 #> Calibrated structural model (v3)
-#>   released subject count: 101.9
-#>   pk correction: 1.26x
-#>   corrected typical: cl=2.52, v=10, ka=0.5
+#>   released subject count: 89.5
+#>   pk correction: 0.999x
+#>   corrected typical: cl=2, v=10, ka=0.5
 #>   epsilon: 0.1  (formal DP: TRUE)
-#>   f = 0.196 (worthwhile)
+#>   f = 0.223 (worthwhile)
 ```
 
 Two numbers left the study: a correction multiplying the assumed
@@ -167,11 +167,11 @@ not a measurement.
 ``` r
 
 str(synthetic)
-#> 'data.frame':    1632 obs. of  8 variables:
+#> 'data.frame':    1424 obs. of  8 variables:
 #>  $ ID   : int  1 1 1 1 1 1 1 1 1 1 ...
-#>  $ TIME : num  0 0 0.964 1.993 2.944 ...
+#>  $ TIME : num  0 0 1.03 1.95 2.95 ...
 #>  $ NTIME: num  0 0 1 2 3 7 7 8 9 10 ...
-#>  $ DV   : num  NA 0 3.2 4.23 4.79 ...
+#>  $ DV   : num  NA 0 3.65 4.81 4.83 ...
 #>  $ AMT  : num  100 0 0 0 0 100 0 0 0 0 ...
 #>  $ EVID : int  1 0 0 0 0 1 0 0 0 0 ...
 #>  $ CMT  : int  1 2 2 2 2 1 2 2 2 2 ...
@@ -239,27 +239,27 @@ str(synthetic)
 #>   ..$ covariate_summaries  : NULL
 #>   ..$ corrections          :List of 1
 #>   .. ..$ pk:List of 3
-#>   .. .. ..$ factor           : num 1.26
+#>   .. .. ..$ factor           : num 0.999
 #>   .. .. ..$ at_prior_boundary: logi FALSE
 #>   .. .. ..$ prior            :List of 3
 #>   .. .. .. ..$ range : num [1:2] 0.25 4
 #>   .. .. .. ..$ source: chr "scaling literature: the prediction is believed good to four-fold"
 #>   .. .. .. ..$ span  : num 2.77
 #>   .. .. .. ..- attr(*, "class")= chr "pmx_prior"
-#>   ..$ corrected_typical    : Named num [1:3] 2.52 10 0.5
+#>   ..$ corrected_typical    : Named num [1:3] 2 10 0.5
 #>   .. ..- attr(*, "names")= chr [1:3] "cl" "v" "ka"
-#>   ..$ private_subject_count: num 102
+#>   ..$ private_subject_count: num 89.5
 #>   ..$ preflight            :List of 6
 #>   .. ..$ d         : int 2
 #>   .. ..$ epsilon   : num 0.1
-#>   .. ..$ n_subjects: num 102
-#>   .. ..$ f         : num 0.196
+#>   .. ..$ n_subjects: num 89.5
+#>   .. ..$ f         : num 0.223
 #>   .. ..$ verdict   : chr "worthwhile"
 #>   .. ..$ table     :'data.frame':    1 obs. of  4 variables:
 #>   .. .. ..$ quantity           : chr "pk"
 #>   .. .. ..$ prior_fold         : num 16
-#>   .. .. ..$ f                  : num 0.196
-#>   .. .. ..$ expected_fold_error: num 1.72
+#>   .. .. ..$ f                  : num 0.223
+#>   .. .. ..$ expected_fold_error: num 1.86
 #>   .. ..- attr(*, "class")= chr "pmx_preflight"
 #>   ..$ privacy              :List of 9
 #>   .. ..$ formal_dp         : logi TRUE
@@ -292,8 +292,8 @@ str(synthetic)
 #>   .. ..$ input : chr [1:3] "structural model" "trial design" "pk prior"
 #>   .. ..$ source: chr [1:3] "the documented generating truth of the mixroute_sim fixture" "the fixture's protocol: 100 mg on days 0, 7 and 14" "scaling literature: the prediction is believed good to four-fold"
 #>   ..$ ledger               :List of 5
-#>   .. ..$ release_id       : chr "pmx-20261007T005205.558258-20959"
-#>   .. ..$ created_utc      : chr "2026-10-07T00:52:05.558507Z"
+#>   .. ..$ release_id       : chr "pmx-20261007T011410.683003-20927"
+#>   .. ..$ created_utc      : chr "2026-10-07T01:14:10.683321Z"
 #>   .. ..$ requested_epsilon: num 0.1
 #>   .. ..$ realized_epsilon : num 0.1
 #>   .. ..$ backend          : chr "OpenDP"
