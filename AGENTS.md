@@ -192,6 +192,10 @@ the fast loop. Two things the tooling will not tell you:
   saying so; do not add a second. This starts at the first release.
 - Rewrite or remove any section that no longer matches the implementation. Never
   preserve stale technical detail to minimize a diff.
+- Cite with `[@key]` from `vignettes/references.bib`, never a hand-typed `[n]`
+  or reference list. Each citing document declares `bibliography:` and
+  `csl: ama.csl` (with `../` under `articles/`) and ends its References
+  section with a `::: {#refs}` div; pandoc numbers and lists what is cited.
 - Spell out and briefly explain every acronym and abbreviation at its first use
   in a document, including ones that feel obvious in context (DP, PMX, PK, PCA,
   BLOQ, AR(1), ADaM). Write "differential privacy (DP)" once, then use the short

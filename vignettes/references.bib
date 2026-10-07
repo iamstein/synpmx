@@ -1,0 +1,372 @@
+% References cited by the vignettes and articles, rendered in AMA style by
+% ama.csl beside this file. Articles under articles/ point here with
+% `bibliography: ../references.bib`.
+
+% AVATAR and synthetic pharmacometric data ----------------------------------
+
+@article{guillaudeux2023,
+  author  = {Guillaudeux, Morgan and Rousseau, Olivia and Petot, Julien and others},
+  title   = {Patient-centric synthetic data generation, no reason to risk re-identification in biomedical data analysis},
+  journal = {npj Digital Medicine},
+  year    = {2023},
+  volume  = {6},
+  doi     = {10.1038/s41746-023-00771-5}
+}
+
+@article{destere2026,
+  author  = {Destere, A. and Lombardi, R. and Labriffe, M. and others},
+  title   = {Can synthetic data overcome the privacy and fidelity bottleneck in Pharmacometrics? {A} comparative benchmark using a daptomycin population pharmacokinetic model},
+  journal = {medRxiv},
+  date    = {2026-06-02},
+  doi     = {10.64898/2026.05.30.26354512}
+}
+
+@article{woillard2025,
+  author  = {Woillard, J. B. and Benoist, C. and others},
+  title   = {To be or not to be, when synthetic data meet clinical pharmacology: {A} focused study on pharmacogenetics},
+  journal = {CPT: Pharmacometrics \& Systems Pharmacology},
+  year    = {2025},
+  doi     = {10.1002/psp4.13240}
+}
+
+@article{jiang2024,
+  author  = {Jiang, Y. and Garc{\'i}a-Dur{\'a}n, A. and Losada, I. B. and Girard, P. and Terranova, N.},
+  title   = {Generative models for synthetic data generation: application to pharmacokinetic/pharmacodynamic data},
+  journal = {Journal of Pharmacokinetics and Pharmacodynamics},
+  year    = {2024},
+  doi     = {10.1007/s10928-024-09935-6}
+}
+
+@article{gadgil2026,
+  author  = {Gadgil, P. K. and Poojari, S. M. and Ramanathan, M.},
+  title   = {Diffusion models for virtual populations and pharmacometric simulations},
+  journal = {Journal of Pharmacokinetics and Pharmacodynamics},
+  year    = {2026},
+  volume  = {53},
+  number  = {5},
+  pages   = {45}
+}
+
+@article{zwep2024,
+  author  = {Zwep, L. B. and Guo, T. and Nagler, T. and Knibbe, C. A. J. and Meulman, J. J. and {van Hasselt}, J. G. C.},
+  title   = {Virtual patient simulation using copula modeling},
+  journal = {Clinical Pharmacology \& Therapeutics},
+  year    = {2024},
+  volume  = {115},
+  number  = {4},
+  pages   = {795--804},
+  doi     = {10.1002/cpt.3099}
+}
+
+@article{guo2024,
+  author  = {Guo, T. and others},
+  title   = {Generation of realistic virtual adult populations using a model-based copula approach},
+  journal = {Journal of Pharmacokinetics and Pharmacodynamics},
+  year    = {2024},
+  doi     = {10.1007/s10928-024-09929-4}
+}
+
+@article{nowok2016,
+  author  = {Nowok, B. and Raab, G. M. and Dibben, C.},
+  title   = {{synthpop}: Bespoke creation of synthetic data in {R}},
+  journal = {Journal of Statistical Software},
+  year    = {2016},
+  volume  = {74},
+  number  = {11},
+  pages   = {1--26},
+  doi     = {10.18637/jss.v074.i11}
+}
+
+@inproceedings{xu2019,
+  author    = {Xu, L. and Skoularidou, M. and Cuesta-Infante, A. and Veeramachaneni, K.},
+  title     = {Modeling tabular data using conditional {GAN}},
+  booktitle = {Advances in Neural Information Processing Systems 32 (NeurIPS 2019)},
+  year      = {2019},
+  pages     = {7335--7345}
+}
+
+@software{ahmed2025,
+  author  = {Ahmed, Z.},
+  title   = {{FakeDataR}: Privacy-Preserving Synthetic Data for '{LLM}' Workflows. {R} package version 0.2.2},
+  year    = {2025},
+  url     = {https://cran.r-project.org/package=FakeDataR}
+}
+
+% Differential privacy and disclosure control -------------------------------
+
+@inproceedings{dwork2006,
+  author    = {Dwork, C. and McSherry, F. and Nissim, K. and Smith, A.},
+  title     = {Calibrating noise to sensitivity in private data analysis},
+  booktitle = {Theory of Cryptography Conference (TCC)},
+  year      = {2006}
+}
+
+@article{dwork2014,
+  author  = {Dwork, C. and Roth, A.},
+  title   = {The algorithmic foundations of differential privacy},
+  journal = {Foundations and Trends in Theoretical Computer Science},
+  year    = {2014},
+  volume  = {9},
+  number  = {3--4},
+  doi     = {10.1561/0400000042}
+}
+
+@inproceedings{nissim2007,
+  author    = {Nissim, K. and Raskhodnikova, S. and Smith, A.},
+  title     = {Smooth sensitivity and sampling in private data analysis},
+  booktitle = {ACM Symposium on Theory of Computing (STOC)},
+  year      = {2007}
+}
+
+@inproceedings{smith2011,
+  author    = {Smith, A.},
+  title     = {Privacy-preserving statistical estimation with optimal convergence rates},
+  booktitle = {ACM Symposium on Theory of Computing (STOC)},
+  year      = {2011}
+}
+
+@inproceedings{bun2019,
+  author    = {Bun, M. and Steinke, T.},
+  title     = {Average-case averages: private algorithms for smooth sensitivity and mean estimation},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2019}
+}
+
+@book{hundepool2012,
+  author    = {Hundepool, A. and Domingo-Ferrer, J. and Franconi, L. and others},
+  title     = {Statistical Disclosure Control},
+  publisher = {Wiley},
+  year      = {2012}
+}
+
+@article{sweeney2002,
+  author  = {Sweeney, L.},
+  title   = {{k}-anonymity: a model for protecting privacy},
+  journal = {International Journal of Uncertainty, Fuzziness and Knowledge-Based Systems},
+  year    = {2002},
+  volume  = {10},
+  number  = {5},
+  pages   = {557--570}
+}
+
+@article{machanavajjhala2007,
+  author  = {Machanavajjhala, A. and Kifer, D. and Gehrke, J. and Venkitasubramaniam, M.},
+  title   = {{l}-diversity: privacy beyond k-anonymity},
+  journal = {ACM Transactions on Knowledge Discovery from Data},
+  year    = {2007},
+  volume  = {1},
+  number  = {1},
+  pages   = {3}
+}
+
+@inproceedings{li2007,
+  author    = {Li, N. and Li, T. and Venkatasubramanian, S.},
+  title     = {{t}-closeness: privacy beyond k-anonymity and l-diversity},
+  booktitle = {IEEE International Conference on Data Engineering (ICDE)},
+  year      = {2007},
+  pages     = {106--115}
+}
+
+@inproceedings{ganta2008,
+  author    = {Ganta, S. R. and Kasiviswanathan, S. P. and Smith, A.},
+  title     = {Composition attacks and auxiliary information in data privacy},
+  booktitle = {ACM SIGKDD International Conference on Knowledge Discovery and Data Mining},
+  year      = {2008},
+  pages     = {265--273}
+}
+
+@report{art29wp2014,
+  author      = {{Article 29 Data Protection Working Party}},
+  title       = {Opinion 05/2014 on Anonymisation Techniques ({WP216})},
+  type        = {Working paper},
+  date        = {2014-04-10}
+}
+
+% Privacy attacks and metrics for synthetic data ----------------------------
+
+@inproceedings{shokri2017,
+  author    = {Shokri, R. and Stronati, M. and Song, C. and Shmatikov, V.},
+  title     = {Membership inference attacks against machine learning models},
+  booktitle = {IEEE Symposium on Security and Privacy},
+  year      = {2017}
+}
+
+@inproceedings{carlini2022lira,
+  author    = {Carlini, N. and Chien, S. and Nasr, M. and Song, S. and Terzis, A. and Tram{\`e}r, F.},
+  title     = {Membership inference attacks from first principles},
+  booktitle = {IEEE Symposium on Security and Privacy},
+  year      = {2022}
+}
+
+@inproceedings{carlini2022onion,
+  author    = {Carlini, N. and Jagielski, M. and Zhang, C. and Papernot, N. and Terzis, A. and Tram{\`e}r, F.},
+  title     = {The privacy onion effect: memorization is relative},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2022}
+}
+
+@inproceedings{stadler2022,
+  author    = {Stadler, T. and Oprisanu, B. and Troncoso, C.},
+  title     = {Synthetic data -- anonymisation groundhog day},
+  booktitle = {USENIX Security Symposium},
+  year      = {2022}
+}
+
+@article{giomi2023,
+  author  = {Giomi, M. and Boenisch, F. and Wehmeyer, C. and Tasn{\'a}di, B.},
+  title   = {A unified framework for quantifying privacy risk in synthetic data},
+  journal = {Proceedings on Privacy Enhancing Technologies},
+  year    = {2023},
+  volume  = {2023},
+  number  = {2},
+  pages   = {312--328},
+  doi     = {10.56553/popets-2023-0055}
+}
+
+@misc{raab2024risk,
+  author        = {Raab, G. M. and Nowok, B. and Dibben, C.},
+  title         = {Privacy risk from synthetic data: practical proposals},
+  year          = {2024},
+  eprint        = {2409.04257},
+  archiveprefix = {arXiv},
+  howpublished  = {arXiv:2409.04257}
+}
+
+@misc{raab2024metrics,
+  author        = {Raab, G. M. and Nowok, B. and Dibben, C.},
+  title         = {Practical privacy metrics for synthetic data},
+  year          = {2024},
+  eprint        = {2406.16826},
+  archiveprefix = {arXiv},
+  howpublished  = {arXiv:2406.16826}
+}
+
+@article{yale2020,
+  author  = {Yale, A. and Dash, S. and Dutta, R. and Guyon, I. and Pavao, A. and Bennett, K. P.},
+  title   = {Generation and evaluation of privacy preserving synthetic health data},
+  journal = {Neurocomputing},
+  year    = {2020},
+  volume  = {416},
+  pages   = {244--255},
+  doi     = {10.1016/j.neucom.2019.12.136}
+}
+
+@inproceedings{ganev2025,
+  author    = {Ganev, G. and De Cristofaro, E.},
+  title     = {The inadequacy of similarity-based privacy metrics: privacy attacks against ``truly anonymous'' synthetic datasets},
+  booktitle = {IEEE Symposium on Security and Privacy},
+  year      = {2025}
+}
+
+@inproceedings{alaa2022,
+  author    = {Alaa, A. and {van Breugel}, B. and Saveliev, E. S. and {van der Schaar}, M.},
+  title     = {How faithful is your synthetic data? {S}ample-level metrics for evaluating and auditing generative models},
+  booktitle = {Proceedings of the 39th International Conference on Machine Learning (ICML)},
+  series    = {PMLR},
+  volume    = {162},
+  pages     = {290--306},
+  year      = {2022}
+}
+
+@inproceedings{dwork2015,
+  author    = {Dwork, C. and Smith, A. and Steinke, T. and Ullman, J. and Vadhan, S.},
+  title     = {Robust traceability from trace amounts},
+  booktitle = {IEEE Symposium on Foundations of Computer Science (FOCS)},
+  year      = {2015}
+}
+
+@article{homer2008,
+  author  = {Homer, N. and Szelinger, S. and Redman, M. and others},
+  title   = {Resolving individuals contributing trace amounts of {DNA} to highly complex mixtures using high-density {SNP} genotyping microarrays},
+  journal = {PLoS Genetics},
+  year    = {2008},
+  volume  = {4},
+  number  = {8},
+  pages   = {e1000167}
+}
+
+@article{sankararaman2009,
+  author  = {Sankararaman, S. and Obozinski, G. and Jordan, M. I. and Halperin, E.},
+  title   = {Genomic privacy and limits of individual detection in a pool},
+  journal = {Nature Genetics},
+  year    = {2009},
+  volume  = {41},
+  pages   = {965--967}
+}
+
+% Utility measures -----------------------------------------------------------
+
+@article{snoke2018,
+  author  = {Snoke, J. and Nowok, B. and Raab, G. M. and Dibben, C. and Slavkovic, A.},
+  title   = {General and specific utility measures for synthetic data},
+  journal = {Journal of the Royal Statistical Society Series A},
+  year    = {2018},
+  volume  = {181},
+  number  = {3},
+  pages   = {663--688},
+  doi     = {10.1111/rssa.12358}
+}
+
+@article{karr2006,
+  author  = {Karr, A. F. and Kohnen, C. N. and Oganian, A. and Reiter, J. P. and Sanil, A. P.},
+  title   = {A framework for evaluating the utility of data altered to protect confidentiality},
+  journal = {The American Statistician},
+  year    = {2006},
+  volume  = {60},
+  number  = {3},
+  pages   = {224--232},
+  doi     = {10.1198/000313006X124640}
+}
+
+@article{hanley1982,
+  author  = {Hanley, J. A. and McNeil, B. J.},
+  title   = {The meaning and use of the area under a receiver operating characteristic ({ROC}) curve},
+  journal = {Radiology},
+  year    = {1982},
+  volume  = {143},
+  number  = {1},
+  pages   = {29--36}
+}
+
+% Statistics and reporting standards ----------------------------------------
+
+@book{huber2009,
+  author    = {Huber, P. J. and Ronchetti, E. M.},
+  title     = {Robust Statistics},
+  edition   = {2},
+  publisher = {Wiley},
+  year      = {2009}
+}
+
+@article{cook1977,
+  author  = {Cook, R. D.},
+  title   = {Detection of influential observation in linear regression},
+  journal = {Technometrics},
+  year    = {1977},
+  volume  = {19},
+  number  = {1},
+  pages   = {15--18}
+}
+
+@report{fda2022,
+  author      = {{U.S. Food and Drug Administration}},
+  title       = {Population Pharmacokinetics: Guidance for Industry},
+  type        = {Guidance},
+  year        = {2022}
+}
+
+@report{ema2007,
+  author      = {{European Medicines Agency}},
+  title       = {Guideline on Reporting the Results of Population Pharmacokinetic Analyses ({CHMP/EWP/185990/06})},
+  type        = {Guideline},
+  year        = {2007}
+}
+
+@article{schulz2010,
+  author  = {Schulz, K. F. and Altman, D. G. and Moher, D.},
+  title   = {{CONSORT} 2010 Statement: updated guidelines for reporting parallel group randomised trials},
+  journal = {BMJ},
+  year    = {2010},
+  volume  = {340},
+  pages   = {c332}
+}

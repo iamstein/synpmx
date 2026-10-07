@@ -11,6 +11,8 @@ vignette: >
   %\VignetteIndexEntry{The synpmx AVATAR Algorithm}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+bibliography: references.bib
+csl: ama.csl
 ---
 
 ```{r setup, include=FALSE}
@@ -24,8 +26,8 @@ library(synpmx)
 ```
 
 This article is the full specification of the AVATAR synthetic data generator applied
-to pharmacometrics modeling datasets.  The original method [1] was extended to population
-pharmacokinetic (PK) datasets in [2], and here further extensions are provided
+to pharmacometrics modeling datasets.  The original method [@guillaudeux2023] was extended to population
+pharmacokinetic (PK) datasets in [@destere2026], and here further extensions are provided
 so that it works well with more realistic datasets.  Use of the algorithm is demonstrated in:
 
 * `vignette("avatar-demo")` - AVATAR demonstration on a single dataset
@@ -967,20 +969,12 @@ be an integer between zero and `.Machine$integer.max`.
 
 ## Conclusions
 
-This document describes an extension of the AVATAR algorithm from [1, 2].  This algorithm was designed to work with realistic PKPD datasets, which can contain multiple PK and PD observations variables, multiple PD observation types (binary, ordinal, or continuous observations), and BLOQ data.  The algorithm also provides additional mechanisms for masking the event skeleton (dose and observation times), and handles weight-based dosing. 
+This document describes an extension of the AVATAR algorithm from [@guillaudeux2023; @destere2026].  This algorithm was designed to work with realistic PKPD datasets, which can contain multiple PK and PD observations variables, multiple PD observation types (binary, ordinal, or continuous observations), and BLOQ data.  The algorithm also provides additional mechanisms for masking the event skeleton (dose and observation times), and handles weight-based dosing. 
 
 This algorithm offers no formal privacy guarantees, nor does it guarantee preservation of the true relationship between dose, exposure, observation variables and covariates.  The algorithm is desgined to produce synthetic datasets that carries many of the properties of the source data, for use in developing and debugging analysis code.
 
 
 ## References
 
-1. Guillaudeux M, Rousseau O, Petot J, et al. Patient-centric synthetic data
-   generation, no reason to risk re-identification in biomedical data analysis.
-   *npj Digital Medicine.* 2023;6.
-   doi: [10.1038/s41746-023-00771-5](https://doi.org/10.1038/s41746-023-00771-5).
-
-2. Destere A, Lombardi R, Labriffe M, et al. *Can synthetic data overcome the
-   privacy and fidelity bottleneck in Pharmacometrics? A comparative benchmark
-   using a daptomycin population pharmacokinetic model.* medRxiv preprint,
-   posted June 2, 2026. doi:
-   [10.64898/2026.05.30.26354512](https://doi.org/10.64898/2026.05.30.26354512).
+::: {#refs}
+:::
