@@ -130,9 +130,10 @@ Stein</h4>
     
 <p>This article is the full specification of the AVATAR synthetic data
 generator applied to pharmacometrics modeling datasets. The original
-method [1] was extended to population pharmacokinetic (PK) datasets in
-[2], and here further extensions are provided so that it works well with
-more realistic datasets. Use of the algorithm is demonstrated in:</p>
+method<span class="citation"><sup>1</sup></span> was extended to
+population pharmacokinetic (PK) datasets in<span class="citation"><sup>2</sup></span>, and here further extensions are
+provided so that it works well with more realistic datasets. Use of the
+algorithm is demonstrated in:</p>
 <ul>
 <li>
 <code><a href="../articles/avatar-demo.html">vignette("avatar-demo")</a></code> - AVATAR demonstration on a
@@ -1434,13 +1435,14 @@ datasets</li>
 <div class="section level2">
 <h2 id="conclusions">Conclusions<a class="anchor" aria-label="anchor" href="#conclusions"></a>
 </h2>
-<p>This document describes an extension of the AVATAR algorithm from [1,
-2]. This algorithm was designed to work with realistic PKPD datasets,
-which can contain multiple PK and PD observations variables, multiple PD
-observation types (binary, ordinal, or continuous observations), and
-BLOQ data. The algorithm also provides additional mechanisms for masking
-the event skeleton (dose and observation times), and handles
-weight-based dosing.</p>
+<p>This document describes an extension of the AVATAR algorithm
+from<span class="citation"><sup>1,2</sup></span>. This algorithm was
+designed to work with realistic PKPD datasets, which can contain
+multiple PK and PD observations variables, multiple PD observation types
+(binary, ordinal, or continuous observations), and BLOQ data. The
+algorithm also provides additional mechanisms for masking the event
+skeleton (dose and observation times), and handles weight-based
+dosing.</p>
 <p>This algorithm offers no formal privacy guarantees, nor does it
 guarantee preservation of the true relationship between dose, exposure,
 observation variables and covariates. The algorithm is desgined to
@@ -1450,15 +1452,27 @@ source data, for use in developing and debugging analysis code.</p>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
-<ol style="list-style-type: decimal">
-<li><p>Guillaudeux M, Rousseau O, Petot J, et al. Patient-centric
-synthetic data generation, no reason to risk re-identification in
-biomedical data analysis. <em>npj Digital Medicine.</em> 2023;6. doi: <a href="https://doi.org/10.1038/s41746-023-00771-5" class="external-link">10.1038/s41746-023-00771-5</a>.</p></li>
-<li><p>Destere A, Lombardi R, Labriffe M, et al. <em>Can synthetic data
-overcome the privacy and fidelity bottleneck in Pharmacometrics? A
-comparative benchmark using a daptomycin population pharmacokinetic
-model.</em> medRxiv preprint, posted June 2, 2026. doi: <a href="https://doi.org/10.64898/2026.05.30.26354512" class="external-link">10.64898/2026.05.30.26354512</a>.</p></li>
-</ol>
+<div id="refs" class="references csl-bib-body">
+<div id="ref-guillaudeux2023" class="csl-entry">
+<div class="csl-left-margin">1. </div>
+<div class="csl-right-inline">
+<span class="nocase">Guillaudeux M, Rousseau O,
+Petot J, et al.</span> Patient-centric synthetic data generation, no
+reason to risk re-identification in biomedical data analysis. <em>npj
+Digital Medicine</em>. 2023;6. doi:<a href="https://doi.org/10.1038/s41746-023-00771-5" class="external-link">10.1038/s41746-023-00771-5</a>
+</div>
+</div>
+<div id="ref-destere2026" class="csl-entry">
+<div class="csl-left-margin">2. </div>
+<div class="csl-right-inline">
+<span class="nocase">Destere A, Lombardi R,
+Labriffe M, et al.</span> Can synthetic data overcome the privacy and
+fidelity bottleneck in pharmacometrics? <span>A</span> comparative
+benchmark using a daptomycin population pharmacokinetic model.
+<em>medRxiv</em>. Published online June 2, 2026. doi:<a href="https://doi.org/10.64898/2026.05.30.26354512" class="external-link">10.64898/2026.05.30.26354512</a>
+</div>
+</div>
+</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

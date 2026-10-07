@@ -170,9 +170,9 @@ ggplot2::ggplot(piles, ggplot2::aes(score, fill = candidate)) +
 ![](pmxmodel-privacy-simulation_files/figure-html/score-distributions-1.png)
 
 **The AUC is the probability that a randomly chosen member scores above
-a randomly chosen non-member \[1\].** An AUC of 0.5 means the two piles
-are the same, and the score is a coin toss. An AUC of 1 means every
-member scores above every non-member. The name comes from the receiver
+a randomly chosen non-member¹.** An AUC of 0.5 means the two piles are
+the same, and the score is a coin toss. An AUC of 1 means every member
+scores above every non-member. The name comes from the receiver
 operating characteristic curve, which plots the share of members flagged
 against the share of non-members flagged as a threshold on the score
 moves; the area under it equals that probability.
@@ -431,18 +431,18 @@ more random effects than five gives the attacker more numbers to add up.
   values, or with an unusual run of outcomes, moves the fingerprint
   further toward themselves and is more exposed than the average member,
   which is why membership-inference studies report the attack’s success
-  on such patients separately \[2, 3\].
+  on such patients separately^(2,3).
 - **The fingerprint is simplified.** The visits are exchangeable apart
   from their rates, the random effects are normal and independent across
   parameters, and the real fingerprint holds further numbers this
   simulation leaves out: the dosing model, the covariate summaries and
   the PD time courses.
 - **The score is not the most powerful one possible.** It is of the kind
-  used to trace individuals in pooled genetic data \[4, 5, 6\]. An
-  attacker who can simulate studies from the same population can
-  calibrate each candidate’s score, as the strongest attacks on
-  machine-learning models do \[3\], so these AUCs are a lower bound for
-  an attacker holding what this one holds.
+  used to trace individuals in pooled genetic data^(4–6). An attacker
+  who can simulate studies from the same population can calibrate each
+  candidate’s score, as the strongest attacks on machine-learning models
+  do³, so these AUCs are a lower bound for an attacker holding what this
+  one holds.
 
 ## The Simulation Code
 
@@ -591,24 +591,38 @@ membership_tables <- function() {
 
 ## References
 
-1.  Hanley JA, McNeil BJ. The meaning and use of the area under a
-    receiver operating characteristic (ROC) curve. *Radiology.*
-    1982;143(1):29–36.
-2.  Shokri R, Stronati M, Song C, Shmatikov V. Membership inference
-    attacks against machine learning models. *IEEE Symposium on Security
-    and Privacy.*
-    2017. 
-3.  Carlini N, Chien S, Nasr M, Song S, Terzis A, Tramèr F. Membership
-    inference attacks from first principles. *IEEE Symposium on Security
-    and Privacy.* 2022.
-4.  Homer N, Szelinger S, Redman M, et al. Resolving individuals
-    contributing trace amounts of DNA to highly complex mixtures using
-    high-density SNP genotyping microarrays. *PLoS Genetics.*
-    2008;4(8):e1000167.
-5.  Sankararaman S, Obozinski G, Jordan MI, Halperin E. Genomic privacy
-    and limits of individual detection in a pool. *Nature Genetics.*
-    2009;41:965–967.
-6.  Dwork C, Smith A, Steinke T, Ullman J, Vadhan S. Robust traceability
-    from trace amounts. *IEEE Symposium on Foundations of Computer
-    Science (FOCS).*
-    2015. 
+1\.
+
+Hanley JA, McNeil BJ. The meaning and use of the area under a receiver
+operating characteristic (ROC) curve. *Radiology*. 1982;143(1):29-36.
+
+2\.
+
+Shokri R, Stronati M, Song C, Shmatikov V. Membership inference attacks
+against machine learning models. In: *IEEE Symposium on Security and
+Privacy*. 2017.
+
+3\.
+
+Carlini N, Chien S, Nasr M, Song S, Terzis A, Tramèr F. Membership
+inference attacks from first principles. In: *IEEE Symposium on Security
+and Privacy*. 2022.
+
+4\.
+
+Homer N, Szelinger S, Redman M, et al. Resolving individuals
+contributing trace amounts of DNA to highly complex mixtures using
+high-density SNP genotyping microarrays. *PLoS Genetics*.
+2008;4(8):e1000167.
+
+5\.
+
+Sankararaman S, Obozinski G, Jordan MI, Halperin E. Genomic privacy and
+limits of individual detection in a pool. *Nature Genetics*.
+2009;41:965-967.
+
+6\.
+
+Dwork C, Smith A, Steinke T, Ullman J, Vadhan S. Robust traceability
+from trace amounts. In: *IEEE Symposium on Foundations of Computer
+Science (FOCS)*. 2015.

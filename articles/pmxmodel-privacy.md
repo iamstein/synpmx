@@ -20,38 +20,30 @@ remains. While this approach offers many privacy protections which
 reduce how much any one patient can impact the synthetic data, the
 algorithm does not offer a formal differential privacy (DP) guarantee.
 
-## Why a data generation method that does not formally guarantee DP was chosen
+## Why this method does not formally guarantee DP
 
 DP limits how much any one person’s data can change what is released,
-whatever else an attacker knows \[1\]. A DP mechanism achieves this
-limit by adding calibrated noise to every released number.
-
-For a Phase 1 study (12-60 patients), a DP guarantee would require
-adding so much noise to the synthetic dataset that it would no longer
-meaningfully resemble the clinical data. Moreover, the DP guarantee
-would be protecting the data from an attacker that the use does not
-face. That use is synthetic data for developing analysis code, shared
-with people who work under the study’s own access controls or an
-agreement like them. The case rests on three points:
+whatever else an attacker knows¹. A DP mechanism achieves this limit by
+adding calibrated noise to every released number. A generation method
+that guarantees DP is not used here for three key reasons:
 
 1.  **The fingerprint holds what the study’s own reports ultimately make
     public, more coarsely.** A population PK report gives each typical
     value, its between-subject variability and the residual error, with
-    their standard errors, and regulators ask for exactly that \[11,
-    12\]. The study’s main publication gives each arm’s baseline
-    characteristics and how many patients discontinued \[13\]. This
-    fingerprint holds the same kinds of number at one significant
-    figure, pooled over the arms and the visits, without standard
-    errors, and a few dozen at most ([counted per public
-    study](https://iamstein.github.io/synpmx/articles/pmxmodel-fingerprint.html#parameter-counts)).
+    their standard errors, and regulators ask for exactly that^(2,3).
+    The study’s main publication gives each arm’s baseline
+    characteristics and how many patients discontinued⁴. This
+    [fingerprint](https://iamstein.github.io/synpmx/articles/pmxmodel-fingerprint.html)
+    holds the same kinds of numbers at 1-2 significant figures, pooled
+    over the arms and the visits.
 2.  **Any attacker already holds the answer they are seeking.**
-    Membership inference needs the candidate’s own measurements to
-    assess whether that candidate was in the study; measurements such as
-    concentrations, visit attendance, and dose changes. Outside the
-    company sponsoring the study, this information exists only at the
-    sites and in routine care of the patient. Thus whoever holds a
-    candidate’s trial record knows the candidate was in the trial, and
-    learning it again from the fingerprint discloses nothing.
+    Membership inference needs the candidate’s own data (e.g. patient
+    characteristics, concentrations, visit attendance, dose changes) to
+    assess whether that candidate was in the study. Outside the company
+    sponsoring the study, this information exists only at the sites and
+    in routine care of the patient. Thus whoever holds a candidate’s
+    trial record knows the candidate was in the trial, and learning it
+    again from the fingerprint discloses nothing.
 3.  **DP at small cohort sizes replaces the study with noise**, as [the
     appendix](#dp-noise-small-study) computes, and for this use noise is
     worse than no data. The [calibrated generator’s
@@ -59,9 +51,7 @@ agreement like them. The case rests on three points:
     finds a DP fingerprint at phase 1 sizes worse than generating from a
     public prior, which reads nothing.
 
-## Privacy Assessment Summary
-
-### What the Generator Releases
+## What the Generator Releases
 
 A population PK/PD model is a short list of numbers: a **typical value**
 for each parameter, such as clearance; a **between-subject variance**
@@ -83,60 +73,25 @@ arms and the visits.
 These numbers are the **fingerprint**, and they are all that leaves the
 environment that holds the study. Synthetic data is simulated from the
 fingerprint and random numbers alone, so it discloses nothing the
-fingerprint does not. [The PMX model study
+fingerprint does not. [The article on the PMX model study
 fingerprint](https://iamstein.github.io/synpmx/articles/pmxmodel-fingerprint.html)
-lists every number in one and counts them for each public study.
+lists every number in a study fingerprint.
 
-### What Is Protected, and What Is Not
+## The Privacy Protections
 
-**✅ No patient record, identifier or per-patient estimate leaves the
-study.** The fingerprint holds numbers about the population and about
-arms. Each patient’s estimated random effects are used during estimation
-and dropped from the fingerprint, and synthetic subject IDs are new
-numbers that cannot collide with real ones.
+### 1. No Patient Record Leaves the Study
+
+The fingerprint holds numbers about the population and about arms, and
+no patient record, identifier or per-patient estimate. Each patient’s
+estimated random effects are used during estimation and dropped from the
+fingerprint, and synthetic subject IDs are new numbers that cannot
+collide with real ones.
 [`model_fingerprint()`](https://iamstein.github.io/synpmx/reference/model_fingerprint.md)
 builds the fingerprint from an allowlist of the fields generation reads,
 so the diagnostics on the fit, and any field added to it later, stay
 behind.
 
-**✅ No released number is one patient’s value, and every released
-frequency rests on at least three patients.** A few settings the
-generator needs (the lowest value it generates, the reference weight for
-body-weight scaling, a planned dose where doses varied) are computed so
-that no single patient decides them, rather than taken as half the
-smallest measurement, the median weight or the most common dose. Each
-frequency counts the patients who had something and those who did not:
-an attendance rate of 30 in 32 also describes the 2 who missed. A
-frequency is released only where both groups hold no patients or at
-least three.
-
-**✅ A patient who moves a released estimate by 15% or more is left out
-of the estimates.** Estimation reads how far each patient moves each
-model parameter estimate, leaves out anyone who moves one by 15% or more
-(for a between-subject spread, by 0.15 in its standard deviation (SD) on
-the log scale), and estimates again. A patient left out of one
-estimation step is still used in the others. The reading is approximate
-and does not cover every estimate; its limits are among the outstanding
-risks.
-
-**⚠️ Membership inference remains possible for an attacker who holds a
-candidate’s own trial data.** Such an attacker can check whether the
-released model fits the candidate slightly better than it would fit
-someone outside the study. In simulation the advantage is small: given
-one member and one non-member, the attacker picks the member 53% of the
-time in a 60-patient study when its population parameters come from
-another study (20% off), and 70% of the time in a 12-patient study when
-it knows the population’s true parameters, where 50% is a coin flip.
-[Appendix: Membership Inference Against the
-Fingerprint](#membership-inference-against-the-fingerprint) provides
-further details on these calculations.
-
-**❌ No formal guarantee.** Nothing bounds what an attacker who knows
-every other patient learns about the remaining one.
-
-## The Privacy Protections
-
-### 1. No Single Patient’s Value is Used
+### 2. No Single Patient’s Value is Used
 
 Every quantity that would naturally have been one patient’s value is
 computed another way:
@@ -148,7 +103,7 @@ computed another way:
 | Planned dose, where patients’ doses differ | the arm’s mean to two significant figures |
 | Continuous covariate | a trimmed mean and SD after the highest and lowest 5% of patients are set aside |
 
-### 2. At Least Three Patients Behind Every Frequency
+### 3. At Least Three Patients Behind Every Frequency
 
 If only one or two patients in a study missed a visit or had a dose
 reduced, any frequency describing that event reveals something about
@@ -156,9 +111,9 @@ them. The same is true when all but one or two patients had it: 30 of 32
 patients attending also describes the 2 who did not. Statistical
 disclosure control (SDC), the discipline that protects published
 statistical tables, handles this with a threshold rule: publish a count
-only where at least *k* people stand behind it \[2\]. Here *k* is 3, and
-the rule is applied to both groups, the patients who had the event and
-those who did not:
+only where at least *k* people stand behind it⁵. Here *k* is 3, and the
+rule is applied to both groups, the patients who had the event and those
+who did not:
 
 - an arm, visit, dose level or planned cycle is kept only where at least
   three patients reached it;
@@ -180,16 +135,16 @@ rate per endpoint, the dose-change rates are three, and a graded
 endpoint is one set of level frequencies, each pooled over the arms and
 the visits.
 
-### 3. Covariate Summaries Without Their Extremes
+### 4. Covariate Summaries Without Their Extremes
 
 A continuous covariate is summarized by a mean and SD taken after the
 highest and lowest 5% of patients are set aside, with the SD corrected
 for the trimming. No single extreme patient, such as one weighing 250
 kg, can then move the summary. This is the trimmed mean of robust
-statistics \[3\], and it is also how DP mean estimators bound one
-person’s influence \[4\].
+statistics⁶, and it is also how DP mean estimators bound one person’s
+influence⁷.
 
-### 4. One Significant Figure
+### 5. One Significant Figure
 
 Every released PK and PD estimate is rounded to one significant figure;
 covariate summaries are rounded to two, since one would put a mean
@@ -197,15 +152,15 @@ height of 172 cm at 200. One figure moves an estimate by 9% on average
 and 33% at worst. In exchange, the released value is usually the same
 whether a given patient is in the study or not, because a one-figure
 step is about as wide as an estimate’s sampling variation. Rounding does
-not hide an outlier’s effect on a variance, which protection 5 measures.
+not hide an outlier’s effect on a variance, which protection 6 measures.
 
-### 5. How Far One Patient Moves Each Estimate
+### 6. How Far One Patient Moves Each Estimate
 
 For each released estimate, estimation measures how far it would move if
 each patient in turn were left out. This is *local sensitivity*, the
-study-specific version of DP’s sensitivity \[1\], and in regression the
-same idea is Cook’s distance \[5\]. How the move is measured depends on
-the estimate:
+study-specific version of DP’s sensitivity¹, and in regression the same
+idea is Cook’s distance⁸. How the move is measured depends on the
+estimate:
 
 - **PK parameters** are approximated from each patient’s random effects
   $`\eta_i`$, without refitting the population model. A typical value on
@@ -234,10 +189,46 @@ A patient whose move reaches review is left out of the PK fit, the PD
 fits and the covariate summaries, and estimation runs again. The patient
 stays in the dosing, visit and arm models, so cohort and arm sizes do
 not change. Rounds repeat until nobody is flagged, because leaving out
-the most influential patients makes the next ones the most influential
-\[6\], and stop at a tenth of the cohort. Patients left out are named on
-the console only; the fit records how many. `drop_influential = FALSE`
-keeps every patient.
+the most influential patients makes the next ones the most influential⁹,
+and stop at a tenth of the cohort. Patients left out are named on the
+console only; the fit records how many. `drop_influential = FALSE` keeps
+every patient.
+
+## Outstanding Risks
+
+The ways a fingerprint can still disclose something about a patient,
+most serious first:
+
+- **An attacker who holds a candidate’s own trial data can infer
+  membership.** Such an attacker can check whether the released model
+  fits the candidate slightly better than it would fit someone outside
+  the study. In simulation the advantage is small: given one member and
+  one non-member, the attacker picks the member 53% of the time in a
+  60-patient study when its population parameters come from another
+  study (20% off), and 70% of the time in a 12-patient study when it
+  knows the population’s true parameters, where 50% is a coin flip. [The
+  appendix](#membership-inference-against-the-fingerprint) gives the
+  details. Only noise would reduce it.
+- **There is no formal guarantee, so an attacker who knows every other
+  patient is not stopped.** They can compute the exact effect of the one
+  patient they do not know. Only a DP mechanism stops them.
+- **Fingerprints compose.** Two fingerprints from overlapping data, such
+  as an interim and a final analysis, differ by exactly what the
+  patients between them contributed. Nothing here accounts for that.
+- **Three patients is the smallest threshold in common use.** A stricter
+  rule needs `min_arm_patients` and `min_category_patients` raised.
+- **The influence reading is approximate, and its thresholds are
+  empirical.** They were set so that ordinary patients pass and a gross
+  data error fails, not derived from a privacy target. Shrinkage makes
+  it understate a patient’s effect on a PK parameter, and the residual
+  errors and a PK parameter without between-subject variability are not
+  read.
+- **The full fit and the estimation log are not safe to share.** The fit
+  holds diagnostics the fingerprint does not, and the console names
+  patients left out. Share the fingerprint or the synthetic data only.
+- **Rarity in the world is not measured.** A covariate level many
+  patients in this study hold can still identify someone if few people
+  hold it.
 
 ## The Five Checks
 
@@ -249,9 +240,9 @@ P4 and P5.
 |----|----|----|
 | P1 | No per-patient table is released | the fingerprint holds only population- and arm-level fields |
 | P2 | No source identifier is released | no source subject ID appears in the fingerprint |
-| P3 | No single patient’s value is released | protection 1 holds |
-| P4 | Every released frequency rests on at least three patients | protection 2 holds for every frequency |
-| P5 | No single patient moves a released estimate far | every estimate moves less than 15 (protection 5) |
+| P3 | No single patient’s value is released | protection 2 holds |
+| P4 | Every released frequency rests on at least three patients | protection 3 holds for every frequency |
+| P5 | No single patient moves a released estimate far | every estimate moves less than 15 (protection 6) |
 
 ``` r
 
@@ -572,36 +563,6 @@ as.data.frame(card)[card$check %in% c("B3", "B4b", "B5"),
 #> 14          0 of 0 exposed    pass
 ```
 
-## Outstanding Risks
-
-The ways a fingerprint can still disclose something about a patient,
-most serious first:
-
-- **An attacker who holds a candidate’s own trial data can infer
-  membership**, with the small advantage measured in the
-  [appendix](#membership-inference-against-the-fingerprint). Only noise
-  would reduce it.
-- **An attacker who knows every other patient is not stopped.** They can
-  compute the exact effect of the one patient they do not know. Only a
-  DP mechanism stops them.
-- **Fingerprints compose.** Two fingerprints from overlapping data, such
-  as an interim and a final analysis, differ by exactly what the
-  patients between them contributed. Nothing here accounts for that.
-- **Three patients is the smallest threshold in common use.** A stricter
-  rule needs `min_arm_patients` and `min_category_patients` raised.
-- **The influence reading is approximate, and its thresholds are
-  empirical.** They were set so that ordinary patients pass and a gross
-  data error fails, not derived from a privacy target. Shrinkage makes
-  it understate a patient’s effect on a PK parameter, and the residual
-  errors and a PK parameter without between-subject variability are not
-  read.
-- **The full fit and the estimation log are not safe to share.** The fit
-  holds diagnostics the fingerprint does not, and the console names
-  patients left out. Share the fingerprint or the synthetic data only.
-- **Rarity in the world is not measured.** A covariate level many
-  patients in this study hold can still identify someone if few people
-  hold it.
-
 ## Appendix: Membership Inference Against the Fingerprint
 
 A membership-inference attack scores each candidate by how far the
@@ -630,10 +591,10 @@ works through the calculation. Three findings:
   0.67 for five endpoints behind 10 patients.
 
 An AUC averages over members, and the most exposed member is the one far
-from the typical values, which is what protection 5 reads. The
+from the typical values, which is what protection 6 reads. The
 membership-inference literature reports success against such outliers
-separately for this reason \[7, 8\], and synthetic data from generative
-models leaves them exposed \[9\].
+separately for this reason^(10,11), and synthetic data from generative
+models leaves them exposed¹².
 
 ## Appendix: The Noise a DP Guarantee Needs in a Small Study
 
@@ -644,8 +605,7 @@ noise, which is how
 [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
 releases its one number. Subsample-and-aggregate splits the patients
 into disjoint groups of about twenty, fits the model in each, and
-releases the mean of the groups’ clipped estimates with noise \[10,
-14\].
+releases the mean of the groups’ clipped estimates with noise^(13,14).
 
 With $`\varepsilon = 1`$ split evenly over *d* released numbers, each
 clipped to a public range spanning sixteenfold on the log scale
@@ -711,38 +671,79 @@ releases.
 
 ## References
 
-1.  Dwork C, McSherry F, Nissim K, Smith A. Calibrating noise to
-    sensitivity in private data analysis. *Theory of Cryptography
-    Conference (TCC).* 2006.
-2.  Hundepool A, Domingo-Ferrer J, Franconi L, et al. *Statistical
-    Disclosure Control.* Wiley; 2012.
-3.  Huber PJ, Ronchetti EM. *Robust Statistics.* 2nd ed. Wiley; 2009.
-4.  Bun M, Steinke T. Average-case averages: private algorithms for
-    smooth sensitivity and mean estimation. *Advances in Neural
-    Information Processing Systems (NeurIPS).* 2019.
-5.  Cook RD. Detection of influential observation in linear regression.
-    *Technometrics.* 1977;19(1):15–18.
-6.  Carlini N, Jagielski M, Zhang C, Papernot N, Terzis A, Tramèr F. The
-    privacy onion effect: memorization is relative. *Advances in Neural
-    Information Processing Systems (NeurIPS).* 2022.
-7.  Shokri R, Stronati M, Song C, Shmatikov V. Membership inference
-    attacks against machine learning models. *IEEE Symposium on Security
-    and Privacy.* 2017.
-8.  Carlini N, Chien S, Nasr M, Song S, Terzis A, Tramèr F. Membership
-    inference attacks from first principles. *IEEE Symposium on Security
-    and Privacy.* 2022.
-9.  Stadler T, Oprisanu B, Troncoso C. Synthetic data – anonymisation
-    groundhog day. *USENIX Security Symposium.* 2022.
-10. Nissim K, Raskhodnikova S, Smith A. Smooth sensitivity and sampling
-    in private data analysis. *ACM Symposium on Theory of Computing
-    (STOC).* 2007.
-11. U.S. Food and Drug Administration. *Population Pharmacokinetics:
-    Guidance for Industry.* 2022.
-12. European Medicines Agency. *Guideline on Reporting the Results of
-    Population Pharmacokinetic Analyses.* CHMP/EWP/185990/06. 2007.
-13. Schulz KF, Altman DG, Moher D. CONSORT 2010 Statement: updated
-    guidelines for reporting parallel group randomised trials. *BMJ.*
-    2010;340:c332.
-14. Smith A. Privacy-preserving statistical estimation with optimal
-    convergence rates. *ACM Symposium on Theory of Computing (STOC).*
-    2011.
+1\.
+
+Dwork C, McSherry F, Nissim K, Smith A. Calibrating noise to sensitivity
+in private data analysis. In: *Theory of Cryptography Conference (TCC)*.
+2006.
+
+2\.
+
+U.S. Food and Drug Administration. *Population Pharmacokinetics:
+Guidance for Industry*. 2022.
+
+3\.
+
+European Medicines Agency. *Guideline on Reporting the Results of
+Population Pharmacokinetic Analyses (CHMP/EWP/185990/06)*. 2007.
+
+4\.
+
+Schulz KF, Altman DG, Moher D. CONSORT 2010 statement: Updated
+guidelines for reporting parallel group randomised trials. *BMJ*.
+2010;340:c332.
+
+5\.
+
+Hundepool A, Domingo-Ferrer J, Franconi L, et al. *Statistical
+Disclosure Control*. Wiley; 2012.
+
+6\.
+
+Huber PJ, Ronchetti EM. *Robust Statistics*. 2nd ed. Wiley; 2009.
+
+7\.
+
+Bun M, Steinke T. Average-case averages: Private algorithms for smooth
+sensitivity and mean estimation. In: *Advances in Neural Information
+Processing Systems (NeurIPS)*. 2019.
+
+8\.
+
+Cook RD. Detection of influential observation in linear regression.
+*Technometrics*. 1977;19(1):15-18.
+
+9\.
+
+Carlini N, Jagielski M, Zhang C, Papernot N, Terzis A, Tramèr F. The
+privacy onion effect: Memorization is relative. In: *Advances in Neural
+Information Processing Systems (NeurIPS)*. 2022.
+
+10\.
+
+Shokri R, Stronati M, Song C, Shmatikov V. Membership inference attacks
+against machine learning models. In: *IEEE Symposium on Security and
+Privacy*. 2017.
+
+11\.
+
+Carlini N, Chien S, Nasr M, Song S, Terzis A, Tramèr F. Membership
+inference attacks from first principles. In: *IEEE Symposium on Security
+and Privacy*. 2022.
+
+12\.
+
+Stadler T, Oprisanu B, Troncoso C. Synthetic data – anonymisation
+groundhog day. In: *USENIX Security Symposium*. 2022.
+
+13\.
+
+Nissim K, Raskhodnikova S, Smith A. Smooth sensitivity and sampling in
+private data analysis. In: *ACM Symposium on Theory of Computing
+(STOC)*. 2007.
+
+14\.
+
+Smith A. Privacy-preserving statistical estimation with optimal
+convergence rates. In: *ACM Symposium on Theory of Computing (STOC)*.
+2011.

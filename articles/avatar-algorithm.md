@@ -2,9 +2,9 @@
 
 This article is the full specification of the AVATAR synthetic data
 generator applied to pharmacometrics modeling datasets. The original
-method \[1\] was extended to population pharmacokinetic (PK) datasets in
-\[2\], and here further extensions are provided so that it works well
-with more realistic datasets. Use of the algorithm is demonstrated in:
+method¹ was extended to population pharmacokinetic (PK) datasets in²,
+and here further extensions are provided so that it works well with more
+realistic datasets. Use of the algorithm is demonstrated in:
 
 - [`vignette("avatar-demo")`](https://iamstein.github.io/synpmx/articles/avatar-demo.md) -
   AVATAR demonstration on a single dataset
@@ -1065,9 +1065,9 @@ and demonstrated in:
 
 ## Conclusions
 
-This document describes an extension of the AVATAR algorithm from \[1,
-2\]. This algorithm was designed to work with realistic PKPD datasets,
-which can contain multiple PK and PD observations variables, multiple PD
+This document describes an extension of the AVATAR algorithm from^(1,2).
+This algorithm was designed to work with realistic PKPD datasets, which
+can contain multiple PK and PD observations variables, multiple PD
 observation types (binary, ordinal, or continuous observations), and
 BLOQ data. The algorithm also provides additional mechanisms for masking
 the event skeleton (dose and observation times), and handles
@@ -1081,13 +1081,17 @@ source data, for use in developing and debugging analysis code.
 
 ## References
 
-1.  Guillaudeux M, Rousseau O, Petot J, et al. Patient-centric synthetic
-    data generation, no reason to risk re-identification in biomedical
-    data analysis. *npj Digital Medicine.* 2023;6. doi:
-    [10.1038/s41746-023-00771-5](https://doi.org/10.1038/s41746-023-00771-5).
+1\.
 
-2.  Destere A, Lombardi R, Labriffe M, et al. *Can synthetic data
-    overcome the privacy and fidelity bottleneck in Pharmacometrics? A
-    comparative benchmark using a daptomycin population pharmacokinetic
-    model.* medRxiv preprint, posted June 2, 2026. doi:
-    [10.64898/2026.05.30.26354512](https://doi.org/10.64898/2026.05.30.26354512).
+Guillaudeux M, Rousseau O, Petot J, et al. Patient-centric synthetic
+data generation, no reason to risk re-identification in biomedical data
+analysis. *npj Digital Medicine*. 2023;6.
+doi:[10.1038/s41746-023-00771-5](https://doi.org/10.1038/s41746-023-00771-5)
+
+2\.
+
+Destere A, Lombardi R, Labriffe M, et al. Can synthetic data overcome
+the privacy and fidelity bottleneck in pharmacometrics? A comparative
+benchmark using a daptomycin population pharmacokinetic model.
+*medRxiv*. Published online June 2, 2026.
+doi:[10.64898/2026.05.30.26354512](https://doi.org/10.64898/2026.05.30.26354512)

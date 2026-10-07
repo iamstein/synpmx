@@ -27,14 +27,14 @@ never opens the file.
 
 The **default** method in this package is
 [`synpmx_avatar()`](https://iamstein.github.io/synpmx/reference/synpmx_avatar.md),
-AVATAR-style blending \[1, 2\]. “AVATAR” is a method name rather than an
+AVATAR-style blending^(1,2). “AVATAR” is a method name rather than an
 initialism: it comes from the patient-centric *avatarization*
 literature, in which each synthetic record (“avatar”) is constructed
 from the local neighborhood of real records rather than from a fitted
 parametric model. The original method is due to Guillaudeux and
-colleagues \[2\]; Destere and colleagues benchmark a modified AVATAR for
-population PK \[1\]. This package implements an AVATAR-*inspired*
-adaptation for longitudinal event tables, not published AVATAR software.
+colleagues²; Destere and colleagues benchmark a modified AVATAR for
+population PK¹. This package implements an AVATAR-*inspired* adaptation
+for longitudinal event tables, not published AVATAR software.
 
 Mechanically, for each synthetic subject it:
 
@@ -487,13 +487,17 @@ prints the realized accounting.
 
 ## References
 
-1.  Destere A, Lombardi R, Labriffe M, et al. *Can synthetic data
-    overcome the privacy and fidelity bottleneck in Pharmacometrics? A
-    comparative benchmark using a daptomycin population pharmacokinetic
-    model.* medRxiv preprint, posted June 2, 2026. doi:
-    [10.64898/2026.05.30.26354512](https://doi.org/10.64898/2026.05.30.26354512).
+1\.
 
-2.  Guillaudeux M, Rousseau O, Petot J, et al. Patient-centric synthetic
-    data generation, no reason to risk re-identification in biomedical
-    data analysis. *npj Digital Medicine.* 2023;6. doi:
-    [10.1038/s41746-023-00771-5](https://doi.org/10.1038/s41746-023-00771-5).
+Destere A, Lombardi R, Labriffe M, et al. Can synthetic data overcome
+the privacy and fidelity bottleneck in pharmacometrics? A comparative
+benchmark using a daptomycin population pharmacokinetic model.
+*medRxiv*. Published online June 2, 2026.
+doi:[10.64898/2026.05.30.26354512](https://doi.org/10.64898/2026.05.30.26354512)
+
+2\.
+
+Guillaudeux M, Rousseau O, Petot J, et al. Patient-centric synthetic
+data generation, no reason to risk re-identification in biomedical data
+analysis. *npj Digital Medicine*. 2023;6.
+doi:[10.1038/s41746-023-00771-5](https://doi.org/10.1038/s41746-023-00771-5)

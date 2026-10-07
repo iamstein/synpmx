@@ -181,18 +181,17 @@ rather than to avoid. Four independent lines of work use this
 framework.</p>
 <ul>
 <li>
-<strong>Anonymeter</strong> (Giomi and colleagues) builds the
-control dataset into the framework and reports risk only where an attack
-succeeds better against training data than against control data.</li>
+<strong>Anonymeter</strong> (Giomi and colleagues<span class="citation"><sup>1</sup></span>) builds the control dataset into
+the framework and reports risk only where an attack succeeds better
+against training data than against control data.</li>
 <li>
-<strong>Adversarial accuracy</strong> (Yale and colleagues) is
-<em>defined</em> as a training-versus-holdout difference; see
-below.</li>
+<strong>Adversarial accuracy</strong> (Yale and colleagues<span class="citation"><sup>2</sup></span>) is <em>defined</em> as a
+training-versus-holdout difference; see below.</li>
 <li>
 <strong>synthpop’s disclosure measures</strong> (Raab and
-colleagues) subtract what is disclosive in the original data anyway,
-which is the same correction applied to a computation rather than to a
-dataset.</li>
+colleagues<span class="citation"><sup>3,4</sup></span>) subtract what is
+disclosive in the original data anyway, which is the same correction
+applied to a computation rather than to a dataset.</li>
 <li>
 <strong>Differential privacy</strong> is this idea taken to its
 limit: rather than measuring the difference one patient makes, it
@@ -333,13 +332,13 @@ measurement today.</p>
 <div class="section level2">
 <h2 id="local-cloaking-and-hidden-rate">Local Cloaking and Hidden Rate<a class="anchor" aria-label="anchor" href="#local-cloaking-and-hidden-rate"></a>
 </h2>
-<p>Guillaudeux and colleagues built two privacy metrics for a
-<strong>patient-centric</strong> generator, one where each synthetic
-record is built from one identified original record.
-<code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> is such a generator: every avatar has an
-anchor. A global generator such as a GAN cannot compute these metrics,
-because no record-to-record correspondence exists to compute them
-over.</p>
+<p>Guillaudeux and colleagues<span class="citation"><sup>5</sup></span>
+built two privacy metrics for a <strong>patient-centric</strong>
+generator, one where each synthetic record is built from one identified
+original record. <code><a href="../reference/synpmx_avatar.html">synpmx_avatar()</a></code> is such a generator: every
+avatar has an anchor. A global generator such as a GAN cannot compute
+these metrics, because no record-to-record correspondence exists to
+compute them over.</p>
 <p>Both metrics answer one question:</p>
 <blockquote>
 <p>For this particular real patient, how well hidden is their own
@@ -449,8 +448,8 @@ gives the reason not to rely on either.</p>
 </h3>
 <p>The most developed disclosure-risk framework for synthetic data comes
 from official statistics rather than from machine learning, and it ships
-as working code. Raab, Nowok and Dibben formalized it in 2024 and
-implemented it in <code>synthpop</code> (version 1.8.1 and later) as
+as working code. Raab, Nowok and Dibben formalized it in 2024<span class="citation"><sup>3,4</sup></span> and implemented it in
+<code>synthpop</code> (version 1.8.1 and later) as
 <code>disclosure()</code> and <code>multi.disclosure()</code>.</p>
 <div class="section level4">
 <h4 id="keys-and-targets">Keys and targets<a class="anchor" aria-label="anchor" href="#keys-and-targets"></a>
@@ -558,8 +557,8 @@ universally “WP29” — was the advisory body of the European national data
 protection authorities under the 1995 Data Protection Directive. It was
 replaced by the European Data Protection Board in 2018 when the General
 Data Protection Regulation (GDPR) took effect, but its <strong>Opinion
-05/2014 on Anonymisation Techniques</strong> is still the reference
-document practitioners and regulators reach for, and it is short.</p>
+05/2014 on Anonymisation Techniques</strong><span class="citation"><sup>6</sup></span> is still the reference document
+practitioners and regulators reach for, and it is short.</p>
 <p>Its contribution is a three-part test. A dataset is only effectively
 anonymized if an attacker can do <strong>none</strong> of the
 following:</p>
@@ -616,7 +615,7 @@ the tool from reporting the population back as a leak.</p>
 <div class="section level3">
 <h3 id="similarity-metrics-do-not-bound-attack-success">Similarity Metrics Do Not Bound Attack Success<a class="anchor" aria-label="anchor" href="#similarity-metrics-do-not-bound-attack-success"></a>
 </h3>
-<p>Ganev and De Cristofaro (2025) attack the whole family of
+<p>Ganev and De Cristofaro (2025)<span class="citation"><sup>7</sup></span> attack the whole family of
 similarity-based metrics: distance to closest record, nearest-neighbour
 ratios, and their relatives. Synthetic datasets that pass these metrics
 comfortably were still attacked successfully, with training records
@@ -659,9 +658,9 @@ modes.</li>
 <div class="section level2">
 <h2 id="fidelity-diversity-and-authenticity">Fidelity, Diversity, and Authenticity<a class="anchor" aria-label="anchor" href="#fidelity-diversity-and-authenticity"></a>
 </h2>
-<p>Alaa and colleagues (2022) split “is the synthetic data good?” into
-three questions. Collapsing them into one hides which of the three
-broke:</p>
+<p>Alaa and colleagues (2022)<span class="citation"><sup>8</sup></span>
+split “is the synthetic data good?” into three questions. Collapsing
+them into one hides which of the three broke:</p>
 <ul>
 <li>
 <strong>α-precision — fidelity.</strong> Are synthetic records
@@ -728,7 +727,7 @@ input?</em> Three traditions, three names, one measurement.</p>
 the synthetic dataset resembles the real one at all, without reference
 to any particular analysis. The standard measure is
 <strong>pMSE</strong>, the propensity score mean squared error (Snoke,
-Nowok, Raab, Dibben and Slavkovic, 2018).</p>
+Nowok, Raab, Dibben and Slavkovic, 2018)<span class="citation"><sup>9</sup></span>.</p>
 <p>The mechanism, which appears in the literature under four different
 names:</p>
 <ol style="list-style-type: decimal">
@@ -756,12 +755,13 @@ tell them apart?” statistic with a calibrated null.</p>
 <strong>the analysis you actually intended to run</strong> gives the
 same answer on the synthetic data as on the real data. The standard
 measure is <strong>confidence interval overlap</strong> (Karr and
-colleagues, 2006): run the analysis on both datasets, and measure how
-much the two confidence intervals for the same quantity overlap.</p>
+colleagues, 2006)<span class="citation"><sup>10</sup></span>: run the
+analysis on both datasets, and measure how much the two confidence
+intervals for the same quantity overlap.</p>
 <p>In pharmacometrics that means fitting the same population model to
 both and comparing the fixed effects, the between-subject variance
-terms, and their intervals. Destere’s daptomycin benchmark is this
-measure, and it is the question a modeller asks first.</p>
+terms, and their intervals. Destere’s daptomycin benchmark<span class="citation"><sup>11</sup></span> is this measure, and it is the
+question a modeller asks first.</p>
 </div>
 <div class="section level4">
 <h4 id="broad-and-specific-utility-are-weakly-correlated">Broad and specific utility are weakly correlated<a class="anchor" aria-label="anchor" href="#broad-and-specific-utility-are-weakly-correlated"></a>
@@ -771,12 +771,12 @@ measure, and it is the question a modeller asks first.</p>
 <strong>conclusion</strong> is the same. Every column can match while
 the relationships between them, which is what a model estimates, are
 destroyed.</p>
-<p>Woillard and colleagues measured this: broad utility and specific
-utility were only <strong>weakly correlated</strong> in their benchmark,
-and data that looked right column by column did not support the same
-predictions. <strong>Marginal agreement is weak evidence</strong>, and a
-document reporting only distribution comparisons is reporting the easy
-half.</p>
+<p>Woillard and colleagues<span class="citation"><sup>12</sup></span>
+measured this: broad utility and specific utility were only
+<strong>weakly correlated</strong> in their benchmark, and data that
+looked right column by column did not support the same predictions.
+<strong>Marginal agreement is weak evidence</strong>, and a document
+reporting only distribution comparisons is reporting the easy half.</p>
 </div>
 <div class="section level4">
 <h4 id="utility-measures-out-of-scope-for-synpmx">Utility measures out of scope for synpmx<a class="anchor" aria-label="anchor" href="#utility-measures-out-of-scope-for-synpmx"></a>
@@ -888,13 +888,14 @@ The alternative to a finished list is a <strong>bound</strong>, one
 statement that holds against any attacker whatever they already know,
 which is what differential privacy provides. The published history of
 enumerated lists is that the last condition never arrives.</p>
-<p>k-anonymity (Sweeney, 2002) was defeated by the homogeneity and
-background-knowledge attacks, which motivated l-diversity
-(Machanavajjhala and colleagues, 2007). l-diversity was defeated by
+<p>k-anonymity (Sweeney, 2002)<span class="citation"><sup>13</sup></span> was defeated by the homogeneity
+and background-knowledge attacks, which motivated l-diversity
+(Machanavajjhala and colleagues, 2007)<span class="citation"><sup>14</sup></span>. l-diversity was defeated by
 skewness and similarity attacks, which motivated t-closeness (Li and
-colleagues, 2007). Ganta and colleagues (2008) then showed that two
-releases each satisfying these conditions can be composed to identify
-people neither release identifies alone.</p>
+colleagues, 2007)<span class="citation"><sup>15</sup></span>. Ganta and
+colleagues (2008)<span class="citation"><sup>16</sup></span> then showed
+that two releases each satisfying these conditions can be composed to
+identify people neither release identifies alone.</p>
 <p>Every step in that sequence added a condition in response to an
 attack the previous enumeration did not cover. Differential privacy was
 formulated in the same period as the alternative to continuing it.</p>
@@ -1538,69 +1539,133 @@ guarantee buys instead.</li>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
-<ul>
-<li><p>Article 29 Data Protection Working Party. <em>Opinion 05/2014 on
-Anonymisation Techniques.</em> WP216, adopted 10 April 2014. (The
-singling out / linkability / inference criteria; section 2.2.)</p></li>
-<li><p>Sweeney L. <em>k-anonymity: a model for protecting privacy.</em>
-International Journal of Uncertainty, Fuzziness and Knowledge-Based
-Systems. 2002;10(5):557-570.</p></li>
-<li><p>Machanavajjhala A, Kifer D, Gehrke J, Venkitasubramaniam M.
-<em>l-diversity: privacy beyond k-anonymity.</em> ACM Transactions on
-Knowledge Discovery from Data. 2007;1(1):3.</p></li>
-<li><p>Li N, Li T, Venkatasubramanian S. <em>t-closeness: privacy beyond
-k-anonymity and l-diversity.</em> IEEE International Conference on Data
-Engineering (ICDE). 2007:106-115.</p></li>
-<li><p>Ganta SR, Kasiviswanathan SP, Smith A. <em>Composition attacks
-and auxiliary information in data privacy.</em> ACM SIGKDD.
-2008:265-273. (Two releases that each satisfy a syntactic condition can
-be composed.)</p></li>
-<li><p>Giomi M, Boenisch F, Wehmeyer C, Tasnádi B. <em>A Unified
-Framework for Quantifying Privacy Risk in Synthetic Data.</em>
-Proceedings on Privacy Enhancing Technologies. 2023;2023(2):312-328.
-doi: <a href="https://doi.org/10.56553/popets-2023-0055" class="external-link">10.56553/popets-2023-0055</a>.
-(Anonymeter, and the control dataset.)</p></li>
-<li><p>Raab GM, Nowok B, Dibben C. <em>Privacy risk from synthetic data:
-practical proposals.</em> arXiv:2409.04257, 2024, and <em>Practical
-privacy metrics for synthetic data</em>, arXiv:2406.16826, 2024. (Keys
-and targets, RepU, DiSCO, DiO; implemented as
-<code>synthpop::disclosure()</code>.)</p></li>
-<li><p>Yale A, Dash S, Dutta R, Guyon I, Pavao A, Bennett KP.
-<em>Generation and evaluation of privacy preserving synthetic health
-data.</em> Neurocomputing. 2020;416:244-255. doi: <a href="https://doi.org/10.1016/j.neucom.2019.12.136" class="external-link">10.1016/j.neucom.2019.12.136</a>.
-(Nearest-neighbour adversarial accuracy, in its train-versus-holdout
-form.)</p></li>
-<li><p>Guillaudeux M, Rousseau O, Petot J, et al. <em>Patient-centric
-synthetic data generation, no reason to risk re-identification in
-biomedical data analysis.</em> npj Digital Medicine. 2023;6. doi: <a href="https://doi.org/10.1038/s41746-023-00771-5" class="external-link">10.1038/s41746-023-00771-5</a>.
-(Local cloaking, hidden rate, DCR, NNDR.)</p></li>
-<li><p>Ganev G, De Cristofaro E. <em>The Inadequacy of Similarity-Based
-Privacy Metrics: Privacy Attacks Against “Truly Anonymous” Synthetic
-Datasets.</em> IEEE Symposium on Security and Privacy, 2025.</p></li>
-<li><p>Alaa A, van Breugel B, Saveliev ES, van der Schaar M. <em>How
-Faithful is your Synthetic Data? Sample-level Metrics for Evaluating and
-Auditing Generative Models.</em> Proceedings of the 39th International
-Conference on Machine Learning (ICML), PMLR 162:290-306, 2022.
-(α-precision, β-recall, authenticity.)</p></li>
-<li><p>Snoke J, Nowok B, Raab GM, Dibben C, Slavkovic A. <em>General and
-specific utility measures for synthetic data.</em> Journal of the Royal
-Statistical Society Series A. 2018;181(3):663-688. doi: <a href="https://doi.org/10.1111/rssa.12358" class="external-link">10.1111/rssa.12358</a>.
-(pMSE.)</p></li>
-<li><p>Karr AF, Kohnen CN, Oganian A, Reiter JP, Sanil AP. <em>A
-framework for evaluating the utility of data altered to protect
-confidentiality.</em> The American Statistician. 2006;60(3):224-232.
-doi: <a href="https://doi.org/10.1198/000313006X124640" class="external-link">10.1198/000313006X124640</a>.
-(Confidence interval overlap.)</p></li>
-<li><p>Woillard JB, Benoist C, et al. <em>To be or not to be, when
-synthetic data meet clinical pharmacology: A focused study on
-pharmacogenetics.</em> CPT Pharmacometrics Syst Pharmacol. 2025. doi: <a href="https://doi.org/10.1002/psp4.13240" class="external-link">10.1002/psp4.13240</a>. (Broad
-versus specific utility, weakly correlated.)</p></li>
-<li><p>Destere A, Lombardi R, Labriffe M, et al. <em>Can synthetic data
-overcome the privacy and fidelity bottleneck in Pharmacometrics? A
-comparative benchmark using a daptomycin population pharmacokinetic
-model.</em> medRxiv preprint, posted June 2, 2026. doi: <a href="https://doi.org/10.64898/2026.05.30.26354512" class="external-link">10.64898/2026.05.30.26354512</a>.
-(The daptomycin confidence-interval-overlap benchmark.)</p></li>
-</ul>
+<div id="refs" class="references csl-bib-body">
+<div id="ref-giomi2023" class="csl-entry">
+<div class="csl-left-margin">1. </div>
+<div class="csl-right-inline">Giomi M, Boenisch F, Wehmeyer C, Tasnádi B. A
+unified framework for quantifying privacy risk in synthetic data.
+<em>Proceedings on Privacy Enhancing Technologies</em>.
+2023;2023(2):312-328. doi:<a href="https://doi.org/10.56553/popets-2023-0055" class="external-link">10.56553/popets-2023-0055</a>
+</div>
+</div>
+<div id="ref-yale2020" class="csl-entry">
+<div class="csl-left-margin">2. </div>
+<div class="csl-right-inline">Yale
+A, Dash S, Dutta R, Guyon I, Pavao A, Bennett KP. Generation and
+evaluation of privacy preserving synthetic health data.
+<em>Neurocomputing</em>. 2020;416:244-255. doi:<a href="https://doi.org/10.1016/j.neucom.2019.12.136" class="external-link">10.1016/j.neucom.2019.12.136</a>
+</div>
+</div>
+<div id="ref-raab2024risk" class="csl-entry">
+<div class="csl-left-margin">3. </div>
+<div class="csl-right-inline">Raab
+GM, Nowok B, Dibben C. Privacy risk from synthetic data: Practical
+proposals. Published online 2024. <a href="https://arxiv.org/abs/2409.04257" class="external-link">https://arxiv.org/abs/2409.04257</a>
+</div>
+</div>
+<div id="ref-raab2024metrics" class="csl-entry">
+<div class="csl-left-margin">4. </div>
+<div class="csl-right-inline">Raab
+GM, Nowok B, Dibben C. Practical privacy metrics for synthetic data.
+Published online 2024. <a href="https://arxiv.org/abs/2406.16826" class="external-link">https://arxiv.org/abs/2406.16826</a>
+</div>
+</div>
+<div id="ref-guillaudeux2023" class="csl-entry">
+<div class="csl-left-margin">5. </div>
+<div class="csl-right-inline">
+<span class="nocase">Guillaudeux M, Rousseau O,
+Petot J, et al.</span> Patient-centric synthetic data generation, no
+reason to risk re-identification in biomedical data analysis. <em>npj
+Digital Medicine</em>. 2023;6. doi:<a href="https://doi.org/10.1038/s41746-023-00771-5" class="external-link">10.1038/s41746-023-00771-5</a>
+</div>
+</div>
+<div id="ref-art29wp2014" class="csl-entry">
+<div class="csl-left-margin">6. </div>
+<div class="csl-right-inline">Article 29 Data Protection Working Party.
+<em>Opinion 05/2014 on Anonymisation Techniques
+(<span>WP216</span>)</em>. 2014.</div>
+</div>
+<div id="ref-ganev2025" class="csl-entry">
+<div class="csl-left-margin">7. </div>
+<div class="csl-right-inline">Ganev G, De Cristofaro E. The inadequacy of
+similarity-based privacy metrics: Privacy attacks against <span>“truly
+anonymous”</span> synthetic datasets. In: <em>IEEE Symposium on Security
+and Privacy</em>. 2025.</div>
+</div>
+<div id="ref-alaa2022" class="csl-entry">
+<div class="csl-left-margin">8. </div>
+<div class="csl-right-inline">
+<span class="nocase">Alaa A, van Breugel B,
+Saveliev ES, van der Schaar M</span>. How faithful is your synthetic
+data? <span>S</span>ample-level metrics for evaluating and auditing
+generative models. In: <em>Proceedings of the 39th International
+Conference on Machine Learning (ICML)</em>. Vol 162. PMLR.
+2022:290-306.</div>
+</div>
+<div id="ref-snoke2018" class="csl-entry">
+<div class="csl-left-margin">9. </div>
+<div class="csl-right-inline">Snoke J, Nowok B, Raab GM, Dibben C, Slavkovic
+A. General and specific utility measures for synthetic data. <em>Journal
+of the Royal Statistical Society Series A</em>. 2018;181(3):663-688.
+doi:<a href="https://doi.org/10.1111/rssa.12358" class="external-link">10.1111/rssa.12358</a>
+</div>
+</div>
+<div id="ref-karr2006" class="csl-entry">
+<div class="csl-left-margin">10. </div>
+<div class="csl-right-inline">Karr AF, Kohnen CN, Oganian A, Reiter JP, Sanil
+AP. A framework for evaluating the utility of data altered to protect
+confidentiality. <em>The American Statistician</em>. 2006;60(3):224-232.
+doi:<a href="https://doi.org/10.1198/000313006X124640" class="external-link">10.1198/000313006X124640</a>
+</div>
+</div>
+<div id="ref-destere2026" class="csl-entry">
+<div class="csl-left-margin">11. </div>
+<div class="csl-right-inline">
+<span class="nocase">Destere A, Lombardi R,
+Labriffe M, et al.</span> Can synthetic data overcome the privacy and
+fidelity bottleneck in pharmacometrics? <span>A</span> comparative
+benchmark using a daptomycin population pharmacokinetic model.
+<em>medRxiv</em>. Published online June 2, 2026. doi:<a href="https://doi.org/10.64898/2026.05.30.26354512" class="external-link">10.64898/2026.05.30.26354512</a>
+</div>
+</div>
+<div id="ref-woillard2025" class="csl-entry">
+<div class="csl-left-margin">12. </div>
+<div class="csl-right-inline">
+<span class="nocase">Woillard JB, Benoist C, et
+al.</span> To be or not to be, when synthetic data meet clinical
+pharmacology: <span>A</span> focused study on pharmacogenetics. <em>CPT:
+Pharmacometrics &amp; Systems Pharmacology</em>. Published online 2025.
+doi:<a href="https://doi.org/10.1002/psp4.13240" class="external-link">10.1002/psp4.13240</a>
+</div>
+</div>
+<div id="ref-sweeney2002" class="csl-entry">
+<div class="csl-left-margin">13. </div>
+<div class="csl-right-inline">Sweeney L. <span class="nocase">k</span>-anonymity: A model for protecting privacy.
+<em>International Journal of Uncertainty, Fuzziness and Knowledge-Based
+Systems</em>. 2002;10(5):557-570.</div>
+</div>
+<div id="ref-machanavajjhala2007" class="csl-entry">
+<div class="csl-left-margin">14. </div>
+<div class="csl-right-inline">Machanavajjhala A, Kifer D, Gehrke J,
+Venkitasubramaniam M. <span class="nocase">l</span>-diversity: Privacy
+beyond k-anonymity. <em>ACM Transactions on Knowledge Discovery from
+Data</em>. 2007;1(1):3.</div>
+</div>
+<div id="ref-li2007" class="csl-entry">
+<div class="csl-left-margin">15. </div>
+<div class="csl-right-inline">Li
+N, Li T, Venkatasubramanian S. <span class="nocase">t</span>-closeness:
+Privacy beyond k-anonymity and l-diversity. In: <em>IEEE International
+Conference on Data Engineering (ICDE)</em>. 2007:106-115.</div>
+</div>
+<div id="ref-ganta2008" class="csl-entry">
+<div class="csl-left-margin">16. </div>
+<div class="csl-right-inline">Ganta SR, Kasiviswanathan SP, Smith A.
+Composition attacks and auxiliary information in data privacy. In:
+<em>ACM SIGKDD International Conference on Knowledge Discovery and Data
+Mining</em>. 2008:265-273.</div>
+</div>
+</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

@@ -64,8 +64,8 @@ each variable on its own, and the *dependence structure* linking them.
 Fit the dependence structure on real data, keep the marginals, and you
 can then draw whole covariate vectors in which the relationships between
 variables are realistic even though no vector belongs to a real patient.
-Zwep and colleagues developed this for virtual patient simulation, and
-Guo and colleagues for realistic virtual adult populations.
+Zwep and colleagues¹ developed this for virtual patient simulation, and
+Guo and colleagues² for realistic virtual adult populations.
 
 The important thing about copula methods, for the purposes of this
 survey, is what they produce: **one row per virtual patient — a
@@ -82,8 +82,8 @@ models for synthetic PK/PD data generation. Methods explored include
 generative adversarial networks (GANs), TimeGAN for sequences,
 variational autoencoders (VAEs), diffusion models, and probabilistic
 autoregressive networks. Jiang and colleagues benchmark several of these
-on PK/PD data; Gadgil and colleagues apply diffusion models to virtual
-populations and pharmacometric simulation.
+on PK/PD data³; Gadgil and colleagues apply diffusion models to virtual
+populations and pharmacometric simulation⁴.
 
 These models aim to reproduce the statistical properties of longitudinal
 PK datasets while maintaining realistic relationships among patients and
@@ -103,7 +103,7 @@ observations.
   pharmacometrics the answer is mixed: Jiang and colleagues find
   performance varies substantially by method and scenario, and Woillard
   and colleagues found TVAE clearly behind CT-GAN and AVATAR on the same
-  data
+  data⁵
 - Data-hungry in a field whose cohorts are often 12 to 200 subjects
 - In the pharmacometric applications published so far, the input is
   usually a simulated dataset or a simplified longitudinal concentration
@@ -113,7 +113,7 @@ observations.
 
 Outside pharmacometrics, the most widely used synthetic-data approach is
 neither mechanistic nor deep. The `synthpop` R package (Nowok, Raab and
-Dibben) synthesizes a table **column by column**: choose an order for
+Dibben⁶) synthesizes a table **column by column**: choose an order for
 the variables, model each one conditional on the variables already
 synthesized — usually with a classification and regression tree (CART) —
 and draw from that fitted conditional. Repeat until every column is
@@ -122,7 +122,7 @@ synthetic.
 It is the default tool in official statistics and social science, and
 deserves to be better known in this field. The same niche is occupied by
 the tabular deep-learning tools — CT-GAN and TVAE, from the Synthetic
-Data Vault project — which Woillard and colleagues benchmark against
+Data Vault project⁷ — which Woillard and colleagues benchmark against
 AVATAR.
 
 **Strengths**
@@ -155,7 +155,7 @@ keep the longitudinal endpoint, which for pharmacometrics is the data.
 
 Take the conditioning step out of column-by-column synthesis and the
 result is a different kind of tool: a table with the right shape and no
-relationships inside it. The `FakeDataR` package (Ahmed, CRAN 0.2.2)
+relationships inside it. The `FakeDataR` package (Ahmed, CRAN 0.2.2⁸)
 does this on purpose. It reproduces a dataset’s schema — column names,
 types, factor levels, value ranges, and missingness — and fills it with
 values drawn one column at a time. Categorical columns resample the
@@ -198,11 +198,11 @@ the event grammar and a placeholder has none.
 Another class of algorithms generates synthetic records directly from
 existing ones, by blending or sampling among neighboring individuals
 within the original dataset. The original method here is AVATAR, due to
-Guillaudeux and colleagues, in which each synthetic record is built from
-the local neighborhood of real records. “AVATAR” is a method name rather
-than an initialism. Destere and colleagues benchmark a modified AVATAR
-against differentially private alternatives on a population PK model,
-and Woillard and colleagues include a simplified AVATAR in the
+Guillaudeux and colleagues⁹, in which each synthetic record is built
+from the local neighborhood of real records. “AVATAR” is a method name
+rather than an initialism. Destere and colleagues¹⁰ benchmark a modified
+AVATAR against differentially private alternatives on a population PK
+model, and Woillard and colleagues include a simplified AVATAR in the
 pharmacogenetics comparison above.
 
 **Strengths**
@@ -231,7 +231,7 @@ above, which is a category error worth undoing. DP is not a way of
 generating data. It is a property a *release mechanism* can have: a
 bound, epsilon, on how much the presence or absence of any single
 individual can change the distribution of what is released. Any of the
-families above either has such a bound or does not.
+families above either has such a bound or does not¹¹.
 
 Three things follow that matter in practice.
 
@@ -335,57 +335,76 @@ estimating parameters from it.
 
 ## References
 
-- Jiang Y, García-Durán A, Losada IB, Girard P, Terranova N. *Generative
-  models for synthetic data generation: application to
-  pharmacokinetic/pharmacodynamic data.* J Pharmacokinet
-  Pharmacodyn. 2024. doi:
-  [10.1007/s10928-024-09935-6](https://doi.org/10.1007/s10928-024-09935-6).
+1\.
 
-- Gadgil PK, Poojari SM, Ramanathan M. *Diffusion models for virtual
-  populations and pharmacometric simulations.* J Pharmacokinet
-  Pharmacodyn. 2026;53(5):45.
+Zwep LB, Guo T, Nagler T, Knibbe CAJ, Meulman JJ, van Hasselt JGC.
+Virtual patient simulation using copula modeling. *Clinical Pharmacology
+& Therapeutics*. 2024;115(4):795-804.
+doi:[10.1002/cpt.3099](https://doi.org/10.1002/cpt.3099)
 
-- Zwep LB, Guo T, Nagler T, Knibbe CAJ, Meulman JJ, van Hasselt JGC.
-  *Virtual Patient Simulation Using Copula Modeling.* Clin Pharmacol
-  Ther. 2024;115(4):795-804. doi:
-  [10.1002/cpt.3099](https://doi.org/10.1002/cpt.3099).
+2\.
 
-- Guo T, et al. *Generation of realistic virtual adult populations using
-  a model-based copula approach.* J Pharmacokinet Pharmacodyn. 2024.
-  doi:
-  [10.1007/s10928-024-09929-4](https://doi.org/10.1007/s10928-024-09929-4).
+Guo T et al. Generation of realistic virtual adult populations using a
+model-based copula approach. *Journal of Pharmacokinetics and
+Pharmacodynamics*. Published online 2024.
+doi:[10.1007/s10928-024-09929-4](https://doi.org/10.1007/s10928-024-09929-4)
 
-- Nowok B, Raab GM, Dibben C. *synthpop: Bespoke creation of synthetic
-  data in R.* Journal of Statistical Software. 2016;74(11):1-26. doi:
-  [10.18637/jss.v074.i11](https://doi.org/10.18637/jss.v074.i11).
+3\.
 
-- Xu L, Skoularidou M, Cuesta-Infante A, Veeramachaneni K. *Modeling
-  tabular data using conditional GAN.* Advances in Neural Information
-  Processing Systems 32 (NeurIPS 2019). 2019:7335-7345. (CT-GAN and
-  TVAE, from the Synthetic Data Vault project.)
+Jiang Y, García-Durán A, Losada IB, Girard P, Terranova N. Generative
+models for synthetic data generation: Application to
+pharmacokinetic/pharmacodynamic data. *Journal of Pharmacokinetics and
+Pharmacodynamics*. Published online 2024.
+doi:[10.1007/s10928-024-09935-6](https://doi.org/10.1007/s10928-024-09935-6)
 
-- Ahmed Z. *FakeDataR: Privacy-Preserving Synthetic Data for ‘LLM’
-  Workflows.* R package version 0.2.2, published 2025-10-06.
-  [CRAN](https://cran.r-project.org/package=FakeDataR),
-  [documentation](https://zobaer09.github.io/FakeDataR/).
+4\.
 
-- Guillaudeux M, Rousseau O, Petot J, et al. *Patient-centric synthetic
-  data generation, no reason to risk re-identification in biomedical
-  data analysis.* npj Digital Medicine. 2023;6. doi:
-  [10.1038/s41746-023-00771-5](https://doi.org/10.1038/s41746-023-00771-5).
+Gadgil PK, Poojari SM, Ramanathan M. Diffusion models for virtual
+populations and pharmacometric simulations. *Journal of Pharmacokinetics
+and Pharmacodynamics*. 2026;53(5):45.
 
-- Destere A, Lombardi R, Labriffe M, et al. *Can synthetic data overcome
-  the privacy and fidelity bottleneck in Pharmacometrics? A comparative
-  benchmark using a daptomycin population pharmacokinetic model.*
-  medRxiv preprint, posted June 2, 2026. doi:
-  [10.64898/2026.05.30.26354512](https://doi.org/10.64898/2026.05.30.26354512).
+5\.
 
-- Woillard JB, Benoist C, et al. *To be or not to be, when synthetic
-  data meet clinical pharmacology: A focused study on pharmacogenetics.*
-  CPT Pharmacometrics Syst Pharmacol. 2025. doi:
-  [10.1002/psp4.13240](https://doi.org/10.1002/psp4.13240).
+Woillard JB, Benoist C, et al. To be or not to be, when synthetic data
+meet clinical pharmacology: A focused study on pharmacogenetics. *CPT:
+Pharmacometrics & Systems Pharmacology*. Published online 2025.
+doi:[10.1002/psp4.13240](https://doi.org/10.1002/psp4.13240)
 
-- Dwork C, Roth A. *The Algorithmic Foundations of Differential
-  Privacy.* Foundations and Trends in Theoretical Computer Science.
-  2014;9(3-4). doi:
-  [10.1561/0400000042](https://doi.org/10.1561/0400000042).
+6\.
+
+Nowok B, Raab GM, Dibben C. synthpop: Bespoke creation of synthetic data
+in R. *Journal of Statistical Software*. 2016;74(11):1-26.
+doi:[10.18637/jss.v074.i11](https://doi.org/10.18637/jss.v074.i11)
+
+7\.
+
+Xu L, Skoularidou M, Cuesta-Infante A, Veeramachaneni K. Modeling
+tabular data using conditional GAN. In: *Advances in Neural Information
+Processing Systems 32 (NeurIPS 2019)*. 2019:7335-7345.
+
+8\.
+
+Ahmed Z. FakeDataR: Privacy-preserving synthetic data for ’LLM’
+workflows. R package version 0.2.2. Published online 2025.
+<https://cran.r-project.org/package=FakeDataR>
+
+9\.
+
+Guillaudeux M, Rousseau O, Petot J, et al. Patient-centric synthetic
+data generation, no reason to risk re-identification in biomedical data
+analysis. *npj Digital Medicine*. 2023;6.
+doi:[10.1038/s41746-023-00771-5](https://doi.org/10.1038/s41746-023-00771-5)
+
+10\.
+
+Destere A, Lombardi R, Labriffe M, et al. Can synthetic data overcome
+the privacy and fidelity bottleneck in pharmacometrics? A comparative
+benchmark using a daptomycin population pharmacokinetic model.
+*medRxiv*. Published online June 2, 2026.
+doi:[10.64898/2026.05.30.26354512](https://doi.org/10.64898/2026.05.30.26354512)
+
+11\.
+
+Dwork C, Roth A. The algorithmic foundations of differential privacy.
+*Foundations and Trends in Theoretical Computer Science*. 2014;9(3–4).
+doi:[10.1561/0400000042](https://doi.org/10.1561/0400000042)
