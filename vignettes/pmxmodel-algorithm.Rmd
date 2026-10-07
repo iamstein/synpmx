@@ -57,7 +57,7 @@ every number that leaves is listed in `vignette("pmxmodel-fingerprint")`.
 `model_report()` inventories everything the fitted object carries,
 `model_candidates()` returns the attempted models and their acceptance results,
 and `model_parameters()` returns the fixed effects, the between-subject
-covariance matrix and the residual error. `model_release()` returns the part of
+covariance matrix and the residual error. `model_fingerprint()` returns the part of
 the fit that generation reads, which is what `synpmx_model_generate()` attaches
 to its output, and `model_privacy_checks()` runs five checks on it (Step 5).
 
@@ -728,22 +728,22 @@ Not estimated: the dosing model, a planned schedule per arm with three rates
 pooled over arms, the visit model, arm sizes, the covariate distributions, the
 censoring boundary, the schema and the roles.
 
-**Only the release leaves the study.** The fit also carries diagnostics for
+**Only the fingerprint leaves the study.** The fit also carries diagnostics for
 whoever ran it, such as the AIC of every candidate, the starting values and the
 correlations between covariates and random effects, and generation reads none
-of them. `model_release()` returns the part generation reads, and
+of them. `model_fingerprint()` returns the part generation reads, and
 `synpmx_model_generate()` attaches that to its output rather than the fit.
 Printing the fit, or `model_report()`, gives the same account;
-`vignette("pmxmodel-fingerprint")` lists every number in a release.
+`vignette("pmxmodel-fingerprint")` lists every number in a fingerprint.
 
-Four operations protect the release as it is stored, each set out with its
+Four operations protect the fingerprint as it is stored, each set out with its
 evidence in the
 [privacy article](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html):
 
 1. **Rounding.** Every released PK and PD estimate is rounded to one
    significant figure, and the covariate summaries to two. The acceptance
    checks of Step 3 run on the fit before rounding, and the full-precision PK
-   estimates stay on the fit, outside the release.
+   estimates stay on the fit, outside the fingerprint.
 2. **Single-patient influence.** Estimation reads how far leaving out each
    patient would move each released estimate. A patient who moves one by 15 or
    more (in percent for a typical value, in points of between-subject SD on the

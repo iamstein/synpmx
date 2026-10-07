@@ -249,7 +249,7 @@ criterion is.
 ## One call
 
 `synpmx_model()` is the two stages together, for when you do not need to look at
-the fit first. The result carries the fit's release as an attribute, which is
+the fit first. The result carries the fit's fingerprint as an attribute, which is
 what generation read; the candidate table and the other diagnostics are only on
 the fit itself.
 

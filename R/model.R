@@ -410,7 +410,7 @@
     # apart, and the count is where a reader sees which happened.
     dose_records = dose_records,
     # How far one patient moves each released estimate, as one row per
-    # estimate (SIM-056). A diagnostic: `model_release()` keeps its verdict.
+    # estimate (SIM-056). A diagnostic: `model_fingerprint()` keeps its verdict.
     privacy = privacy,
     # One entry per concentration endpoint. `structural` and `parameters` above
     # are the first of them, which is every study that fits one concentration.
@@ -449,11 +449,11 @@ print.pmx_fitted_model <- function(x, ...) {
 #' An inventory of everything in a `pmx_fitted_model`, in two halves: what
 #' the PK and PD fits estimated, and the dosing, visit and covariate models that are
 #' summaries of the source rather than estimates. Nothing here is per-subject.
-#' On a [model_release()] the diagnostics are absent and their sections are
+#' On a [model_fingerprint()] the diagnostics are absent and their sections are
 #' not printed.
 #'
 #' @param fitted_model A `pmx_fitted_model` from [synpmx_model_estimate()], or
-#'   a release from [model_release()].
+#'   a fingerprint from [model_fingerprint()].
 #'
 #' @return A `pmx_model_report` list, printed as sections.
 #' @seealso [model_candidates()], [model_parameters()],
@@ -891,10 +891,10 @@ print.pmx_model_report <- function(x, ...) {
 #' @export
 model_candidates <- function(fitted_model) {
   stopifnot(inherits(fitted_model, "pmx_fitted_model"))
-  if (inherits(fitted_model, "pmx_model_release")) {
+  if (inherits(fitted_model, "pmx_model_fingerprint")) {
     stop(.condition_text(
-      "A model release carries no candidate table.",
-      why = paste("The release holds only what generation reads; the",
+      "A model fingerprint carries no candidate table.",
+      why = paste("The fingerprint holds only what generation reads; the",
                   "candidates and their AIC are diagnostics on the fit.")),
       call. = FALSE)
   }

@@ -173,7 +173,7 @@ reference:
   - model_report
   - model_candidates
   - model_parameters
-  - model_release
+  - model_fingerprint
   - model_privacy_checks
 
 - title: Declaring the data

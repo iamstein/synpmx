@@ -4,7 +4,7 @@
 # below for a reviewer, and `pmxmodel-algorithm.Rmd` Step 5 says where each
 # sits in the algorithm. No formal privacy guarantee is made by anything here.
 
-# The release ----------------------------------------------------------------
+# The fingerprint ------------------------------------------------------------
 #
 # pmxmodel-algorithm.Rmd, Step 5 (REV-057). What leaves the environment that
 # holds the study is built from an allowlist: the fields `.model_generate()`
@@ -19,103 +19,109 @@
 # the individual random effects reached synthetic data (REV-056): they were
 # removed from one copy and travelled in another.
 
-.release_top <- c("structural", "parameters", "pk_models", "pd", "arms",
+.fingerprint_top <- c("structural", "parameters", "pk_models", "pd", "arms",
                   "dosing", "visits", "cells", "discrete", "covariates",
                   "covariate_effects", "schema", "roles", "endpoints",
                   "quantification_floor", "n_source", "settings", "privacy")
-.release_pk <- c("endpoint", "structural", "parameters", "effects",
+.fingerprint_pk <- c("endpoint", "structural", "parameters", "effects",
                  "movement")
-.release_parameters <- c("fixed", "omega", "residual")
-.release_movement <- c("moved", "omega_moved", "tolerance")
-.release_pd <- c("pd", "typical", "baseline_cv", "residual", "arms")
-.release_dosing <- c("planned", "levels", "reduction", "interruption",
+.fingerprint_parameters <- c("fixed", "omega", "residual")
+.fingerprint_movement <- c("moved", "omega_moved", "tolerance")
+.fingerprint_pd <- c("pd", "typical", "baseline_cv", "residual", "arms")
+.fingerprint_dosing <- c("planned", "levels", "reduction", "interruption",
                      "discontinuation", "patients")
-.release_endpoints <- c("pk", "pd", "discrete", "decided_by")
-.release_settings <- c("min_arm_patients", "min_category_patients")
+.fingerprint_endpoints <- c("pk", "pd", "discrete", "decided_by")
+.fingerprint_settings <- c("min_arm_patients", "min_category_patients")
 
-#' What leaves the study: the release of a fitted model
+#' What leaves the study: the fingerprint of a fitted model
 #'
 #' The part of a fitted model that synthetic data is generated from, and
 #' nothing else. [synpmx_model_estimate()] returns a fit that also carries
 #' diagnostics for the person who ran it: the candidate comparison and its AIC
 #' values, the starting values, the correlations between covariates and the
 #' individual random effects, the design notes and timings. None of those is
-#' needed to generate, so none of them is in the release.
-#' [synpmx_model_generate()] attaches the release, never the fit, to the data
+#' needed to generate, so none of them is in the fingerprint.
+#' [synpmx_model_generate()] reduces whatever it is given to its fingerprint
+#' before generating, and attaches the fingerprint, never the fit, to the data
 #' it returns.
 #'
-#' Save the release, not the fit, when a fingerprint has to be carried out of
-#' the environment that holds the study: [synpmx_model_generate()] accepts
-#' either and produces the same data from both.
+#' Save the fingerprint, not the fit, when it has to be carried out of the
+#' environment that holds the study: [synpmx_model_generate()] accepts either
+#' and produces the same data from both. `model_release()` is another name for
+#' the same function.
 #'
 #' @param fitted_model A `pmx_fitted_model` from [synpmx_model_estimate()], or
-#'   a release, which is returned unchanged.
-#' @return A `pmx_model_release`, which is also a `pmx_fitted_model`.
+#'   a fingerprint, which is returned unchanged.
+#' @return A `pmx_model_fingerprint`, which is also a `pmx_fitted_model`.
 #' @seealso [model_privacy_checks()], [synpmx_model_generate()],
 #'   [model_report()].
 #' @export
-model_release <- function(fitted_model) {
+model_fingerprint <- function(fitted_model) {
   if (!inherits(fitted_model, "pmx_fitted_model")) {
     stop("`fitted_model` must come from `synpmx_model_estimate()`.",
          call. = FALSE)
   }
-  if (inherits(fitted_model, "pmx_model_release")) return(fitted_model)
+  if (inherits(fitted_model, "pmx_model_fingerprint")) return(fitted_model)
   x <- unclass(fitted_model)
   keep <- function(object, fields) object[intersect(fields, names(object))]
-  out <- keep(x, .release_top)
+  out <- keep(x, .fingerprint_top)
   if (!is.null(out$parameters)) {
-    out$parameters <- keep(out$parameters, .release_parameters)
+    out$parameters <- keep(out$parameters, .fingerprint_parameters)
   }
   out$pk_models <- lapply(out$pk_models, function(model) {
-    model <- keep(model, .release_pk)
-    model$parameters <- keep(model$parameters, .release_parameters)
+    model <- keep(model, .fingerprint_pk)
+    model$parameters <- keep(model$parameters, .fingerprint_parameters)
     if (!is.null(model$movement)) {
-      model$movement <- keep(model$movement, .release_movement)
+      model$movement <- keep(model$movement, .fingerprint_movement)
     }
     model
   })
   shape <- function(one) {
-    one <- keep(one, .release_pd)
+    one <- keep(one, .fingerprint_pd)
     if (length(one$arms)) one$arms <- lapply(one$arms, shape)
     one
   }
   out$pd <- lapply(out$pd, shape)
   out$dosing <- lapply(out$dosing, function(entry) {
-    if (!is.null(entry$planned)) return(keep(entry, .release_dosing))
-    lapply(entry, keep, fields = .release_dosing)
+    if (!is.null(entry$planned)) return(keep(entry, .fingerprint_dosing))
+    lapply(entry, keep, fields = .fingerprint_dosing)
   })
-  out$endpoints <- keep(out$endpoints, .release_endpoints)
-  out$settings <- keep(out$settings, .release_settings)
-  out$privacy <- .release_privacy(x$privacy)
-  structure(out, class = c("pmx_model_release", "pmx_fitted_model"))
+  out$endpoints <- keep(out$endpoints, .fingerprint_endpoints)
+  out$settings <- keep(out$settings, .fingerprint_settings)
+  out$privacy <- .fingerprint_privacy(x$privacy)
+  structure(out, class = c("pmx_model_fingerprint", "pmx_fitted_model"))
 }
 
+#' @rdname model_fingerprint
 #' @export
-print.pmx_model_release <- function(x, ...) {
-  cat("A model release, from model_release()\n")
+model_release <- model_fingerprint
+
+#' @export
+print.pmx_model_fingerprint <- function(x, ...) {
+  cat("A model fingerprint, from model_fingerprint()\n")
   cat("Every number synthetic data is generated from, and nothing else.\n\n")
   print(model_report(x))
   invisible(x)
 }
 
-# Paths in a release that the allowlist does not name, which should be none.
-# Read by the first privacy check, so that a field added to the release by
-# hand, or a release built by something other than `model_release()`, is
+# Paths in a fingerprint that the allowlist does not name, which should be none.
+# Read by the first privacy check, so that a field added to the fingerprint by
+# hand, or a fingerprint built by something other than `model_fingerprint()`, is
 # caught rather than trusted.
-.release_strays <- function(release) {
-  strays <- setdiff(names(release), .release_top)
-  for (name in names(release$pk_models)) {
-    model <- release$pk_models[[name]]
+.fingerprint_strays <- function(fingerprint) {
+  strays <- setdiff(names(fingerprint), .fingerprint_top)
+  for (name in names(fingerprint$pk_models)) {
+    model <- fingerprint$pk_models[[name]]
     strays <- c(strays,
                 paste0("pk_models$", name, "$", setdiff(names(model),
-                                                        .release_pk)),
+                                                        .fingerprint_pk)),
                 paste0("pk_models$", name, "$parameters$",
-                       setdiff(names(model$parameters), .release_parameters)))
+                       setdiff(names(model$parameters), .fingerprint_parameters)))
   }
-  for (name in names(release$pd)) {
+  for (name in names(fingerprint$pd)) {
     strays <- c(strays, paste0("pd$", name, "$",
-                               setdiff(names(release$pd[[name]]),
-                                       .release_pd)))
+                               setdiff(names(fingerprint$pd[[name]]),
+                                       .fingerprint_pd)))
   }
   strays <- strays[!grepl("\\$$", strays)]
   # The individual random effects anywhere at all, under any name a fit has
@@ -130,7 +136,7 @@ print.pmx_model_release <- function(x, ...) {
     }
     found
   }
-  unique(c(strays, walk(unclass(release), "release")))
+  unique(c(strays, walk(unclass(fingerprint), "fingerprint")))
 }
 
 # Single-patient influence -----------------------------------------------------
@@ -467,12 +473,12 @@ print.pmx_model_release <- function(x, ...) {
                         worst$change, worst$unit))
 }
 
-# What the release keeps of the influence reading: the verdict, and a number
-# only where the verdict is not a pass. A passing release says that every
+# What the fingerprint keeps of the influence reading: the verdict, and a number
+# only where the verdict is not a pass. A passing fingerprint says that every
 # estimate moved less than the threshold and nothing more, so the one
-# data-dependent thing it carries is the verdict itself. A release that does
+# data-dependent thing it carries is the verdict itself. A fingerprint that does
 # not pass names its worst estimate, because it is not meant to leave as it is.
-.release_privacy <- function(privacy) {
+.fingerprint_privacy <- function(privacy) {
   if (is.null(privacy)) return(NULL)
   summary <- .influence_summary(privacy$influence)
   frequencies <- .frequency_summary(privacy$frequencies)
@@ -496,7 +502,7 @@ print.pmx_model_release <- function(x, ...) {
 #' Privacy checks on a fitted model
 #'
 #' Five checks on what a fitted model releases, each with its pass criterion.
-#' The first three ask whether the release holds anything about one patient
+#' The first three ask whether the fingerprint holds anything about one patient
 #' that it should not: a per-patient table, an identifier, or a single
 #' patient's value. The fourth recounts the smallest group of patients behind
 #' each kind of released frequency -- arm sizes, attendance, dose-change rates,
@@ -516,7 +522,7 @@ print.pmx_model_release <- function(x, ...) {
 #' states what each check establishes and what it does not.
 #'
 #' @param fitted_model A `pmx_fitted_model` from [synpmx_model_estimate()], or
-#'   a release from [model_release()]. A release carries only the verdict of
+#'   a fingerprint from [model_fingerprint()]. A fingerprint carries only the verdict of
 #'   the fifth check; the full fit carries the table behind it.
 #' @return A `pmx_privacy_checks` data frame with columns `check`, `question`,
 #'   `result`, `criterion` and `verdict`. On a full fit, the reading behind P5
@@ -525,24 +531,24 @@ print.pmx_model_release <- function(x, ...) {
 #'   verdict; and the recount behind P4 is the `frequencies` attribute, one row
 #'   per kind of released frequency with the smallest group behind it, its floor
 #'   and how many values were changed to meet it. No row is about a patient.
-#' @seealso [model_release()], [synpmx_model_estimate()], [synpmx_scorecard()].
+#' @seealso [model_fingerprint()], [synpmx_model_estimate()], [synpmx_scorecard()].
 #' @export
 model_privacy_checks <- function(fitted_model) {
   if (!inherits(fitted_model, "pmx_fitted_model")) {
     stop("`fitted_model` must come from `synpmx_model_estimate()`.",
          call. = FALSE)
   }
-  release <- model_release(fitted_model)
-  k_arm <- release$settings$min_arm_patients %||% 3L
-  k_level <- release$settings$min_category_patients %||% 3L
+  fingerprint <- model_fingerprint(fitted_model)
+  k_arm <- fingerprint$settings$min_arm_patients %||% 3L
+  k_level <- fingerprint$settings$min_category_patients %||% 3L
 
-  strays <- .release_strays(release)
+  strays <- .fingerprint_strays(fingerprint)
   p1 <- list(
     result = if (!length(strays)) "none" else paste(strays, collapse = ", "),
     ok = !length(strays))
 
-  schema <- release$schema
-  id_column <- release$roles$id
+  schema <- fingerprint$schema
+  id_column <- fingerprint$roles$id
   id_levels <- length(levels(schema$prototypes[[id_column]]))
   offset <- schema$id_offset %||% 0
   round_offset <- offset == 0 || abs(log10(offset) - round(log10(offset))) < 1e-9
@@ -553,16 +559,16 @@ model_privacy_checks <- function(fitted_model) {
   p2 <- list(result = if (!length(identifiers)) "none" else
     paste(identifiers, collapse = "; "), ok = !length(identifiers))
 
-  floors <- unlist(release$quantification_floor)
+  floors <- unlist(fingerprint$quantification_floor)
   on_series <- vapply(floors, function(value) {
     isTRUE(abs(value - .round_down_125(value)) <= 1e-9 * value)
   }, logical(1))
-  medians <- names(release$covariates)[vapply(release$covariates, function(s) {
+  medians <- names(fingerprint$covariates)[vapply(fingerprint$covariates, function(s) {
     !is.null(s$median)
   }, logical(1))]
   references <- as.numeric(unlist(lapply(
-    c(release$covariate_effects,
-      unlist(lapply(release$pk_models, function(m) m$effects),
+    c(fingerprint$covariate_effects,
+      unlist(lapply(fingerprint$pk_models, function(m) m$effects),
              recursive = FALSE)),
     function(effect) effect$reference)))
   unrounded <- references[abs(references - signif(references, 1L)) >
@@ -591,9 +597,9 @@ model_privacy_checks <- function(fitted_model) {
            "no factor level beyond what the arms carry")
   } else paste(values, collapse = "; "), ok = !length(values))
 
-  sizes <- as.integer(release$arms$sizes)
-  frequencies <- if (inherits(fitted_model, "pmx_model_release")) {
-    release$privacy$frequencies
+  sizes <- as.integer(fingerprint$arms$sizes)
+  frequencies <- if (inherits(fitted_model, "pmx_model_fingerprint")) {
+    fingerprint$privacy$frequencies
   } else if (!is.null(fitted_model$privacy$frequencies)) {
     .frequency_summary(fitted_model$privacy$frequencies)
   } else NULL
@@ -611,8 +617,8 @@ model_privacy_checks <- function(fitted_model) {
   if (is.data.frame(influence)) {
     influence$verdict <- .influence_verdict(influence$change, influence$unit)
   }
-  summary <- if (inherits(fitted_model, "pmx_model_release")) {
-    release$privacy$influence %||%
+  summary <- if (inherits(fitted_model, "pmx_model_fingerprint")) {
+    fingerprint$privacy$influence %||%
       list(verdict = "not applicable", result = "no influence record")
   } else if (is.null(fitted_model$privacy)) {
     list(verdict = "not applicable",
@@ -637,7 +643,7 @@ model_privacy_checks <- function(fitted_model) {
       "No single patient moves a released estimate far"),
     result = c(p1$result, p2$result, p3$result, p4$result, summary$result),
     criterion = c(
-      "the release holds only the fields generation reads, none of them per patient",
+      "the fingerprint holds only the fields generation reads, none of them per patient",
       "no source ID label, and no source ID value as the synthetic ID offset",
       paste("no order statistic: floors coarsened, no median, minimum or",
             "maximum; no factor level of a carried column that no arm carries"),
@@ -706,17 +712,17 @@ print.pmx_privacy_checks <- function(x, ...) {
 # because its step is as wide as an estimate's sampling variation. Covariates
 # keep two, because one would put a mean height of 172 cm at 200. Applied after
 # the acceptance checks, which run on the fit as estimated, and the estimates
-# at full precision stay on the fit, outside the release.
-.release_digits <- 1L
+# at full precision stay on the fit, outside the fingerprint.
+.fingerprint_digits <- 1L
 
 .round_parameters <- function(parameters) {
   if (is.null(parameters)) return(parameters)
-  parameters$fixed <- signif(parameters$fixed, .release_digits)
-  parameters$omega[] <- signif(parameters$omega, .release_digits)
+  parameters$fixed <- signif(parameters$fixed, .fingerprint_digits)
+  parameters$omega[] <- signif(parameters$omega, .fingerprint_digits)
   for (field in c("cv", "sd")) {
     if (!is.null(parameters$residual[[field]])) {
       parameters$residual[[field]] <- signif(parameters$residual[[field]],
-                                             .release_digits)
+                                             .fingerprint_digits)
     }
   }
   parameters
@@ -724,12 +730,12 @@ print.pmx_privacy_checks <- function(x, ...) {
 
 .round_shape <- function(shape) {
   if (is.null(shape)) return(shape)
-  shape$typical <- signif(shape$typical, .release_digits)
+  shape$typical <- signif(shape$typical, .fingerprint_digits)
   if (!is.null(shape$baseline_cv)) {
-    shape$baseline_cv <- signif(shape$baseline_cv, .release_digits)
+    shape$baseline_cv <- signif(shape$baseline_cv, .fingerprint_digits)
   }
   if (!is.null(shape$residual$sd)) {
-    shape$residual$sd <- signif(shape$residual$sd, .release_digits)
+    shape$residual$sd <- signif(shape$residual$sd, .fingerprint_digits)
   }
   if (length(shape$arms)) shape$arms <- lapply(shape$arms, .round_shape)
   shape
@@ -749,7 +755,7 @@ print.pmx_privacy_checks <- function(x, ...) {
   spec
 }
 
-# Saying so at estimation. A failure is a warning, because a release whose
+# Saying so at estimation. A failure is a warning, because a fingerprint whose
 # estimates rest on one patient should not leave as it is, and a patient given
 # far more drug than the record says is the commonest way to get one. A review
 # is a message: a small cohort moves its estimates by more than a large one, and
@@ -800,7 +806,7 @@ print.pmx_privacy_checks <- function(x, ...) {
 
 # Released frequencies ---------------------------------------------------------
 #
-# pmxmodel-algorithm.Rmd, Step 5 (REV-065, REV-066). Every frequency the release
+# pmxmodel-algorithm.Rmd, Step 5 (REV-065, REV-066). Every frequency the fingerprint
 # carries is a share of some group of patients, and the threshold rule of
 # statistical disclosure control asks that the patients on each side of it be
 # none or at least `k`: "one patient missed this visit" says as much about a

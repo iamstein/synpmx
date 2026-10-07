@@ -82,7 +82,8 @@ test_that("the README passes arguments these functions still have", {
   # the two steps, which holds because one seed reaches both halves.
   expect_null(eval(formals(synpmx_model_generate)$n_subjects))
   expect_null(eval(formals(synpmx_model)$n_subjects))
-  # It prints the fit, which is where the study fingerprint is read.
-  expect_true(any(grepl("pmx_fitted_model", as.character(
-    utils::methods(class = "pmx_fitted_model")))))
+  # It prints the fingerprint taken from the fit, and generates from it.
+  expect_true(is.function(model_fingerprint))
+  expect_true(any(grepl("pmx_model_fingerprint", as.character(
+    utils::methods(class = "pmx_model_fingerprint")))))
 })

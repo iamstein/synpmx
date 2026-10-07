@@ -89,15 +89,18 @@ roles <- pmx_roles(
 
 The study "fingerprint" is the description of the study dataset by the model that can then be used to generate a synthetic dataset.  It includes not only the fit parameters, but also the dose and observation times, as well as the frequency of dose changes and missed visits.
 
+The fit also holds diagnostics for whoever ran it, such as the candidate models and their AIC. `model_fingerprint()` keeps only what generation reads, and the fingerprint is what should leave the environment that holds the study.
+
 ``` r
 fit <- synpmx_model_estimate(study, roles, seed = 2026)
-print(fit)                                 
+fingerprint <- model_fingerprint(fit)
+print(fingerprint)
 ```
 
 ### 4. Generate synthetic dataset
 
 ``` r
-synthetic <- synpmx_model_generate(fit, seed = 2026)
+synthetic <- synpmx_model_generate(fingerprint, seed = 2026)
 ```
 
 For brevity, one may choose to combine the fit and data generation steps using `synpmx_model(study, roles, seed = 2026)`.

@@ -41,41 +41,43 @@ test_that("no stored fit carries the individual random effects (REV-056)", {
   }
 })
 
-test_that("the release holds only what generation reads (REV-057)", {
+test_that("the fingerprint holds only what generation reads (REV-057)", {
   fits <- .stored_fits()
   skip_if(!length(fits), "no stored fits")
   for (name in names(fits)) {
-    release <- model_release(fits[[name]])
-    expect_s3_class(release, "pmx_model_release")
-    expect_s3_class(release, "pmx_fitted_model")
-    expect_identical(.release_strays(release), character(), info = name)
-    expect_null(release$candidates)
-    expect_null(release$correlations)
-    expect_null(release$timing)
-    expect_null(release$design)
-    expect_null(release$endpoints$signals)
-    for (model in release$pk_models) {
+    fingerprint <- model_fingerprint(fits[[name]])
+    expect_s3_class(fingerprint, "pmx_model_fingerprint")
+    expect_s3_class(fingerprint, "pmx_fitted_model")
+    expect_identical(.fingerprint_strays(fingerprint), character(), info = name)
+    expect_null(fingerprint$candidates)
+    expect_null(fingerprint$correlations)
+    expect_null(fingerprint$timing)
+    expect_null(fingerprint$design)
+    expect_null(fingerprint$endpoints$signals)
+    for (model in fingerprint$pk_models) {
       expect_null(model$movement$changes)
       expect_null(model$candidates)
     }
   }
-  # The release is what is generated from: the same seed gives the same data.
+  # The fingerprint is what is generated from: the same seed gives the same data.
   fit <- fits[["warfarin-model-fit.rds"]]
   skip_if(is.null(fit), "stored warfarin fit unavailable")
   a <- suppressWarnings(synpmx_model_generate(fit, seed = 3))
-  b <- suppressWarnings(synpmx_model_generate(model_release(fit), seed = 3))
+  b <- suppressWarnings(synpmx_model_generate(model_fingerprint(fit), seed = 3))
   attributes(a)$pmx_fitted_model <- attributes(b)$pmx_fitted_model <- NULL
   expect_identical(a, b)
-  expect_error(model_candidates(model_release(fit)), "no candidate table")
+  expect_error(model_candidates(model_fingerprint(fit)), "no candidate table")
+  # The earlier name is the same function.
+  expect_identical(model_release, model_fingerprint)
 })
 
-test_that("generated data carries the release and no diagnostic (REV-057)", {
+test_that("generated data carries the fingerprint and no diagnostic (REV-057)", {
   stored <- system.file("extdata", "warfarin-model-fit.rds", package = "synpmx")
   skip_if(!nzchar(stored), "stored fit unavailable")
   fit <- readRDS(stored)
   synthetic <- suppressWarnings(synpmx_model_generate(fit, seed = 1))
   attached <- attr(synthetic, "pmx_fitted_model")
-  expect_s3_class(attached, "pmx_model_release")
+  expect_s3_class(attached, "pmx_model_fingerprint")
   expect_identical(.eta_paths(unclass(attached)), character())
   expect_null(attached$correlations)
   expect_null(attached$candidates)
@@ -230,12 +232,12 @@ test_that("the privacy checks catch a fit built before these fixes", {
   flagged <- model_privacy_checks(old)
   expect_equal(flagged$verdict[flagged$check == "P2"], "FAIL")
   expect_equal(flagged$verdict[flagged$check == "P3"], "FAIL")
-  stray <- model_release(fit)
+  stray <- model_fingerprint(fit)
   stray$pk_models[[1L]]$parameters$etas <- data.frame(eta.cl = 1:3)
-  expect_match(paste(.release_strays(stray), collapse = " "), "etas")
+  expect_match(paste(.fingerprint_strays(stray), collapse = " "), "etas")
 })
 
-test_that("scorecard E3 reads the release's influence verdict", {
+test_that("scorecard E3 reads the fingerprint's influence verdict", {
   stored <- system.file("extdata", "warfarin-model-fit.rds", package = "synpmx")
   skip_if(!nzchar(stored), "stored fit unavailable")
   fit <- readRDS(stored)
@@ -263,7 +265,7 @@ test_that("scorecard E3 reads the release's influence verdict", {
   card <- as.data.frame(suppressMessages(
     synpmx_scorecard(source, synthetic, roles)))
   expect_equal(card$verdict[card$check == "E3"], "pass")
-  # A passing release carries the threshold, not the number.
+  # A passing fingerprint carries the threshold, not the number.
   expect_match(card$result[card$check == "E3"], "less than")
   expect_false(grepl("points", card$result[card$check == "E3"]))
 })
@@ -588,7 +590,7 @@ test_that("a factor column keeps only the levels its arms carry or several patie
   restored <- .restore_column(carried, schema$prototypes$SITE)
   expect_identical(is.na(restored), unname(is.na(carried)))
 
-  # P3 catches a level no arm carries on a release assembled any other way.
+  # P3 catches a level no arm carries on a fingerprint assembled any other way.
   stored <- system.file("extdata", "warfarin-model-fit.rds", package = "synpmx")
   skip_if(!nzchar(stored), "stored fit unavailable")
   fit <- readRDS(stored)
@@ -720,8 +722,8 @@ test_that("released PK and PD estimates have one significant figure, and the fit
   skip_if(!length(fits), "no stored fits")
   one_figure <- function(x) all(abs(x - signif(x, 1L)) <= 1e-12 * abs(x))
   for (name in names(fits)) {
-    release <- model_release(fits[[name]])
-    for (model in release$pk_models) {
+    fingerprint <- model_fingerprint(fits[[name]])
+    for (model in fingerprint$pk_models) {
       expect_true(one_figure(model$parameters$fixed), info = name)
       expect_true(one_figure(diag(model$parameters$omega)), info = name)
       expect_null(model$estimated, info = name)
@@ -729,7 +731,7 @@ test_that("released PK and PD estimates have one significant figure, and the fit
     for (model in fits[[name]]$pk_models) {
       expect_false(is.null(model$estimated), info = name)
     }
-    for (pd in release$pd) expect_true(one_figure(pd$typical), info = name)
+    for (pd in fingerprint$pd) expect_true(one_figure(pd$typical), info = name)
   }
 })
 

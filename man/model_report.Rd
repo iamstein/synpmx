@@ -8,7 +8,7 @@ model_report(fitted_model)
 }
 \arguments{
 \item{fitted_model}{A \code{pmx_fitted_model} from \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}}, or
-a release from \code{\link[=model_release]{model_release()}}.}
+a fingerprint from \code{\link[=model_fingerprint]{model_fingerprint()}}.}
 }
 \value{
 A \code{pmx_model_report} list, printed as sections.
@@ -17,7 +17,7 @@ A \code{pmx_model_report} list, printed as sections.
 An inventory of everything in a \code{pmx_fitted_model}, in two halves: what
 the PK and PD fits estimated, and the dosing, visit and covariate models that are
 summaries of the source rather than estimates. Nothing here is per-subject.
-On a \code{\link[=model_release]{model_release()}} the diagnostics are absent and their sections are
+On a \code{\link[=model_fingerprint]{model_fingerprint()}} the diagnostics are absent and their sections are
 not printed.
 }
 \seealso{

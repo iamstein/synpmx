@@ -726,7 +726,7 @@ mixroute_run$fit
 ```
 
 ```{r mixroute-truth, eval=run}
-# The fit's estimates at full precision: the release carries them at one
+# The fit's estimates at full precision: the fingerprint carries them at one
 # significant figure, which would grade the rounding rather than the fit.
 full_precision <- function(fit) {
   estimated <- fit$pk_models[[1L]]$estimated

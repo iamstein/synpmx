@@ -346,9 +346,11 @@
 
 #' Generate a synthetic PMX dataset from a fitted model
 #'
-#' Draws new subjects from a [synpmx_model_estimate()] fit. This stage reads no
-#' patient data: its arguments are the model and a subject count, so everything
-#' about the source that reaches the output has already passed through the fit.
+#' Draws new subjects from the fingerprint of a [synpmx_model_estimate()] fit.
+#' This stage reads no patient data: its arguments are the model and a subject
+#' count, so everything about the source that reaches the output has already
+#' passed through the fit. A full fit is reduced to its [model_fingerprint()]
+#' first, so generation cannot read a diagnostic the fingerprint leaves behind.
 #'
 #' Per subject: an arm is assigned keeping the source arm shares, covariates are
 #' drawn from the study-wide covariate model, random effects from the
@@ -361,15 +363,15 @@
 #' study-time shapes or visit frequencies, while any declared dosing records
 #' are still generated.
 #'
-#' @param fitted_model A `pmx_fitted_model` from [synpmx_model_estimate()], or
-#'   its [model_release()].
+#' @param fitted_model A fingerprint from [model_fingerprint()], or the
+#'   `pmx_fitted_model` from [synpmx_model_estimate()] it was taken from.
 #' @param n_subjects Number of synthetic subjects. Defaults to the source count.
 #' @param seed Generation seed.
 #'
-#' @return A data frame in the source's shape, carrying [model_release()] of
-#'   the fitted model as its `pmx_fitted_model` attribute: what generation read,
-#'   without the diagnostics the full fit holds.
-#' @seealso [synpmx_model_estimate()], [synpmx_model()], [model_report()].
+#' @return A data frame in the source's shape, carrying the fingerprint it was
+#'   generated from as its `pmx_fitted_model` attribute.
+#' @seealso [synpmx_model_estimate()], [model_fingerprint()], [synpmx_model()],
+#'   [model_report()].
 #' @export
 synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
                                   seed = NULL) {
@@ -377,19 +379,20 @@ synpmx_model_generate <- function(fitted_model, n_subjects = NULL,
     stop("`fitted_model` must come from `synpmx_model_estimate()`.",
          call. = FALSE)
   }
-  n_subjects <- as.integer(n_subjects %||% fitted_model$n_source)
+  # The fingerprint, never the fit (REV-057). Generation reads only what the
+  # allowlist keeps, and that is also what travels with the data.
+  fingerprint <- model_fingerprint(fitted_model)
+  n_subjects <- as.integer(n_subjects %||% fingerprint$n_source)
   if (!is.finite(n_subjects) || n_subjects < 1L) {
     stop("`n_subjects` must be one positive integer.", call. = FALSE)
   }
   out <- if (is.null(seed)) {
-    .model_generate(fitted_model, n_subjects)
+    .model_generate(fingerprint, n_subjects)
   } else {
-    .with_local_seed(seed, .model_generate(fitted_model, n_subjects))
+    .with_local_seed(seed, .model_generate(fingerprint, n_subjects))
   }
-  out <- pmx_compress_doses(out, fitted_model$roles)
-  # The release, never the fit (REV-057). Whatever travels with the data is what
-  # leaves with it, and the fit carries diagnostics generation never read.
-  attr(out, "pmx_fitted_model") <- model_release(fitted_model)
+  out <- pmx_compress_doses(out, fingerprint$roles)
+  attr(out, "pmx_fitted_model") <- fingerprint
   attr(out, "pmx_source") <- "model"
   out
 }

@@ -8,7 +8,7 @@ model_privacy_checks(fitted_model)
 }
 \arguments{
 \item{fitted_model}{A \code{pmx_fitted_model} from \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}}, or
-a release from \code{\link[=model_release]{model_release()}}. A release carries only the verdict of
+a fingerprint from \code{\link[=model_fingerprint]{model_fingerprint()}}. A fingerprint carries only the verdict of
 the fifth check; the full fit carries the table behind it.}
 }
 \value{
@@ -22,7 +22,7 @@ and how many values were changed to meet it. No row is about a patient.
 }
 \description{
 Five checks on what a fitted model releases, each with its pass criterion.
-The first three ask whether the release holds anything about one patient
+The first three ask whether the fingerprint holds anything about one patient
 that it should not: a per-patient table, an identifier, or a single
 patient's value. The fourth recounts the smallest group of patients behind
 each kind of released frequency -- arm sizes, attendance, dose-change rates,
@@ -43,5 +43,5 @@ a move smaller than any threshold. The article
 states what each check establishes and what it does not.
 }
 \seealso{
-\code{\link[=model_release]{model_release()}}, \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}}, \code{\link[=synpmx_scorecard]{synpmx_scorecard()}}.
+\code{\link[=model_fingerprint]{model_fingerprint()}}, \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}}, \code{\link[=synpmx_scorecard]{synpmx_scorecard()}}.
 }

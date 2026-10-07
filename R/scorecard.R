@@ -785,8 +785,8 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
   # E3 is the privacy reading of the fit (SIM-056): how far any one patient
   # moves a released estimate, read at estimation from the individual random
   # effects, the PD subject baselines and the covariate summaries, and carried
-  # on the release as a verdict. It is the one E row that can `FAIL`, because a
-  # release whose estimates rest on one patient describes that patient, and the
+  # on the fingerprint as a verdict. It is the one E row that can `FAIL`, because a
+  # fingerprint whose estimates rest on one patient describes that patient, and the
   # usual cause -- a patient given far more drug than the record says -- is a
   # defect in the data rather than a reading about the cohort. A PD-only fit has
   # PD and covariate estimates to read and so is scored too.
@@ -797,7 +797,7 @@ synpmx_scorecard <- function(source, synthetic, roles, proximity = NULL) {
                    verdict = verdict)
   }
   record <- if (is.null(fitted)) NULL else
-    model_release(fitted)$privacy$influence
+    model_fingerprint(fitted)$privacy$influence
   rows <- c(rows, list(
     if (is.null(fitted)) {
       e3_row("not applicable: no population model was fitted",

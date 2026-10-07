@@ -7,22 +7,23 @@
 synpmx_model_generate(fitted_model, n_subjects = NULL, seed = NULL)
 }
 \arguments{
-\item{fitted_model}{A \code{pmx_fitted_model} from \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}}, or
-its \code{\link[=model_release]{model_release()}}.}
+\item{fitted_model}{A fingerprint from \code{\link[=model_fingerprint]{model_fingerprint()}}, or the
+\code{pmx_fitted_model} from \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}} it was taken from.}
 
 \item{n_subjects}{Number of synthetic subjects. Defaults to the source count.}
 
 \item{seed}{Generation seed.}
 }
 \value{
-A data frame in the source's shape, carrying \code{\link[=model_release]{model_release()}} of
-the fitted model as its \code{pmx_fitted_model} attribute: what generation read,
-without the diagnostics the full fit holds.
+A data frame in the source's shape, carrying the fingerprint it was
+generated from as its \code{pmx_fitted_model} attribute.
 }
 \description{
-Draws new subjects from a \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}} fit. This stage reads no
-patient data: its arguments are the model and a subject count, so everything
-about the source that reaches the output has already passed through the fit.
+Draws new subjects from the fingerprint of a \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}} fit.
+This stage reads no patient data: its arguments are the model and a subject
+count, so everything about the source that reaches the output has already
+passed through the fit. A full fit is reduced to its \code{\link[=model_fingerprint]{model_fingerprint()}}
+first, so generation cannot read a diagnostic the fingerprint leaves behind.
 }
 \details{
 Per subject: an arm is assigned keeping the source arm shares, covariates are
@@ -37,5 +38,6 @@ study-time shapes or visit frequencies, while any declared dosing records
 are still generated.
 }
 \seealso{
-\code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}}, \code{\link[=synpmx_model]{synpmx_model()}}, \code{\link[=model_report]{model_report()}}.
+\code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}}, \code{\link[=model_fingerprint]{model_fingerprint()}}, \code{\link[=synpmx_model]{synpmx_model()}},
+\code{\link[=model_report]{model_report()}}.
 }

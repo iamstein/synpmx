@@ -1135,7 +1135,7 @@
   chosen$baseline_cv <- if (length(positive) > 1L) stats::sd(log(positive)) else 0
   # How far one subject moves the baseline and its spread, read here because
   # the subject baselines exist only here (SIM-056). A summary over subjects,
-  # not a subject's value; the release does not carry it.
+  # not a subject's value; the fingerprint does not carry it.
   chosen$influence <- .pd_influence(
     stats::setNames(levels$baseline, as.character(unique(rows$subject))))
   # The shape's other parameters, by refitting it without each subject.
@@ -1989,7 +1989,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
   # One significant figure on every released PK and PD estimate (REV-063,
   # REV-074), applied once the acceptance checks have run on the full-precision
   # fit. The full-precision estimates stay on the fit as `estimated`, which the
-  # release's allowlist leaves behind, for whoever ran it to grade a fit
+  # fingerprint's allowlist leaves behind, for whoever ran it to grade a fit
   # against a known truth.
   pk_models <- lapply(pk_models, function(model) {
     model$estimated <- model$parameters
@@ -2135,7 +2135,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
 #'
 #' A single call for [synpmx_model_estimate()] followed by
 #' [synpmx_model_generate()]. Use the two separately to look at the fit before
-#' generating from it. The result carries the fit's [model_release()] as its
+#' generating from it. The result carries the fit's [model_fingerprint()] as its
 #' `pmx_fitted_model` attribute, which is what generation read; the candidate
 #' table, the starting values and the other diagnostics are only on the fit
 #' itself.
@@ -2150,7 +2150,7 @@ synpmx_model_estimate <- function(data, roles, pk = NULL, pd = NULL,
 #'   categorical baseline levels.
 #'
 #' @return A data frame in the source's shape, carrying the fitted model's
-#'   release as an attribute.
+#'   fingerprint as an attribute.
 #' @seealso [synpmx_model_estimate()], [synpmx_model_generate()],
 #'   [synpmx_pca()], [synpmx_avatar()].
 #' @export

@@ -45,12 +45,12 @@ show <- function(x, caption = NULL, paged = FALSE) {
   )
 }
 
-# Every number in a release that was estimated from patients, one row each. A
-# rate pooled over the arms is listed in the release once per arm and appears
+# Every number in a fingerprint that was estimated from patients, one row each. A
+# rate pooled over the arms is listed in the fingerprint once per arm and appears
 # here once. The planned dose schedule is the protocol, and is counted apart by
 # `planned_cycles()`.
 per_drug <- function(entry) if (!is.null(entry$planned)) list(entry) else entry
-fingerprint_items <- function(release) {
+fingerprint_items <- function(fingerprint) {
   rows <- list()
   add <- function(model, endpoint, parameter, value) {
     rows[[length(rows) + 1L]] <<- data.frame(
@@ -61,8 +61,8 @@ fingerprint_items <- function(release) {
     if (!is.null(r$cv)) add(model, endpoint, "residual error (CV)", r$cv)
     else add(model, endpoint, "residual error (SD)", r$sd)
   }
-  for (endpoint in names(release$pk_models)) {
-    p <- release$pk_models[[endpoint]]$parameters
+  for (endpoint in names(fingerprint$pk_models)) {
+    p <- fingerprint$pk_models[[endpoint]]$parameters
     for (name in names(p$fixed)) {
       add("PK", endpoint, paste("typical", name), p$fixed[[name]])
     }
@@ -77,8 +77,8 @@ fingerprint_items <- function(release) {
     add("PD", label, "between-subject CV of the baseline", s$baseline_cv)
     residual("PD", label, s$residual)
   }
-  for (endpoint in names(release$pd)) {
-    s <- release$pd[[endpoint]]
+  for (endpoint in names(fingerprint$pd)) {
+    s <- fingerprint$pd[[endpoint]]
     if (length(s$arms)) {
       for (arm in names(s$arms)) shape(paste0(endpoint, " (", arm, ")"),
                                        s$arms[[arm]])
@@ -86,8 +86,8 @@ fingerprint_items <- function(release) {
       shape(endpoint, s)
     }
   }
-  for (name in names(release$covariates)) {
-    c <- release$covariates[[name]]
+  for (name in names(fingerprint$covariates)) {
+    c <- fingerprint$covariates[[name]]
     if (c$kind == "lognormal") {
       add("Covariates", name, "mean of log", c$meanlog)
       add("Covariates", name, "SD of log", c$sdlog)
@@ -102,7 +102,7 @@ fingerprint_items <- function(release) {
     }
   }
   seen <- character()
-  for (entry in release$dosing) {
+  for (entry in fingerprint$dosing) {
     drugs <- per_drug(entry)
     for (drug in seq_along(drugs)) {
       d <- drugs[[drug]]
@@ -122,44 +122,44 @@ fingerprint_items <- function(release) {
   # One rate per endpoint, listed at each of its visits in each arm. A rate of
   # 1 says every patient attended and is not counted.
   seen <- character()
-  for (v in release$visits) {
+  for (v in fingerprint$visits) {
     p <- as.numeric(v$probability)
     for (i in which(p > 0 & p < 1)) {
-      key <- paste(release$cells$endpoint[[i]], p[[i]])
+      key <- paste(fingerprint$cells$endpoint[[i]], p[[i]])
       if (key %in% seen) next
       seen <- c(seen, key)
-      add("Missed visits", release$cells$endpoint[[i]], "attendance rate",
+      add("Missed visits", fingerprint$cells$endpoint[[i]], "attendance rate",
           p[[i]])
     }
   }
   seen <- list()
-  for (arm in release$discrete) {
+  for (arm in fingerprint$discrete) {
     for (i in seq_along(arm)) {
       m <- arm[[i]]
       if (is.null(m) || any(vapply(seen, identical, logical(1), m))) next
       seen[[length(seen) + 1L]] <- m
       for (j in seq_along(m$levels)[-1L]) {
-        add("Discrete endpoints", release$cells$endpoint[[i]],
+        add("Discrete endpoints", fingerprint$cells$endpoint[[i]],
             paste("share", m$levels[[j]]), m$probability[[j]])
       }
     }
   }
-  for (arm in names(release$arms$sizes)) {
-    add("Arms and floors", arm, "patients in the arm", release$arms$sizes[[arm]])
+  for (arm in names(fingerprint$arms$sizes)) {
+    add("Arms and floors", arm, "patients in the arm", fingerprint$arms$sizes[[arm]])
   }
-  add("Arms and floors", "all", "patients in the cohort", release$n_source)
-  for (endpoint in names(release$quantification_floor)) {
-    floor <- release$quantification_floor[[endpoint]]
+  add("Arms and floors", "all", "patients in the cohort", fingerprint$n_source)
+  for (endpoint in names(fingerprint$quantification_floor)) {
+    floor <- fingerprint$quantification_floor[[endpoint]]
     if (!is.null(floor)) add("Arms and floors", endpoint, "lowest value generated", floor)
   }
-  for (weight in unique(unlist(lapply(release$covariate_effects,
+  for (weight in unique(unlist(lapply(fingerprint$covariate_effects,
                                       function(e) e$reference)))) {
     add("Arms and floors", "all", "reference weight", weight)
   }
   do.call(rbind, rows)
 }
-planned_cycles <- function(release) {
-  sum(vapply(release$dosing, function(entry) {
+planned_cycles <- function(fingerprint) {
+  sum(vapply(fingerprint$dosing, function(entry) {
     sum(vapply(per_drug(entry), function(d) nrow(d$planned), numeric(1)))
   }, numeric(1)))
 }
@@ -176,10 +176,10 @@ the source that can reach the output.
 
 `synpmx_model_estimate()` returns a fit. The fit holds the fingerprint plus
 diagnostics for whoever ran it, such as the candidate models and the
-correlations between covariates and random effects. `model_release()` extracts
+correlations between covariates and random effects. `model_fingerprint()` extracts
 the fingerprint, and that is the object to carry out of the environment that
-holds the study. `synpmx_model_generate()` accepts either and reads only the
-fingerprint.
+holds the study. `synpmx_model_generate()` accepts either and reduces a fit to its
+fingerprint before generating.
 
 This vignette walks through the fingerprint of one study. Read
 `vignette("pmxmodel-demo")` first for a run end to end, and
@@ -206,10 +206,10 @@ fit <- synpmx_model_estimate(warfarin, roles, seed = 1)
 
 This document reads a stored copy of that fit, so it needs no compiler.
 
-```{r release, eval=run}
-release <- model_release(fit)
-names(release)
-setdiff(names(fit), names(release))  # diagnostics that stay with the fit
+```{r fingerprint, eval=run}
+fingerprint <- model_fingerprint(fit)
+names(fingerprint)
+setdiff(names(fit), names(fingerprint))  # diagnostics that stay with the fit
 ```
 
 `model_report()` summarizes the whole fit in one printout:
@@ -242,14 +242,14 @@ part of the fingerprint it belongs to:
   weight where body-weight scaling was requested.
 
 ```{r items, eval=run}
-items <- fingerprint_items(release)
+items <- fingerprint_items(fingerprint)
 show(items, "Every estimated number in the warfarin fingerprint", paged = TRUE)
 ```
 
 ```{r item-counts, eval=run}
 counts <- table(factor(items$model, levels = models))
 c(counts, total = sum(counts), `planned cycles (protocol)` =
-    planned_cycles(release))
+    planned_cycles(fingerprint))
 ```
 
 The planned dose times and amounts are the protocol rather than estimates,
@@ -277,7 +277,7 @@ studies <- c(warfarin = "warfarin-model-fit.rds",
 counted <- do.call(rbind, lapply(names(studies), function(study) {
   path <- system.file("extdata", studies[[study]], package = "synpmx")
   if (!nzchar(path)) return(NULL)
-  one <- model_release(readRDS(path))
+  one <- model_fingerprint(readRDS(path))
   n <- table(factor(fingerprint_items(one)$model, levels = models))
   data.frame(study = study, patients = one$n_source, t(as.integer(n)),
              total = sum(n), `planned cycles (protocol)` = planned_cycles(one),
@@ -292,7 +292,7 @@ knitr::kable(counted, row.names = FALSE)
 ### Structural model
 
 ```{r structural, eval=run}
-release$structural
+fingerprint$structural
 model_candidates(fit)
 ```
 
@@ -310,11 +310,11 @@ model_parameters(fit)
 ```
 
 No covariate is in the model: `covariate_effects = "none"` is the default, so
-`release$covariate_effects` is empty and every synthetic patient's parameters
+`fingerprint$covariate_effects` is empty and every synthetic patient's parameters
 are drawn from the covariance matrix alone.
 
 ```{r covariate-effects, eval=run}
-release$covariate_effects
+fingerprint$covariate_effects
 ```
 
 The fingerprint holds no patient's own random effects (empirical Bayes
@@ -344,7 +344,7 @@ shape. It reproduces the average response over time, which is enough for
 testing analysis code, and is not an exposure-response model.
 
 ```{r pd, eval=run}
-lapply(release$pd, function(shape) c(shape = shape$pd, shape$typical))
+lapply(fingerprint$pd, function(shape) c(shape = shape$pd, shape$typical))
 ```
 
 ```{r pd-candidates, eval=tables}
@@ -361,7 +361,7 @@ level frequencies, keeping only levels at least `min_category_patients`
 patients (default 3) hold.
 
 ```{r covariate-model, eval=run}
-str(release$covariates, max.level = 2)
+str(fingerprint$covariates, max.level = 2)
 ```
 
 Because no covariate is in the PK model, a relationship the real study had,
@@ -389,7 +389,7 @@ The design half of the fingerprint is the same as the one
 ### Arms
 
 ```{r arms, eval=run}
-data.frame(arm = release$arms$arms, patients = as.integer(release$arms$sizes))
+data.frame(arm = fingerprint$arms$arms, patients = as.integer(fingerprint$arms$sizes))
 ```
 
 ### Dosing
@@ -398,12 +398,12 @@ Each arm has its planned schedule. The levels doses were reduced to, and the
 rates of reducing, skipping and stopping, are pooled over the arms.
 
 ```{r dosing, eval=tables}
-arm <- release$arms$arms[[1L]]
-show(release$dosing[[arm]]$planned, "The planned schedule")
+arm <- fingerprint$arms$arms[[1L]]
+show(fingerprint$dosing[[arm]]$planned, "The planned schedule")
 ```
 
 ```{r rates, eval=run}
-dosing <- release$dosing[[arm]]
+dosing <- fingerprint$dosing[[arm]]
 c(levels = length(dosing$levels), reduction = dosing$reduction,
   interruption = dosing$interruption, discontinuation = dosing$discontinuation)
 ```
@@ -420,9 +420,9 @@ drawn visit by visit at generation. The rates, then the number of visits, per
 endpoint:
 
 ```{r visits, eval=run}
-rate <- do.call(pmax, unname(lapply(release$visits, function(v) v$probability)))
-signif(tapply(rate, release$cells$endpoint, max), 3)
-table(release$cells$endpoint)
+rate <- do.call(pmax, unname(lapply(fingerprint$visits, function(v) v$probability)))
+signif(tapply(rate, fingerprint$cells$endpoint, max), 3)
+table(fingerprint$cells$endpoint)
 ```
 
 A visit is kept only where at least `min_arm_patients` patients were observed
@@ -434,14 +434,14 @@ The shape of the table to generate: its columns and their classes, the
 compartment numbers, and any assay limit per endpoint.
 
 ```{r schema, eval=run}
-release$schema$columns
-unlist(release$schema$cmt_obs)
+fingerprint$schema$columns
+unlist(fingerprint$schema$cmt_obs)
 ```
 
 ## Generating from it
 
 ```{r generate, eval=run}
-synthetic <- synpmx_model_generate(release, n_subjects = 32, seed = 7)
+synthetic <- synpmx_model_generate(fingerprint, n_subjects = 32, seed = 7)
 c(rows = nrow(synthetic),
   subjects = length(unique(synthetic$id)),
   valid = validate_pmx(synthetic, roles)$valid)

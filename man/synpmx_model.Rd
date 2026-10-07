@@ -22,12 +22,12 @@ categorical baseline levels.}
 }
 \value{
 A data frame in the source's shape, carrying the fitted model's
-release as an attribute.
+fingerprint as an attribute.
 }
 \description{
 A single call for \code{\link[=synpmx_model_estimate]{synpmx_model_estimate()}} followed by
 \code{\link[=synpmx_model_generate]{synpmx_model_generate()}}. Use the two separately to look at the fit before
-generating from it. The result carries the fit's \code{\link[=model_release]{model_release()}} as its
+generating from it. The result carries the fit's \code{\link[=model_fingerprint]{model_fingerprint()}} as its
 \code{pmx_fitted_model} attribute, which is what generation read; the candidate
 table, the starting values and the other diagnostics are only on the fit
 itself.
