@@ -1,4 +1,4 @@
-# Membership Inference Against the PMX Model Release
+# Membership Inference Against the PMX Model Fingerprint
 
 [Privacy protections in the PMX model
 generator](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html)
@@ -11,8 +11,8 @@ the curve (AUC) summarizes how well that score separates patients who
 were in the study from patients who were not. Every number is computed
 in this article.
 
-**The simulated release is a simplified model of the real one, and is
-not the package’s code.** It keeps the two kinds of number that
+**The simulated fingerprint is a simplified model of the real one, and
+is not the package’s code.** It keeps the two kinds of number that
 membership inference works on, a population model’s typical values and
 variances, and the share of patients sampled at each scheduled visit,
 and reduces each to what the attack needs. The code is shown in full at
@@ -24,7 +24,7 @@ Membership inference asks one question about one person, the
 **candidate**: was this person in the study? The attacker holds three
 things:
 
-1.  the release, which
+1.  the fingerprint, which
     [`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md)
     attaches to every synthetic dataset it generates;
 2.  the candidate’s own measurements of the kind the study made, such as
@@ -36,7 +36,7 @@ things:
     average attendance at each scheduled visit.
 
 The attacker does not see the other patients. A patient in the study
-contributed to every number in the release, so the release leans
+contributed to every number in the fingerprint, so the fingerprint leans
 slightly toward them; a patient who was not in it contributed nothing.
 The attack measures that lean.
 
@@ -68,9 +68,9 @@ study
 #> patient 10       0       1       0       1       1
 ```
 
-The simulated release holds the share of patients sampled at each visit,
-after the floor that rounds a share with one or two patients on either
-side to 0 or 1:
+The simulated fingerprint holds the share of patients sampled at each
+visit, after the floor that rounds a share with one or two patients on
+either side to 0 or 1:
 
 ``` r
 
@@ -99,7 +99,7 @@ multiplies how far the candidate sits from the average, 1 minus the
 average for a visit they were sampled at and minus the average for one
 they missed, by how far the released share sits from the average, and
 adds the products. A product is positive when the candidate and the
-release lean the same way: sampled where the share came out above
+fingerprint lean the same way: sampled where the share came out above
 average, or missed where it came out below.
 
 ``` r
@@ -194,7 +194,7 @@ An AUC is not the share of patients identified. An AUC of 0.84 means
 that, shown one patient who was in the study and one who was not, the
 attacker picks the right one that often. The piles still overlap, so for
 any single person the attacker can be wrong; what the AUC measures is
-how far the release, taken over many people, gives membership away.
+how far the fingerprint, taken over many people, gives membership away.
 
 ## The Attendance Table, Row by Row
 
@@ -253,10 +253,10 @@ which is where the in-between shares of the sparse-sampling public
 studies sit (the last table below):
 
 - `visits` is how many scheduled visits a patient can be sampled at, and
-  so how many shares the release holds.
+  so how many shares the fingerprint holds.
 - `patients_behind_share` is how many patients each share is a share of.
-  The release pools a share over the arms that have the visit, so this
-  is usually the whole cohort.
+  The fingerprint pools a share over the arms that have the visit, so
+  this is usually the whole cohort.
 - `correlation_within_patient` is 0 where a patient’s visits are
   independent, and 0.6 where a patient who misses one visit is much more
   likely to miss the next, as a patient drifting out of the study would.
@@ -281,7 +281,7 @@ every share. **Correlation within a patient lowers it**, because
 correlated visits repeat the same information. **The floor barely moves
 it**, because it changes only shares near 0 or 1.
 
-**The release does not hold this table.** Its visit model is one
+**The fingerprint does not hold this table.** Its visit model is one
 attendance rate per endpoint, applied at every visit of the endpoint an
 arm has, so an attacker who knows which visits a candidate was sampled
 at has one number per endpoint to match rather than a share per visit.
@@ -307,11 +307,11 @@ squared one, by one part in the cohort size.
 
 The attacker holds the candidate’s own random effects and reference
 values for the population, and the score adds two kinds of product, each
-positive when the release leans toward the candidate: the candidate’s
-random effect times how far the released typical value sits from the
-reference, and the candidate’s squared random effect, relative to the
-variance, times how far the released variance sits from the reference
-variance.
+positive when the fingerprint leans toward the candidate: the
+candidate’s random effect times how far the released typical value sits
+from the reference, and the candidate’s squared random effect, relative
+to the variance, times how far the released variance sits from the
+reference variance.
 
 ``` r
 
@@ -353,12 +353,13 @@ it was, because an estimate’s sampling variation from one study to the
 next is larger than a two-figure step. One figure lowers it, because a
 one-figure step, from a tenth of the value to all of it, is as wide as
 that variation, so the released value is often the same with the
-candidate in the study or out; that is why the release rounds to one.
+candidate in the study or out; that is why the fingerprint rounds to
+one.
 
 ## What Each Public Study Releases
 
-The numbers the attack could use in the release of each stored fit in
-the [public-data
+The numbers the attack could use in the fingerprint of each stored fit
+in the [public-data
 evaluation](https://iamstein.github.io/synpmx/articles/pmxmodel-public-data-examples.html):
 the random effects of the population model, the attendance rate of each
 endpoint, and the free level frequencies of the binary and ordinal
@@ -381,16 +382,16 @@ files <- c(warfarin = "warfarin-model-fit.rds",
 rows <- lapply(names(files), function(study) {
   fit <- stored_fit(files[[study]])
   if (!inherits(fit, "pmx_fitted_model")) return(NULL)
-  release <- model_release(fit)
+  fingerprint <- model_fingerprint(fit)
   # One rate per endpoint, listed at each of its visits in each arm.
-  rate <- unique(unlist(lapply(release$visits, function(v) {
+  rate <- unique(unlist(lapply(fingerprint$visits, function(v) {
     p <- as.numeric(v$probability)
-    paste(release$cells$endpoint, p)[p > 0 & p < 1]
+    paste(fingerprint$cells$endpoint, p)[p > 0 & p < 1]
   })))
   marginals <- unique(Filter(Negate(is.null),
-                             unlist(release$discrete, recursive = FALSE)))
-  data.frame(study = study, patients = release$n_source,
-             random_effects = sum(vapply(release$pk_models, function(model) {
+                             unlist(fingerprint$discrete, recursive = FALSE)))
+  data.frame(study = study, patients = fingerprint$n_source,
+             random_effects = sum(vapply(fingerprint$pk_models, function(model) {
                nrow(model$parameters$omega)
              }, integer(1))),
              attendance_rates = length(rate),
@@ -427,15 +428,15 @@ more random effects than five gives the attacker more numbers to add up.
   measured for the same patient: at a study site, in a related study, or
   in routine care.
 - **The AUC is an average over members.** A patient far from the typical
-  values, or with an unusual run of outcomes, moves the release further
-  toward themselves and is more exposed than the average member, which
-  is why membership-inference studies report the attack’s success on
-  such patients separately \[2, 3\].
-- **The release is simplified.** The visits are exchangeable apart from
-  their rates, the random effects are normal and independent across
-  parameters, and the real release holds further numbers this simulation
-  leaves out: the dosing model, the covariate summaries and the PD time
-  courses.
+  values, or with an unusual run of outcomes, moves the fingerprint
+  further toward themselves and is more exposed than the average member,
+  which is why membership-inference studies report the attack’s success
+  on such patients separately \[2, 3\].
+- **The fingerprint is simplified.** The visits are exchangeable apart
+  from their rates, the random effects are normal and independent across
+  parameters, and the real fingerprint holds further numbers this
+  simulation leaves out: the dosing model, the covariate summaries and
+  the PD time courses.
 - **The score is not the most powerful one possible.** It is of the kind
   used to trace individuals in pooled genetic data \[4, 5, 6\]. An
   attacker who can simulate studies from the same population can

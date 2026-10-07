@@ -305,9 +305,9 @@ documents what each row asks and what its pass criterion is.
 
 [`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md)
 is the two stages together, for when you do not need to look at the fit
-first. The result carries the fit’s release as an attribute, which is
-what generation read; the candidate table and the other diagnostics are
-only on the fit itself.
+first. The result carries the fit’s fingerprint as an attribute, which
+is what generation read; the candidate table and the other diagnostics
+are only on the fit itself.
 
 ``` r
 

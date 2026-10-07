@@ -1,10 +1,13 @@
 # Generate a synthetic PMX dataset from a fitted model
 
-Draws new subjects from a
+Draws new subjects from the fingerprint of a
 [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md)
 fit. This stage reads no patient data: its arguments are the model and a
 subject count, so everything about the source that reaches the output
-has already passed through the fit.
+has already passed through the fit. A full fit is reduced to its
+[`model_fingerprint()`](https://iamstein.github.io/synpmx/reference/model_fingerprint.md)
+first, so generation cannot read a diagnostic the fingerprint leaves
+behind.
 
 ## Usage
 
@@ -16,10 +19,11 @@ synpmx_model_generate(fitted_model, n_subjects = NULL, seed = NULL)
 
 - fitted_model:
 
-  A `pmx_fitted_model` from
-  [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md),
-  or its
-  [`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md).
+  A fingerprint from
+  [`model_fingerprint()`](https://iamstein.github.io/synpmx/reference/model_fingerprint.md),
+  or the `pmx_fitted_model` from
+  [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md)
+  it was taken from.
 
 - n_subjects:
 
@@ -31,10 +35,8 @@ synpmx_model_generate(fitted_model, n_subjects = NULL, seed = NULL)
 
 ## Value
 
-A data frame in the source's shape, carrying
-[`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md)
-of the fitted model as its `pmx_fitted_model` attribute: what generation
-read, without the diagnostics the full fit holds.
+A data frame in the source's shape, carrying the fingerprint it was
+generated from as its `pmx_fitted_model` attribute.
 
 ## Details
 
@@ -52,5 +54,6 @@ generated.
 ## See also
 
 [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md),
+[`model_fingerprint()`](https://iamstein.github.io/synpmx/reference/model_fingerprint.md),
 [`synpmx_model()`](https://iamstein.github.io/synpmx/reference/synpmx_model.md),
 [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md).

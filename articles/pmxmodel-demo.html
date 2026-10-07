@@ -390,8 +390,9 @@ asks and what its pass criterion is.</p>
 </h2>
 <p><code><a href="../reference/synpmx_model.html">synpmx_model()</a></code> is the two stages together, for when you
 do not need to look at the fit first. The result carries the fit’s
-release as an attribute, which is what generation read; the candidate
-table and the other diagnostics are only on the fit itself.</p>
+fingerprint as an attribute, which is what generation read; the
+candidate table and the other diagnostics are only on the fit
+itself.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model.html">synpmx_model</a></span><span class="op">(</span><span class="va">raw</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="va">SEED</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="st">"pmx_fitted_model"</span><span class="op">)</span></span></code></pre></div>

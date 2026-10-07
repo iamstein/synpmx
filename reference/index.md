@@ -75,8 +75,9 @@ and the privacy checks on it.
   : The candidate models the selection was made from
 - [`model_parameters()`](https://iamstein.github.io/synpmx/reference/model_parameters.md)
   : The estimated parameters
-- [`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md)
-  : What leaves the study: the release of a fitted model
+- [`model_fingerprint()`](https://iamstein.github.io/synpmx/reference/model_fingerprint.md)
+  [`model_release()`](https://iamstein.github.io/synpmx/reference/model_fingerprint.md)
+  : What leaves the study: the fingerprint of a fitted model
 - [`model_privacy_checks()`](https://iamstein.github.io/synpmx/reference/model_privacy_checks.md)
   : Privacy checks on a fitted model
 

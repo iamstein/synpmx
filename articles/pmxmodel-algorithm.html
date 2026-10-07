@@ -189,8 +189,8 @@ listed in <code><a href="../articles/pmxmodel-fingerprint.html">vignette("pmxmod
 carries, <code><a href="../reference/model_candidates.html">model_candidates()</a></code> returns the attempted models
 and their acceptance results, and <code><a href="../reference/model_parameters.html">model_parameters()</a></code>
 returns the fixed effects, the between-subject covariance matrix and the
-residual error. <code><a href="../reference/model_release.html">model_release()</a></code> returns the part of the fit
-that generation reads, which is what
+residual error. <code><a href="../reference/model_fingerprint.html">model_fingerprint()</a></code> returns the part of the
+fit that generation reads, which is what
 <code><a href="../reference/synpmx_model_generate.html">synpmx_model_generate()</a></code> attaches to its output, and
 <code><a href="../reference/model_privacy_checks.html">model_privacy_checks()</a></code> runs five checks on it (Step 5).</p>
 <p><code>nlmixr2est</code> is an imported dependency, used by
@@ -1044,16 +1044,16 @@ fitting and the whole call took.</p>
 <p>Not estimated: the dosing model, a planned schedule per arm with
 three rates pooled over arms, the visit model, arm sizes, the covariate
 distributions, the censoring boundary, the schema and the roles.</p>
-<p><strong>Only the release leaves the study.</strong> The fit also
+<p><strong>Only the fingerprint leaves the study.</strong> The fit also
 carries diagnostics for whoever ran it, such as the AIC of every
 candidate, the starting values and the correlations between covariates
 and random effects, and generation reads none of them.
-<code><a href="../reference/model_release.html">model_release()</a></code> returns the part generation reads, and
+<code><a href="../reference/model_fingerprint.html">model_fingerprint()</a></code> returns the part generation reads, and
 <code><a href="../reference/synpmx_model_generate.html">synpmx_model_generate()</a></code> attaches that to its output rather
 than the fit. Printing the fit, or <code><a href="../reference/model_report.html">model_report()</a></code>, gives
 the same account; <code><a href="../articles/pmxmodel-fingerprint.html">vignette("pmxmodel-fingerprint")</a></code> lists
-every number in a release.</p>
-<p>Four operations protect the release as it is stored, each set out
+every number in a fingerprint.</p>
+<p>Four operations protect the fingerprint as it is stored, each set out
 with its evidence in the <a href="https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html">privacy
 article</a>:</p>
 <ol style="list-style-type: decimal">
@@ -1061,7 +1061,8 @@ article</a>:</p>
 <strong>Rounding.</strong> Every released PK and PD estimate is
 rounded to one significant figure, and the covariate summaries to two.
 The acceptance checks of Step 3 run on the fit before rounding, and the
-full-precision PK estimates stay on the fit, outside the release.</li>
+full-precision PK estimates stay on the fit, outside the
+fingerprint.</li>
 <li>
 <strong>Single-patient influence.</strong> Estimation reads how far
 leaving out each patient would move each released estimate. A patient

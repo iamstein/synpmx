@@ -34,15 +34,15 @@ face. That use is synthetic data for developing analysis code, shared
 with people who work under the study’s own access controls or an
 agreement like them. The case rests on three points:
 
-1.  **The release holds what the study’s own reports ultimately make
+1.  **The fingerprint holds what the study’s own reports ultimately make
     public, more coarsely.** A population PK report gives each typical
     value, its between-subject variability and the residual error, with
     their standard errors, and regulators ask for exactly that \[11,
     12\]. The study’s main publication gives each arm’s baseline
     characteristics and how many patients discontinued \[13\]. This
-    release holds the same kinds of number at one significant figure,
-    pooled over the arms and the visits, without standard errors, and a
-    few dozen at most ([counted per public
+    fingerprint holds the same kinds of number at one significant
+    figure, pooled over the arms and the visits, without standard
+    errors, and a few dozen at most ([counted per public
     study](https://iamstein.github.io/synpmx/articles/pmxmodel-fingerprint.html#parameter-counts)).
 2.  **Any attacker already holds the answer they are seeking.**
     Membership inference needs the candidate’s own measurements to
@@ -51,12 +51,12 @@ agreement like them. The case rests on three points:
     company sponsoring the study, this information exists only at the
     sites and in routine care of the patient. Thus whoever holds a
     candidate’s trial record knows the candidate was in the trial, and
-    learning it again from the release discloses nothing.
+    learning it again from the fingerprint discloses nothing.
 3.  **DP at small cohort sizes replaces the study with noise**, as [the
     appendix](#dp-noise-small-study) computes, and for this use noise is
     worse than no data. The [calibrated generator’s
     evaluation](https://iamstein.github.io/synpmx/articles/calibrated-public-data-examples.html)
-    finds a DP release at phase 1 sizes worse than generating from a
+    finds a DP fingerprint at phase 1 sizes worse than generating from a
     public prior, which reads nothing.
 
 ## Privacy Assessment Summary
@@ -80,23 +80,23 @@ and how often each level of a yes/no or graded endpoint was recorded.
 Each of these is one set of numbers for the whole study, pooled over the
 arms and the visits.
 
-These numbers are the **release**, and they are all that leaves the
+These numbers are the **fingerprint**, and they are all that leaves the
 environment that holds the study. Synthetic data is simulated from the
-release and random numbers alone, so it discloses nothing the release
-does not. The release is the study’s fingerprint. [The PMX model study
+fingerprint and random numbers alone, so it discloses nothing the
+fingerprint does not. [The PMX model study
 fingerprint](https://iamstein.github.io/synpmx/articles/pmxmodel-fingerprint.html)
 lists every number in one and counts them for each public study.
 
 ### What Is Protected, and What Is Not
 
 **✅ No patient record, identifier or per-patient estimate leaves the
-study.** The release holds numbers about the population and about arms.
-Each patient’s estimated random effects are used during estimation and
-dropped from the release, and synthetic subject IDs are new numbers that
-cannot collide with real ones.
-[`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md)
-builds the release from an allowlist of the fields generation reads, so
-the diagnostics on the fit, and any field added to it later, stay
+study.** The fingerprint holds numbers about the population and about
+arms. Each patient’s estimated random effects are used during estimation
+and dropped from the fingerprint, and synthetic subject IDs are new
+numbers that cannot collide with real ones.
+[`model_fingerprint()`](https://iamstein.github.io/synpmx/reference/model_fingerprint.md)
+builds the fingerprint from an allowlist of the fields generation reads,
+so the diagnostics on the fit, and any field added to it later, stay
 behind.
 
 **✅ No released number is one patient’s value, and every released
@@ -128,8 +128,8 @@ time in a 60-patient study when its population parameters come from
 another study (20% off), and 70% of the time in a 12-patient study when
 it knows the population’s true parameters, where 50% is a coin flip.
 [Appendix: Membership Inference Against the
-Release](#membership-inference-against-the-release) provides further
-details on these calculations.
+Fingerprint](#membership-inference-against-the-fingerprint) provides
+further details on these calculations.
 
 **❌ No formal guarantee.** Nothing bounds what an attacker who knows
 every other patient learns about the remaining one.
@@ -242,13 +242,13 @@ keeps every patient.
 ## The Five Checks
 
 [`model_privacy_checks()`](https://iamstein.github.io/synpmx/reference/model_privacy_checks.md)
-verifies the protections on a fit; a release carries the verdicts of P4
-and P5.
+verifies the protections on a fit; a fingerprint carries the verdicts of
+P4 and P5.
 
 | Check | Question | Passes when |
 |----|----|----|
-| P1 | No per-patient table is released | the release holds only population- and arm-level fields |
-| P2 | No source identifier is released | no source subject ID appears in the release |
+| P1 | No per-patient table is released | the fingerprint holds only population- and arm-level fields |
+| P2 | No source identifier is released | no source subject ID appears in the fingerprint |
 | P3 | No single patient’s value is released | protection 1 holds |
 | P4 | Every released frequency rests on at least three patients | protection 2 holds for every frequency |
 | P5 | No single patient moves a released estimate far | every estimate moves less than 15 (protection 5) |
@@ -574,19 +574,19 @@ as.data.frame(card)[card$check %in% c("B3", "B4b", "B5"),
 
 ## Outstanding Risks
 
-The ways a release can still disclose something about a patient, most
-serious first:
+The ways a fingerprint can still disclose something about a patient,
+most serious first:
 
 - **An attacker who holds a candidate’s own trial data can infer
   membership**, with the small advantage measured in the
-  [appendix](#membership-inference-against-the-release). Only noise
+  [appendix](#membership-inference-against-the-fingerprint). Only noise
   would reduce it.
 - **An attacker who knows every other patient is not stopped.** They can
   compute the exact effect of the one patient they do not know. Only a
   DP mechanism stops them.
-- **Releases compose.** Two releases from overlapping data, such as an
-  interim and a final analysis, differ by exactly what the patients
-  between them contributed. Nothing here accounts for that.
+- **Fingerprints compose.** Two fingerprints from overlapping data, such
+  as an interim and a final analysis, differ by exactly what the
+  patients between them contributed. Nothing here accounts for that.
 - **Three patients is the smallest threshold in common use.** A stricter
   rule needs `min_arm_patients` and `min_category_patients` raised.
 - **The influence reading is approximate, and its thresholds are
@@ -596,24 +596,24 @@ serious first:
   errors and a PK parameter without between-subject variability are not
   read.
 - **The full fit and the estimation log are not safe to share.** The fit
-  holds diagnostics the release does not, and the console names patients
-  left out. Share the release or the synthetic data only.
+  holds diagnostics the fingerprint does not, and the console names
+  patients left out. Share the fingerprint or the synthetic data only.
 - **Rarity in the world is not measured.** A covariate level many
   patients in this study hold can still identify someone if few people
   hold it.
 
-## Appendix: Membership Inference Against the Release
+## Appendix: Membership Inference Against the Fingerprint
 
 A membership-inference attack scores each candidate by how far the
-release has moved, away from what the population would give, toward the
-candidate’s own values. Members score higher on average than
+fingerprint has moved, away from what the population would give, toward
+the candidate’s own values. Members score higher on average than
 non-members, and the attack’s strength is the area under the curve
 (AUC): the probability that a randomly chosen member scores above a
 randomly chosen non-member, where 0.5 is chance and 1 is certain
 identification. The attacker holds the candidate’s own measurements and
 reference values for the population, and does not know the other
 patients. [Membership inference against the PMX model
-release](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy-simulation.html)
+fingerprint](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy-simulation.html)
 works through the calculation. Three findings:
 
 - **Cohort size decides the population model’s exposure.** With exact
@@ -622,10 +622,10 @@ works through the calculation. Three findings:
 - **One significant figure lowers it; two would not.** Rounding to one
   figure lowers the AUC by up to 0.05, while two figures move it by at
   most 0.001.
-- **A table per visit would be the most exposed part of a release, so
-  the release holds none.** A share of patients sampled at each of 20
-  visits gives 0.83 with 10 patients behind each share and 0.62 with
-  100, and the three-patient floor moves it by at most 0.01. One
+- **A table per visit would be the most exposed part of a fingerprint,
+  so the fingerprint holds none.** A share of patients sampled at each
+  of 20 visits gives 0.83 with 10 patients behind each share and 0.62
+  with 100, and the three-patient floor moves it by at most 0.01. One
   attendance rate per endpoint is about as exposed as one visit’s share:
   0.67 for five endpoints behind 10 patients.
 
@@ -694,18 +694,18 @@ knitr::kable(data.frame(
 | 1000 | 30 | 1.06-fold | 12 times | 3.17-fold |
 
 Eleven numbers are a two-compartment population model alone, and thirty
-a whole release. At 60 patients the per-patient route leaves half of the
-population model’s numbers off by more than 1.42-fold, with noise 19
+a whole fingerprint. At 60 patients the per-patient route leaves half of
+the population model’s numbers off by more than 1.42-fold, with noise 19
 times the sampling error each estimate already carries, and a whole
-release off by 2.6-fold. At 30 patients the population model alone is
-off by 2.0-fold. Even at 1,000 patients the noise is 4.5 times the
+fingerprint off by 2.6-fold. At 30 patients the population model alone
+is off by 2.0-fold. Even at 1,000 patients the noise is 4.5 times the
 sampling error. Subsample-and-aggregate, which keeps the fit as it is,
 is unusable below about a thousand patients. Gaussian noise with tighter
 accounting grows with the square root of the count rather than the
 count, and does not change this picture at these cohort sizes. At the 12
-to 200 patients this generator sees, a DP release would say less about
-the study than a public prior does. Neither route is implemented beyond
-the one number
+to 200 patients this generator sees, a DP fingerprint would say less
+about the study than a public prior does. Neither route is implemented
+beyond the one number
 [`synpmx_calibrated()`](https://iamstein.github.io/synpmx/reference/synpmx_calibrated.md)
 releases.
 

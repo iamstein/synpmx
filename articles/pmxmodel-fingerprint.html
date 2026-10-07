@@ -142,10 +142,10 @@ source that can reach the output.</p>
 <p><code><a href="../reference/synpmx_model_estimate.html">synpmx_model_estimate()</a></code> returns a fit. The fit holds the
 fingerprint plus diagnostics for whoever ran it, such as the candidate
 models and the correlations between covariates and random effects.
-<code><a href="../reference/model_release.html">model_release()</a></code> extracts the fingerprint, and that is the
-object to carry out of the environment that holds the study.
-<code><a href="../reference/synpmx_model_generate.html">synpmx_model_generate()</a></code> accepts either and reads only the
-fingerprint.</p>
+<code><a href="../reference/model_fingerprint.html">model_fingerprint()</a></code> extracts the fingerprint, and that is
+the object to carry out of the environment that holds the study.
+<code><a href="../reference/synpmx_model_generate.html">synpmx_model_generate()</a></code> accepts either and reduces a fit to
+its fingerprint before generating.</p>
 <p>This vignette walks through the fingerprint of one study. Read
 <code><a href="../articles/pmxmodel-demo.html">vignette("pmxmodel-demo")</a></code> first for a run end to end, and
 <code><a href="../articles/pmxmodel-algorithm.html">vignette("pmxmodel-algorithm")</a></code> for how each quantity is
@@ -169,15 +169,15 @@ activity (PCA).</p>
 <p>This document reads a stored copy of that fit, so it needs no
 compiler.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">release</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_release.html">model_release</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">release</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">fingerprint</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_fingerprint.html">model_fingerprint</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fingerprint</span><span class="op">)</span></span>
 <span><span class="co">#&gt;  [1] "structural"           "parameters"           "pk_models"           </span></span>
 <span><span class="co">#&gt;  [4] "pd"                   "arms"                 "dosing"              </span></span>
 <span><span class="co">#&gt;  [7] "visits"               "cells"                "discrete"            </span></span>
 <span><span class="co">#&gt; [10] "covariates"           "covariate_effects"    "schema"              </span></span>
 <span><span class="co">#&gt; [13] "roles"                "endpoints"            "quantification_floor"</span></span>
 <span><span class="co">#&gt; [16] "n_source"             "settings"             "privacy"</span></span>
-<span><span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">setdiff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">release</span><span class="op">)</span><span class="op">)</span>  <span class="co"># diagnostics that stay with the fit</span></span>
+<span><span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">setdiff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fingerprint</span><span class="op">)</span><span class="op">)</span>  <span class="co"># diagnostics that stay with the fit</span></span>
 <span><span class="co">#&gt; [1] "candidates"   "design"       "correlations" "censoring"    "timing"      </span></span>
 <span><span class="co">#&gt; [6] "movement"     "fit_subjects" "start_param"  "dose_records"</span></span></code></pre></div>
 <p><code><a href="../reference/model_report.html">model_report()</a></code> summarizes the whole fit in one
@@ -272,13 +272,13 @@ assay limit, and the reference weight where body-weight scaling was
 requested.</li>
 </ul>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">items</span> <span class="op">&lt;-</span> <span class="fu">fingerprint_items</span><span class="op">(</span><span class="va">release</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">items</span> <span class="op">&lt;-</span> <span class="fu">fingerprint_items</span><span class="op">(</span><span class="va">fingerprint</span><span class="op">)</span></span>
 <span><span class="fu">show</span><span class="op">(</span><span class="va">items</span>, <span class="st">"Every estimated number in the warfarin fingerprint"</span>, paged <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
 <script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"caption":"<caption>Every estimated number in the warfarin fingerprint<\/caption>","data":[["PK","PK","PK","PK","PK","PK","PK","PK","PK","PK","PK","PD","PD","PD","PD","PD","Covariates","Covariates","Covariates","Covariates","Covariates","Dose changes","Dose changes","Dose changes","Missed visits","Missed visits","Arms and floors","Arms and floors","Arms and floors","Arms and floors"],["cp","cp","cp","cp","cp","cp","cp","cp","cp","cp","cp","pca","pca","pca","pca","pca","wt","wt","age","age","sex","all arms","all arms","all arms","cp","pca","all","all","cp","pca"],["typical cl","typical v","typical q","typical v2","typical ka","between-subject variance, cl","between-subject variance, v","between-subject variance, ka","between-subject variance, q","between-subject variance, v2","residual error (CV)","plateau","baseline","rate","between-subject CV of the baseline","residual error (SD)","mean of log","SD of log","mean of log","SD of log","share male","reduction rate","interruption rate","discontinuation rate","attendance rate","attendance rate","patients in the arm","patients in the cohort","lowest value generated","lowest value generated"],[0.1,7,0.1,2,0.4,0.07000000000000001,0.04,0.3,0.006,0.4,0.2,30,100,0.1,0.1,10,4.23,0.18,3.37,0.34,0.844,0,0,0,0.551,0.906,32,32,0.2,5]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>model<\/th>\n      <th>endpoint<\/th>\n      <th>parameter<\/th>\n      <th>value<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"tip","paging":true,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":3},{"name":"model","targets":0},{"name":"endpoint","targets":1},{"name":"parameter","targets":2},{"name":"value","targets":3}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">counts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">items</span><span class="op">$</span><span class="va">model</span>, levels <span class="op">=</span> <span class="va">models</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">counts</span>, total <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">counts</span><span class="op">)</span>, `planned cycles (protocol)` <span class="op">=</span></span>
-<span>    <span class="fu">planned_cycles</span><span class="op">(</span><span class="va">release</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu">planned_cycles</span><span class="op">(</span><span class="va">fingerprint</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;                        PK                        PD                Covariates </span></span>
 <span><span class="co">#&gt;                        11                         5                         5 </span></span>
 <span><span class="co">#&gt;              Dose changes             Missed visits        Discrete endpoints </span></span>
@@ -464,7 +464,7 @@ more rows, and a PD shape fitted per arm under
 <h3 id="structural-model">Structural model<a class="anchor" aria-label="anchor" href="#structural-model"></a>
 </h3>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">release</span><span class="op">$</span><span class="va">structural</span></span>
+<code class="sourceCode R"><span><span class="va">fingerprint</span><span class="op">$</span><span class="va">structural</span></span>
 <span><span class="co">#&gt; [1] "2cmt_oral"</span></span>
 <span><span class="fu"><a href="../reference/model_candidates.html">model_candidates</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       model converged accepted      aic seconds note</span></span>
@@ -500,11 +500,11 @@ the fingerprint is rounded to one significant figure.</p>
 <span><span class="co">#&gt; $residual$cv</span></span>
 <span><span class="co">#&gt; [1] 0.2</span></span></code></pre></div>
 <p>No covariate is in the model: <code>covariate_effects = "none"</code>
-is the default, so <code>release$covariate_effects</code> is empty and
-every synthetic patient’s parameters are drawn from the covariance
+is the default, so <code>fingerprint$covariate_effects</code> is empty
+and every synthetic patient’s parameters are drawn from the covariance
 matrix alone.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">release</span><span class="op">$</span><span class="va">covariate_effects</span></span>
+<code class="sourceCode R"><span><span class="va">fingerprint</span><span class="op">$</span><span class="va">covariate_effects</span></span>
 <span><span class="co">#&gt; list()</span></span></code></pre></div>
 <p>The fingerprint holds no patient’s own random effects (empirical
 Bayes estimates). They are read during estimation and dropped.</p>
@@ -536,7 +536,7 @@ and an exponential shape. It reproduces the average response over time,
 which is enough for testing analysis code, and is not an
 exposure-response model.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">pd</span>, <span class="kw">function</span><span class="op">(</span><span class="va">shape</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>shape <span class="op">=</span> <span class="va">shape</span><span class="op">$</span><span class="va">pd</span>, <span class="va">shape</span><span class="op">$</span><span class="va">typical</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">fingerprint</span><span class="op">$</span><span class="va">pd</span>, <span class="kw">function</span><span class="op">(</span><span class="va">shape</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>shape <span class="op">=</span> <span class="va">shape</span><span class="op">$</span><span class="va">pd</span>, <span class="va">shape</span><span class="op">$</span><span class="va">typical</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; $pca</span></span>
 <span><span class="co">#&gt;         shape       plateau      baseline          rate </span></span>
 <span><span class="co">#&gt; "exponential"          "30"         "100"         "0.1"</span></span></code></pre></div>
@@ -555,7 +555,7 @@ scale, taken after the highest and lowest 5% of patients are set aside.
 A categorical one is a set of level frequencies, keeping only levels at
 least <code>min_category_patients</code> patients (default 3) hold.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">covariates</span>, max.level <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">fingerprint</span><span class="op">$</span><span class="va">covariates</span>, max.level <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="co">#&gt; List of 3</span></span>
 <span><span class="co">#&gt;  $ wt :List of 3</span></span>
 <span><span class="co">#&gt;   ..$ kind   : chr "lognormal"</span></span>
@@ -594,7 +594,7 @@ the same real patients.</p>
 <h3 id="arms">Arms<a class="anchor" aria-label="anchor" href="#arms"></a>
 </h3>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>arm <span class="op">=</span> <span class="va">release</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">arms</span>, patients <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">sizes</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>arm <span class="op">=</span> <span class="va">fingerprint</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">arms</span>, patients <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">fingerprint</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">sizes</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   arm patients</span></span>
 <span><span class="co">#&gt; 1 all       32</span></span></code></pre></div>
 </div>
@@ -605,11 +605,11 @@ the same real patients.</p>
 and the rates of reducing, skipping and stopping, are pooled over the
 arms.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">arm</span> <span class="op">&lt;-</span> <span class="va">release</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">arms</span><span class="op">[[</span><span class="fl">1L</span><span class="op">]</span><span class="op">]</span></span>
-<span><span class="fu">show</span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">dosing</span><span class="op">[[</span><span class="va">arm</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">planned</span>, <span class="st">"The planned schedule"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">arm</span> <span class="op">&lt;-</span> <span class="va">fingerprint</span><span class="op">$</span><span class="va">arms</span><span class="op">$</span><span class="va">arms</span><span class="op">[[</span><span class="fl">1L</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="fu">show</span><span class="op">(</span><span class="va">fingerprint</span><span class="op">$</span><span class="va">dosing</span><span class="op">[[</span><span class="va">arm</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">planned</span>, <span class="st">"The planned schedule"</span><span class="op">)</span></span></code></pre></div>
 <div class="datatables html-widget html-fill-item" id="htmlwidget-febe03efa1a2d8d52a86" style="width:100%;height:auto;"></div>
 <script type="application/json" data-for="htmlwidget-febe03efa1a2d8d52a86">{"x":{"filter":"none","vertical":false,"caption":"<caption>The planned schedule<\/caption>","data":[[1],[0],[120],[null],[0],[null]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>cycle<\/th>\n      <th>time<\/th>\n      <th>amt<\/th>\n      <th>route<\/th>\n      <th>rate<\/th>\n      <th>adm<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"dom":"t","paging":false,"pageLength":10,"scrollX":true,"ordering":true,"columnDefs":[{"className":"dt-right","targets":[0,1,2,4]},{"name":"cycle","targets":0},{"name":"time","targets":1},{"name":"amt","targets":2},{"name":"route","targets":3},{"name":"rate","targets":4},{"name":"adm","targets":5}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script><div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">dosing</span> <span class="op">&lt;-</span> <span class="va">release</span><span class="op">$</span><span class="va">dosing</span><span class="op">[[</span><span class="va">arm</span><span class="op">]</span><span class="op">]</span></span>
+<code class="sourceCode R"><span><span class="va">dosing</span> <span class="op">&lt;-</span> <span class="va">fingerprint</span><span class="op">$</span><span class="va">dosing</span><span class="op">[[</span><span class="va">arm</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">dosing</span><span class="op">$</span><span class="va">levels</span><span class="op">)</span>, reduction <span class="op">=</span> <span class="va">dosing</span><span class="op">$</span><span class="va">reduction</span>,</span>
 <span>  interruption <span class="op">=</span> <span class="va">dosing</span><span class="op">$</span><span class="va">interruption</span>, discontinuation <span class="op">=</span> <span class="va">dosing</span><span class="op">$</span><span class="va">discontinuation</span><span class="op">)</span></span>
 <span><span class="co">#&gt;          levels       reduction    interruption discontinuation </span></span>
@@ -627,11 +627,11 @@ gets the lower exposure.</p>
 Attendance is drawn visit by visit at generation. The rates, then the
 number of visits, per endpoint:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">rate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">pmax</span>, <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">visits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="va">v</span><span class="op">$</span><span class="va">probability</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">signif</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="va">rate</span>, <span class="va">release</span><span class="op">$</span><span class="va">cells</span><span class="op">$</span><span class="va">endpoint</span>, <span class="va">max</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">rate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">pmax</span>, <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">fingerprint</span><span class="op">$</span><span class="va">visits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="va">v</span><span class="op">$</span><span class="va">probability</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">signif</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="va">rate</span>, <span class="va">fingerprint</span><span class="op">$</span><span class="va">cells</span><span class="op">$</span><span class="va">endpoint</span>, <span class="va">max</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    cp   pca </span></span>
 <span><span class="co">#&gt; 0.551 0.906</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">cells</span><span class="op">$</span><span class="va">endpoint</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">fingerprint</span><span class="op">$</span><span class="va">cells</span><span class="op">$</span><span class="va">endpoint</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;  cp pca </span></span>
 <span><span class="co">#&gt;  14   8</span></span></code></pre></div>
@@ -644,10 +644,10 @@ patients were observed there.</p>
 <p>The shape of the table to generate: its columns and their classes,
 the compartment numbers, and any assay limit per endpoint.</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">release</span><span class="op">$</span><span class="va">schema</span><span class="op">$</span><span class="va">columns</span></span>
+<code class="sourceCode R"><span><span class="va">fingerprint</span><span class="op">$</span><span class="va">schema</span><span class="op">$</span><span class="va">columns</span></span>
 <span><span class="co">#&gt;  [1] "id"    "time"  "ntime" "dv"    "amt"   "evid"  "dvid"  "wt"    "age"  </span></span>
 <span><span class="co">#&gt; [10] "sex"</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">release</span><span class="op">$</span><span class="va">schema</span><span class="op">$</span><span class="va">cmt_obs</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">fingerprint</span><span class="op">$</span><span class="va">schema</span><span class="op">$</span><span class="va">cmt_obs</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NULL</span></span></code></pre></div>
 </div>
 </div>
@@ -655,7 +655,7 @@ the compartment numbers, and any assay limit per endpoint.</p>
 <h2 id="generating-from-it">Generating from it<a class="anchor" aria-label="anchor" href="#generating-from-it"></a>
 </h2>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">release</span>, n_subjects <span class="op">=</span> <span class="fl">32</span>, seed <span class="op">=</span> <span class="fl">7</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">synthetic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synpmx_model_generate.html">synpmx_model_generate</a></span><span class="op">(</span><span class="va">fingerprint</span>, n_subjects <span class="op">=</span> <span class="fl">32</span>, seed <span class="op">=</span> <span class="fl">7</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>rows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">)</span>,</span>
 <span>  subjects <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">synthetic</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  valid <span class="op">=</span> <span class="fu"><a href="../reference/validate_pmx.html">validate_pmx</a></span><span class="op">(</span><span class="va">synthetic</span>, <span class="va">roles</span><span class="op">)</span><span class="op">$</span><span class="va">valid</span><span class="op">)</span></span>

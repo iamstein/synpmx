@@ -1,18 +1,19 @@
 # Privacy checks on a fitted model
 
 Five checks on what a fitted model releases, each with its pass
-criterion. The first three ask whether the release holds anything about
-one patient that it should not: a per-patient table, an identifier, or a
-single patient's value. The fourth recounts the smallest group of
-patients behind each kind of released frequency – arm sizes, attendance,
-dose-change rates, categorical levels, carried values, and the levels
-the schema keeps for factor columns and binary or ordinal endpoints – on
-both sides of it, since "one patient missed this visit" discloses as
-much as "one patient came". The fifth asks how far any one patient moves
-a released estimate, from the individual random effects for the
-population model, from each subject's baseline for the PD shapes, and by
-leaving each patient out for the covariate summaries; by default
-estimation has already left out any patient who moved one by 15 or more.
+criterion. The first three ask whether the fingerprint holds anything
+about one patient that it should not: a per-patient table, an
+identifier, or a single patient's value. The fourth recounts the
+smallest group of patients behind each kind of released frequency – arm
+sizes, attendance, dose-change rates, categorical levels, carried
+values, and the levels the schema keeps for factor columns and binary or
+ordinal endpoints – on both sides of it, since "one patient missed this
+visit" discloses as much as "one patient came". The fifth asks how far
+any one patient moves a released estimate, from the individual random
+effects for the population model, from each subject's baseline for the
+PD shapes, and by leaving each patient out for the covariate summaries;
+by default estimation has already left out any patient who moved one by
+15 or more.
 
 ## Usage
 
@@ -26,10 +27,10 @@ model_privacy_checks(fitted_model)
 
   A `pmx_fitted_model` from
   [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md),
-  or a release from
-  [`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md).
-  A release carries only the verdict of the fifth check; the full fit
-  carries the table behind it.
+  or a fingerprint from
+  [`model_fingerprint()`](https://iamstein.github.io/synpmx/reference/model_fingerprint.md).
+  A fingerprint carries only the verdict of the fifth check; the full
+  fit carries the table behind it.
 
 ## Value
 
@@ -53,6 +54,6 @@ states what each check establishes and what it does not.
 
 ## See also
 
-[`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md),
+[`model_fingerprint()`](https://iamstein.github.io/synpmx/reference/model_fingerprint.md),
 [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md),
 [`synpmx_scorecard()`](https://iamstein.github.io/synpmx/reference/synpmx_scorecard.md).

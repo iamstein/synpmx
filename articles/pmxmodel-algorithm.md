@@ -41,7 +41,7 @@ returns the attempted models and their acceptance results, and
 [`model_parameters()`](https://iamstein.github.io/synpmx/reference/model_parameters.md)
 returns the fixed effects, the between-subject covariance matrix and the
 residual error.
-[`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md)
+[`model_fingerprint()`](https://iamstein.github.io/synpmx/reference/model_fingerprint.md)
 returns the part of the fit that generation reads, which is what
 [`synpmx_model_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_generate.md)
 attaches to its output, and
@@ -799,27 +799,28 @@ Not estimated: the dosing model, a planned schedule per arm with three
 rates pooled over arms, the visit model, arm sizes, the covariate
 distributions, the censoring boundary, the schema and the roles.
 
-**Only the release leaves the study.** The fit also carries diagnostics
-for whoever ran it, such as the AIC of every candidate, the starting
-values and the correlations between covariates and random effects, and
-generation reads none of them.
-[`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md)
+**Only the fingerprint leaves the study.** The fit also carries
+diagnostics for whoever ran it, such as the AIC of every candidate, the
+starting values and the correlations between covariates and random
+effects, and generation reads none of them.
+[`model_fingerprint()`](https://iamstein.github.io/synpmx/reference/model_fingerprint.md)
 returns the part generation reads, and
 [`synpmx_model_generate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_generate.md)
 attaches that to its output rather than the fit. Printing the fit, or
 [`model_report()`](https://iamstein.github.io/synpmx/reference/model_report.md),
 gives the same account;
 [`vignette("pmxmodel-fingerprint")`](https://iamstein.github.io/synpmx/articles/pmxmodel-fingerprint.md)
-lists every number in a release.
+lists every number in a fingerprint.
 
-Four operations protect the release as it is stored, each set out with
-its evidence in the [privacy
+Four operations protect the fingerprint as it is stored, each set out
+with its evidence in the [privacy
 article](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html):
 
 1.  **Rounding.** Every released PK and PD estimate is rounded to one
     significant figure, and the covariate summaries to two. The
     acceptance checks of Step 3 run on the fit before rounding, and the
-    full-precision PK estimates stay on the fit, outside the release.
+    full-precision PK estimates stay on the fit, outside the
+    fingerprint.
 2.  **Single-patient influence.** Estimation reads how far leaving out
     each patient would move each released estimate. A patient who moves
     one by 15 or more (in percent for a typical value, in points of

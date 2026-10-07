@@ -4,7 +4,7 @@ An inventory of everything in a `pmx_fitted_model`, in two halves: what
 the PK and PD fits estimated, and the dosing, visit and covariate models
 that are summaries of the source rather than estimates. Nothing here is
 per-subject. On a
-[`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md)
+[`model_fingerprint()`](https://iamstein.github.io/synpmx/reference/model_fingerprint.md)
 the diagnostics are absent and their sections are not printed.
 
 ## Usage
@@ -19,8 +19,8 @@ model_report(fitted_model)
 
   A `pmx_fitted_model` from
   [`synpmx_model_estimate()`](https://iamstein.github.io/synpmx/reference/synpmx_model_estimate.md),
-  or a release from
-  [`model_release()`](https://iamstein.github.io/synpmx/reference/model_release.md).
+  or a fingerprint from
+  [`model_fingerprint()`](https://iamstein.github.io/synpmx/reference/model_fingerprint.md).
 
 ## Value
 
