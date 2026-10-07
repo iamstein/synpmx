@@ -285,6 +285,24 @@ PD time course already does not, nor over the visits. D1 reads
 `r reading("mad", "D1")`, the variable whose
 synthetic spread sits furthest from the source's.
 
+The continuous PD time course has no exposure term, so the dose ordering of the
+response is lost. The mean response after the last dose, by arm:
+
+```{r mad-pd-by-arm, eval=run}
+late_pd <- function(data, label) {
+  rows <- data$NAME == "PD - Continuous" & data$EVID == 0 &
+    data$TIME > 144 & !is.na(data$LIDV)
+  out <- aggregate(list(mean_pd = data$LIDV[rows]),
+                   list(arm = data$TRTACT[rows]), function(x) signif(mean(x), 3))
+  stats::setNames(out, c("arm", paste0("mean_pd_", label)))
+}
+knitr::kable(merge(late_pd(mad_run$source, "source"),
+                   late_pd(mad_run$synthetic, "synthetic"), by = "arm"))
+```
+
+`pd_by_arm = TRUE` fits the shape within each arm and would keep the ordering
+between arms, without saying anything about exposure within one.
+
 This is also the study that found a defect: a visit where every patient
 recorded the same level of an ordinal endpoint left the draw with a single
 level, and the draw read that level as a count of levels rather than as the
@@ -852,7 +870,7 @@ Not preserved, with the study that shows each:
   ones. Visible on every dataset here.
 - **Exposure-response.** The PD shapes are fitted to the pooled observations
   with no exposure term, so a synthetic patient's arm does not reach their
-  response. `mad` is the worked case in the demo, and `onc_sim` shows why
+  response. `mad` is the worked case, and `onc_sim` shows why
   it matters for an exposure-driven tumour response.
 - **When patients missed visits or responded, and differences between arms.**
   Attendance is one rate per endpoint, a binary or ordinal endpoint one set of
@@ -889,3 +907,5 @@ Not preserved, with the study that shows each:
   and
   [Evaluating AVATAR on public data](https://iamstein.github.io/synpmx/articles/avatar-public-data-examples.html)
   — the same eight studies through the other two generators.
+- [Privacy protections in the PMX model generator](https://iamstein.github.io/synpmx/articles/pmxmodel-privacy.html)
+  — the privacy checks on each of these fits.

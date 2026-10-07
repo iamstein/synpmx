@@ -44,6 +44,127 @@ show <- function(x, caption = NULL, paged = FALSE) {
                    pageLength = 10, scrollX = TRUE, ordering = TRUE)
   )
 }
+
+# Every number in a release that was estimated from patients, one row each. A
+# rate pooled over the arms is listed in the release once per arm and appears
+# here once. The planned dose schedule is the protocol, and is counted apart by
+# `planned_cycles()`.
+per_drug <- function(entry) if (!is.null(entry$planned)) list(entry) else entry
+fingerprint_items <- function(release) {
+  rows <- list()
+  add <- function(model, endpoint, parameter, value) {
+    rows[[length(rows) + 1L]] <<- data.frame(
+      model = model, endpoint = endpoint, parameter = parameter,
+      value = signif(as.numeric(value), 3), stringsAsFactors = FALSE)
+  }
+  residual <- function(model, endpoint, r) {
+    if (!is.null(r$cv)) add(model, endpoint, "residual error (CV)", r$cv)
+    else add(model, endpoint, "residual error (SD)", r$sd)
+  }
+  for (endpoint in names(release$pk_models)) {
+    p <- release$pk_models[[endpoint]]$parameters
+    for (name in names(p$fixed)) {
+      add("PK", endpoint, paste("typical", name), p$fixed[[name]])
+    }
+    for (name in rownames(p$omega)) {
+      add("PK", endpoint, paste("between-subject variance,", name),
+          p$omega[name, name])
+    }
+    residual("PK", endpoint, p$residual)
+  }
+  shape <- function(label, s) {
+    for (name in names(s$typical)) add("PD", label, name, s$typical[[name]])
+    add("PD", label, "between-subject CV of the baseline", s$baseline_cv)
+    residual("PD", label, s$residual)
+  }
+  for (endpoint in names(release$pd)) {
+    s <- release$pd[[endpoint]]
+    if (length(s$arms)) {
+      for (arm in names(s$arms)) shape(paste0(endpoint, " (", arm, ")"),
+                                       s$arms[[arm]])
+    } else {
+      shape(endpoint, s)
+    }
+  }
+  for (name in names(release$covariates)) {
+    c <- release$covariates[[name]]
+    if (c$kind == "lognormal") {
+      add("Covariates", name, "mean of log", c$meanlog)
+      add("Covariates", name, "SD of log", c$sdlog)
+    } else if (c$kind == "normal") {
+      add("Covariates", name, "mean", c$mean)
+      add("Covariates", name, "SD", c$sd)
+    } else if (c$kind == "categorical") {
+      for (i in seq_along(c$levels)[-1L]) {
+        add("Covariates", name, paste("share", c$levels[[i]]),
+            c$probability[[i]])
+      }
+    }
+  }
+  seen <- character()
+  for (entry in release$dosing) {
+    drugs <- per_drug(entry)
+    for (drug in seq_along(drugs)) {
+      d <- drugs[[drug]]
+      key <- paste(names(drugs)[drug], d$reduction, d$interruption,
+                   d$discontinuation, paste(d$levels, collapse = "/"))
+      if (key %in% seen) next
+      seen <- c(seen, key)
+      label <- if (is.null(names(drugs))) "all arms" else names(drugs)[[drug]]
+      add("Dose changes", label, "reduction rate", d$reduction)
+      add("Dose changes", label, "interruption rate", d$interruption)
+      add("Dose changes", label, "discontinuation rate", d$discontinuation)
+      for (level in d$levels[-1L]) {
+        add("Dose changes", label, "reduced dose, fraction of starting", level)
+      }
+    }
+  }
+  # One rate per endpoint, listed at each of its visits in each arm. A rate of
+  # 1 says every patient attended and is not counted.
+  seen <- character()
+  for (v in release$visits) {
+    p <- as.numeric(v$probability)
+    for (i in which(p > 0 & p < 1)) {
+      key <- paste(release$cells$endpoint[[i]], p[[i]])
+      if (key %in% seen) next
+      seen <- c(seen, key)
+      add("Missed visits", release$cells$endpoint[[i]], "attendance rate",
+          p[[i]])
+    }
+  }
+  seen <- list()
+  for (arm in release$discrete) {
+    for (i in seq_along(arm)) {
+      m <- arm[[i]]
+      if (is.null(m) || any(vapply(seen, identical, logical(1), m))) next
+      seen[[length(seen) + 1L]] <- m
+      for (j in seq_along(m$levels)[-1L]) {
+        add("Discrete endpoints", release$cells$endpoint[[i]],
+            paste("share", m$levels[[j]]), m$probability[[j]])
+      }
+    }
+  }
+  for (arm in names(release$arms$sizes)) {
+    add("Arms and floors", arm, "patients in the arm", release$arms$sizes[[arm]])
+  }
+  add("Arms and floors", "all", "patients in the cohort", release$n_source)
+  for (endpoint in names(release$quantification_floor)) {
+    floor <- release$quantification_floor[[endpoint]]
+    if (!is.null(floor)) add("Arms and floors", endpoint, "lowest value generated", floor)
+  }
+  for (weight in unique(unlist(lapply(release$covariate_effects,
+                                      function(e) e$reference)))) {
+    add("Arms and floors", "all", "reference weight", weight)
+  }
+  do.call(rbind, rows)
+}
+planned_cycles <- function(release) {
+  sum(vapply(release$dosing, function(entry) {
+    sum(vapply(per_drug(entry), function(d) nrow(d$planned), numeric(1)))
+  }, numeric(1)))
+}
+models <- c("PK", "PD", "Covariates", "Dose changes", "Missed visits",
+            "Discrete endpoints", "Arms and floors")
 ```
 
 A study's **fingerprint** is the set of numbers a synthetic study is generated
@@ -97,24 +218,76 @@ setdiff(names(fit), names(release))  # diagnostics that stay with the fit
 model_report(fit)
 ```
 
-## The PK model
+## Every Number in the Fingerprint
 
-### Which endpoint is the concentration
+`warfarin` has one PK endpoint, fitted a two-compartment oral model, and one PD
+endpoint, which makes it a typical small study. Each row below is one number
+in its fingerprint that was estimated from patients, and `model` says which
+part of the fingerprint it belongs to:
 
-The fit decides which endpoint is the drug concentration from four signals:
-whether it is observed in a dosing compartment, whether it appears only after
-dosing, whether its median profile rises and falls, and whether it scales with
-dose. This is a diagnostic rather than part of the fingerprint, but everything
-in the PK model depends on it.
+- **PK**: the population PK model, a typical value and a between-subject
+  variance per parameter and one residual error.
+- **PD**: each PD endpoint's time course, its shape parameters, the spread of
+  the patients' baselines and a residual error.
+- **Covariates**: a trimmed mean and SD per continuous covariate, and one
+  fewer share than levels per categorical one.
+- **Dose changes**: the rates of reducing, skipping and stopping, pooled over
+  the arms, and each reduced dose level as a fraction of the starting dose.
+- **Missed visits**: one attendance rate per endpoint. An endpoint every
+  patient attended at every visit has a rate of 1 and is not listed.
+- **Discrete endpoints**: one fewer level share than levels for each binary or
+  ordinal endpoint.
+- **Arms and floors**: the size of each arm and of the cohort, the lowest value
+  generated for each endpoint without a declared assay limit, and the reference
+  weight where body-weight scaling was requested.
 
-```{r signals, eval=run}
-fit$endpoints$signals
-fit$design$reason
+```{r items, eval=run}
+items <- fingerprint_items(release)
+show(items, "Every estimated number in the warfarin fingerprint", paged = TRUE)
 ```
 
-`proportional` is `NA` because `warfarin` is dosed by body weight, so there are
-no dose levels to compare and the other three signals decide.
-`endpoint_roles` in `synpmx_model_estimate()` overrides the decision.
+```{r item-counts, eval=run}
+counts <- table(factor(items$model, levels = models))
+c(counts, total = sum(counts), `planned cycles (protocol)` =
+    planned_cycles(release))
+```
+
+The planned dose times and amounts are the protocol rather than estimates,
+and are counted apart. So are the nominal visit grid and the description of the
+table to generate, which are not counted.
+
+### Across the Public Studies {#parameter-counts}
+
+The same count for the stored fit of each study in the
+[public-data evaluation](https://iamstein.github.io/synpmx/articles/pmxmodel-public-data-examples.html).
+A study with more endpoints, arms or dose levels has more rows, and a PD shape
+fitted per arm under `pd_by_arm = TRUE` counts once per arm.
+
+```{r public-counts, eval=run, echo=FALSE}
+studies <- c(warfarin = "warfarin-model-fit.rds",
+             theo_md = "theo-md-model-fit.rds",
+             mad = "mad-model-fit.rds",
+             case1_pkpd = "case1-pkpd-model-fit.rds",
+             wbcSim = "wbcsim-model-fit.rds",
+             mavoglurant = "mavoglurant-model-fit.rds",
+             nimoData = "nimo-model-fit.rds",
+             pheno_sd = "pheno-model-fit.rds",
+             mixroute_sim = "mixroute-sim-model-fit.rds",
+             onc_sim = "onc-sim-model-fit.rds")
+counted <- do.call(rbind, lapply(names(studies), function(study) {
+  path <- system.file("extdata", studies[[study]], package = "synpmx")
+  if (!nzchar(path)) return(NULL)
+  one <- model_release(readRDS(path))
+  n <- table(factor(fingerprint_items(one)$model, levels = models))
+  data.frame(study = study, patients = one$n_source, t(as.integer(n)),
+             total = sum(n), `planned cycles (protocol)` = planned_cycles(one),
+             check.names = FALSE)
+}))
+names(counted)[3:(2 + length(models))] <- models
+knitr::kable(counted, row.names = FALSE)
+```
+
+## The PK model
 
 ### Structural model
 

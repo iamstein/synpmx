@@ -94,7 +94,7 @@ DP limits how much any one person's data can change what is released, whatever e
 
 For a Phase 1 study (12-60 patients), a DP guarantee would require adding so much noise to the synthetic dataset that it would no longer meaningfully resemble the clinical data. Moreover, the DP guarantee would be protecting the data from an attacker that the use does not face. That use is synthetic data for developing analysis code, shared with people who work under the study's own access controls or an agreement like them. The case rests on three points:
 
-1.  **The release holds what the study's own reports ultimately make public, more coarsely.** A population PK report gives each typical value, its between-subject variability and the residual error, with their standard errors, and regulators ask for exactly that [11, 12]. The study's main publication gives each arm's baseline characteristics and how many patients discontinued [13]. This release holds the same kinds of number at one significant figure, pooled over the arms and the visits, without standard errors, and a few dozen at most ([Released Parameters at a Glance](#released-parameters-at-a-glance)).
+1.  **The release holds what the study's own reports ultimately make public, more coarsely.** A population PK report gives each typical value, its between-subject variability and the residual error, with their standard errors, and regulators ask for exactly that [11, 12]. The study's main publication gives each arm's baseline characteristics and how many patients discontinued [13]. This release holds the same kinds of number at one significant figure, pooled over the arms and the visits, without standard errors, and a few dozen at most ([counted per public study](https://iamstein.github.io/synpmx/articles/pmxmodel-fingerprint.html#parameter-counts)).
 2.  **Any attacker already holds the answer they are seeking.** Membership inference needs the candidate's own measurements to assess whether that candidate was in the study; measurements such as concentrations, visit attendance, and dose changes. Outside the company sponsoring the study, this information exists only at the sites and in routine care of the patient. Thus whoever holds a candidate's trial record knows the candidate was in the trial, and learning it again from the release discloses nothing.
 3.  **DP at small cohort sizes replaces the study with noise**, as [the appendix](#dp-noise-small-study) computes, and for this use noise is worse than no data. The [calibrated generator's evaluation](https://iamstein.github.io/synpmx/articles/calibrated-public-data-examples.html) finds a DP release at phase 1 sizes worse than generating from a public prior, which reads nothing.
 
@@ -106,11 +106,11 @@ A population PK/PD model is a short list of numbers: a **typical value** for eac
 
 The generator also summarizes the study as it was carried out: the number of patients in each treatment group (**arm**), each arm's planned dose schedule, how often doses were reduced, skipped or stopped, the share of scheduled visits attended for each kind of measurement, the distribution of each baseline covariate such as body weight, age or sex, and how often each level of a yes/no or graded endpoint was recorded. Each of these is one set of numbers for the whole study, pooled over the arms and the visits.
 
-These numbers are the **release**, and they are all that leaves the environment that holds the study. Synthetic data is simulated from the release and random numbers alone, so it discloses nothing the release does not. The release is the study's fingerprint, and [The PMX model study fingerprint](https://iamstein.github.io/synpmx/articles/pmxmodel-fingerprint.html) walks through one field by field. [Released Parameters at a Glance](#released-parameters-at-a-glance) counts the numbers in each public study's release.
+These numbers are the **release**, and they are all that leaves the environment that holds the study. Synthetic data is simulated from the release and random numbers alone, so it discloses nothing the release does not. The release is the study's fingerprint. [The PMX model study fingerprint](https://iamstein.github.io/synpmx/articles/pmxmodel-fingerprint.html) lists every number in one and counts them for each public study.
 
 ### What Is Protected, and What Is Not
 
-**✅ No patient record, identifier or per-patient estimate leaves the study.** The release holds numbers about the population and about arms. Each patient's estimated random effects are used during estimation and dropped from the release, and synthetic subject IDs are new numbers that cannot collide with real ones.
+**✅ No patient record, identifier or per-patient estimate leaves the study.** The release holds numbers about the population and about arms. Each patient's estimated random effects are used during estimation and dropped from the release, and synthetic subject IDs are new numbers that cannot collide with real ones. `model_release()` builds the release from an allowlist of the fields generation reads, so the diagnostics on the fit, and any field added to it later, stay behind.
 
 **✅ No released number is one patient's value, and every released frequency rests on at least three patients.** A few settings the generator needs (the lowest value it generates, the reference weight for body-weight scaling, a planned dose where doses varied) are computed so that no single patient decides them, rather than taken as half the smallest measurement, the median weight or the most common dose. Each frequency counts the patients who had something and those who did not: an attendance rate of 30 in 32 also describes the 2 who missed. A frequency is released only where both groups hold no patients or at least three.
 
@@ -139,7 +139,10 @@ If only one or two patients in a study missed a visit or had a dose reduced, any
 
 - an arm, visit, dose level or planned cycle is kept only where at least three patients reached it;
 - an attendance rate is set to 1, and a dose-change rate to 0, where fewer than three patients missed a visit or changed a dose;
-- a category level, of a covariate or of a graded endpoint, held by fewer than three patients is folded into the most common level.
+- a category level, of a covariate or of a graded endpoint, held by fewer than three patients is folded into the most common level, and is not written into the description of the table to generate;
+- a value copied onto an arm from a `keep` column, held by fewer than three of the arm's patients, is written as missing.
+
+The two thresholds are `min_arm_patients` and `min_category_patients`, both 3 by default.
 
 The threshold stops a frequency from singling out one or two patients. It does not stop membership inference, which adds up small signals across many frequencies. Pooling is what weakens that: attendance is one rate per endpoint, the dose-change rates are three, and a graded endpoint is one set of level frequencies, each pooled over the arms and the visits.
 
@@ -155,7 +158,7 @@ Every released PK and PD estimate is rounded to one significant figure; covariat
 
 For each released estimate, estimation measures how far it would move if each patient in turn were left out. This is *local sensitivity*, the study-specific version of DP's sensitivity [1], and in regression the same idea is Cook's distance [5]. How the move is measured depends on the estimate:
 
-- **PK parameters** are approximated from each patient's random effects, without refitting the population model.
+- **PK parameters** are approximated from each patient's random effects $\eta_i$, without refitting the population model. A typical value on the log scale sits close to the mean of the patients' individual log parameters, so leaving out patient $i$ moves it by about $\eta_i/(n-1)$. A between-subject variance sits close to the mean of the squared random effects, so leaving out patient $i$ scales it by $\frac{(S-\eta_i^2)/(n-1)}{S/n}$, with $S=\sum_j \eta_j^2$. Shrinkage pulls every random effect toward zero and makes this reading understate the move, so it is reported beside it.
 - **The PD baseline and its between-subject spread, and the covariate summaries**, are recomputed exactly with the patient left out.
 - **The other PD shape parameters** (a slope, or a plateau and a rate) are refitted with the patient left out, which takes milliseconds because the PD time courses are simple least-squares curves.
 
@@ -346,86 +349,6 @@ The ways a release can still disclose something about a patient, most serious fi
 - **The influence reading is approximate, and its thresholds are empirical.** They were set so that ordinary patients pass and a gross data error fails, not derived from a privacy target. Shrinkage makes it understate a patient's effect on a PK parameter, and the residual errors and a PK parameter without between-subject variability are not read.
 - **The full fit and the estimation log are not safe to share.** The fit holds diagnostics the release does not, and the console names patients left out. Share the release or the synthetic data only.
 - **Rarity in the world is not measured.** A covariate level many patients in this study hold can still identify someone if few people hold it.
-
-## Released Parameters at a Glance {#released-parameters-at-a-glance}
-
-Every number in a release that was estimated from patients, counted once, for the stored fit of each public study. A rate pooled over the arms is listed in the release once per arm and counts once here, and the planned dose schedule, which is the protocol, is counted apart.
-
-```{r parameters, eval=run}
-# An arm's dosing model, or one per drug where the study declared which doses
-# drive which endpoint.
-per_drug <- function(entry) if (!is.null(entry$planned)) list(entry) else entry
-parameter_count <- function(release) {
-  arms <- names(release$arms$sizes)
-  shape <- function(s) length(s$typical) + 2
-  rates <- unique(unlist(lapply(release$dosing, function(entry) {
-    lapply(per_drug(entry), function(d) {
-      paste(d$reduction, d$interruption, d$discontinuation,
-            paste(d$levels, collapse = "/"))
-    })
-  })))
-  # One rate per endpoint, listed at each of its visits in each arm.
-  attendance <- unique(unlist(lapply(release$visits, function(v) {
-    p <- as.numeric(v$probability)
-    paste(release$cells$endpoint, p)[p > 0 & p < 1]
-  })))
-  marginals <- unique(Filter(Negate(is.null),
-                             unlist(release$discrete, recursive = FALSE)))
-  counts <- c(
-    `PK model` = sum(vapply(release$pk_models, function(m) {
-      length(m$parameters$fixed) + nrow(m$parameters$omega) + 1
-    }, numeric(1))),
-    `PD time courses` = sum(vapply(release$pd, function(s) {
-      if (length(s$arms)) sum(vapply(s$arms, shape, numeric(1))) else shape(s)
-    }, numeric(1))),
-    covariates = sum(vapply(release$covariates, function(c) {
-      switch(c$kind, lognormal = 2, normal = 2,
-             categorical = length(c$levels) - 1, 0)
-    }, numeric(1))),
-    `dose changes` = sum(vapply(strsplit(rates, " "), function(r) {
-      3 + length(strsplit(r[[4]], "/")[[1]]) - 1
-    }, numeric(1))),
-    attendance = length(attendance),
-    `discrete endpoints` = sum(vapply(marginals, function(m) {
-      max(0, length(m$levels) - 1)
-    }, numeric(1))),
-    `counts and floors` = length(arms) + 1 +
-      length(release$quantification_floor) +
-      length(unique(unlist(lapply(release$covariate_effects,
-                                  function(e) e$reference)))))
-  c(counts, total = sum(counts),
-    `planned cycles (protocol)` = sum(vapply(release$dosing, function(entry) {
-      sum(vapply(per_drug(entry), function(d) nrow(d$planned), numeric(1)))
-    }, numeric(1))))
-}
-studies <- c(warfarin = "warfarin-model-fit.rds",
-             theo_md = "theo-md-model-fit.rds",
-             mad = "mad-model-fit.rds",
-             case1_pkpd = "case1-pkpd-model-fit.rds",
-             wbcSim = "wbcsim-model-fit.rds",
-             mavoglurant = "mavoglurant-model-fit.rds",
-             nimoData = "nimo-model-fit.rds",
-             pheno_sd = "pheno-model-fit.rds",
-             mixroute_sim = "mixroute-sim-model-fit.rds",
-             onc_sim = "onc-sim-model-fit.rds")
-counted <- do.call(rbind, lapply(names(studies), function(study) {
-  release <- model_release(stored_fit(studies[[study]]))
-  data.frame(study = study, patients = release$n_source,
-             t(parameter_count(release)), check.names = FALSE)
-}))
-knitr::kable(counted, row.names = FALSE)
-```
-
-What each column holds:
-
-- **PK model**: a typical value and a between-subject variance for each PK parameter, and one residual error: 11 numbers for the five parameters of a two-compartment oral model. A parameter fitted without between-subject variability, such as a bioavailability, adds its typical value alone.
-- **PD time courses**: for each other continuous endpoint, one to three shape parameters, the spread of the patients' baselines, and a residual error.
-- **Covariates**: a trimmed mean and SD for each continuous covariate, and one fewer frequency than levels for each categorical one.
-- **Dose changes**: the three pooled rates of reducing, skipping and stopping, and each level of the dose ladder below the full dose, a fraction of the starting dose to one significant figure.
-- **Attendance**: one rate per endpoint, and none for an endpoint whose rate is 1, as where every patient was observed at every visit of it their arm had.
-- **Discrete endpoints**: one fewer level frequency than levels, for each binary or ordinal endpoint.
-- **Counts and floors**: the size of each arm and of the cohort, an emission floor for each endpoint without a declared assay limit, and the reference weight where body-weight scaling was requested.
-- **Planned cycles**: each arm's planned dose times and amounts, which are the protocol rather than estimates. The nominal visit grid and the description of the table to generate are the protocol too, and are not counted.
 
 ## Appendix: Membership Inference Against the Release {#membership-inference-against-the-release}
 
