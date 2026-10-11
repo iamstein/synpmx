@@ -141,14 +141,14 @@
 <code><a href="reference/synpmx_pca.html">synpmx_pca()</a></code> — Principal component analysis from vector of all observations and covariates. Uses model to simulate any dose changes and missed visits.</li>
 </ol>
 <p>These three methods all impute assay LOQ, and each takes a declaration of what the dataset columns mean. The roles of <code>id</code>, <code>time</code>, <code>nominal_time</code>, <code>dv</code>, <code>evid</code> are generally required.</p>
-<p>The other two methods assert a public structural model instead, and cover the case where data crosses a trust boundary and more formal privacy protections are needed:</p>
+<p>Two additional methods assert a public structural model instead, and cover the case where data crosses a trust boundary and more formal privacy protections are needed:</p>
 <ol start="4" style="list-style-type: decimal">
 <li>
 <code><a href="reference/synpmx_prior.html">synpmx_prior()</a></code> — Simulates a public model and a public protocol. Reads no data at all.</li>
 <li>
 <code><a href="reference/synpmx_calibrated.html">synpmx_calibrated()</a></code> — Keeps the public model’s shape, and spends a small privacy budget correcting its magnitude.</li>
 </ol>
-<p>A sixth generator, <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code>, measures the trajectory shape rather than basing it off a prior, but it is not yet developed further. All the methods are discussed further in <a href="https://iamstein.github.io/synpmx/articles/synpmx-methods.html">synpmx-methods</a>.</p>
+<p>A final method, <code><a href="reference/synpmx_empirical.html">synpmx_empirical()</a></code>, measures the trajectory shape rather than basing it off a prior, but it is not yet developed further. All the methods are discussed further in <a href="https://iamstein.github.io/synpmx/articles/synpmx-methods.html">synpmx-methods</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="example-using-a-poppk--pd-model-fit">Example using a PopPK + PD model fit<a class="anchor" aria-label="anchor" href="#example-using-a-poppk--pd-model-fit"></a>

@@ -59,7 +59,7 @@ These three methods all impute assay LOQ, and each takes a declaration
 of what the dataset columns mean. The roles of `id`, `time`,
 `nominal_time`, `dv`, `evid` are generally required.
 
-The other two methods assert a public structural model instead, and
+Two additional methods assert a public structural model instead, and
 cover the case where data crosses a trust boundary and more formal
 privacy protections are needed:
 
@@ -70,7 +70,7 @@ privacy protections are needed:
     — Keeps the public model’s shape, and spends a small privacy budget
     correcting its magnitude.
 
-A sixth generator,
+A final method,
 [`synpmx_empirical()`](https://iamstein.github.io/synpmx/reference/synpmx_empirical.md),
 measures the trajectory shape rather than basing it off a prior, but it
 is not yet developed further. All the methods are discussed further in
