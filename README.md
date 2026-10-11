@@ -37,14 +37,14 @@ Five generators build a synthetic dataset.  The first three read a study and bui
 These three methods all impute assay LOQ, and each takes a declaration of what the dataset columns mean. 
 The roles of `id`, `time`, `nominal_time`, `dv`, `evid` are generally required.
 
-The other two methods assert a public structural model instead, and cover the case where data crosses
+Two additional methods assert a public structural model instead, and cover the case where data crosses
 a trust boundary and more formal privacy protections are needed:
 
 4. `synpmx_prior()` — Simulates a public model and a public protocol.  Reads no data at all.
 5. `synpmx_calibrated()` — Keeps the public model's shape, and spends a small privacy budget
    correcting its magnitude.
 
-A sixth generator, `synpmx_empirical()`, measures the trajectory shape rather than basing it off a prior, but it is not yet developed further.  All the methods are discussed further in [synpmx-methods](https://iamstein.github.io/synpmx/articles/synpmx-methods.html).
+A final method, `synpmx_empirical()`, measures the trajectory shape rather than basing it off a prior, but it is not yet developed further.  All the methods are discussed further in [synpmx-methods](https://iamstein.github.io/synpmx/articles/synpmx-methods.html).
 
 ## Example using a PopPK + PD model fit
 
