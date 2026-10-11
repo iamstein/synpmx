@@ -100,7 +100,7 @@ noise.
 
 dp_backend_status()
 #>   backend available version production
-#> 1  OpenDP      TRUE  0.15.1       TRUE
+#> 1  OpenDP      TRUE  0.16.0       TRUE
 ```
 
 ## Step 3: Reduce Each Subject to One Bounded Correction

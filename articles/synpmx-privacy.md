@@ -312,7 +312,7 @@ mechanism:
 
 dp_backend_status()
 #>   backend available version production
-#> 1  OpenDP      TRUE  0.15.1       TRUE
+#> 1  OpenDP      TRUE  0.16.0       TRUE
 ```
 
 ### The unaudited status is enforced, not just documented

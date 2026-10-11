@@ -16,8 +16,9 @@ sampling, censoring, and drop-out pattern. You’ll use this data to
 develop code for data processing, diagnostics, and model building
 outside the environment that holds the real study.
 
-**✅ Teaching tool for comparing synthetic data methods (Yes).**
-Illustrate the difference between synthetic data generation methods.
+**✅ Teaching tool for comparing synthetic data methods (Additional Use
+Case).** Illustrate the difference between synthetic data generation
+methods.
 
 **⚠️ Send data past a trust boundary (Use Caution).** If the output will
 reach people who cannot see the real data: a partner, a publication, a

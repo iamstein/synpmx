@@ -611,7 +611,7 @@ calibrated <- synpmx_calibrated(
 
 dp_backend_status()
 #>   backend available version production
-#> 1  OpenDP      TRUE  0.15.1       TRUE
+#> 1  OpenDP      TRUE  0.16.0       TRUE
 ```
 
 At 12 subjects a genuine DP release of this correction is noisy enough
