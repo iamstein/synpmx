@@ -55,13 +55,13 @@ and build from it:
     covariates. Uses model to simulate any dose changes and missed
     visits.
 
-These three all impute assay LOQ, and each takes a declaration of what
-the dataset columns mean. The roles of `id`, `time`, `nominal_time`,
-`dv`, `evid` are generally required.
+These three methods all impute assay LOQ, and each takes a declaration
+of what the dataset columns mean. The roles of `id`, `time`,
+`nominal_time`, `dv`, `evid` are generally required.
 
-The other two assert a public structural model instead, and cover the
-case where data crosses a trust boundary and more formal privacy
-protections are needed:
+The other two methods assert a public structural model instead, and
+cover the case where data crosses a trust boundary and more formal
+privacy protections are needed:
 
 4.  [`synpmx_prior()`](https://iamstein.github.io/synpmx/reference/synpmx_prior.md)
     — Simulates a public model and a public protocol. Reads no data at
@@ -126,8 +126,8 @@ well as the frequency of dose changes and missed visits.
 The fit also holds diagnostics for whoever ran it, such as the candidate
 models and their AIC.
 [`model_fingerprint()`](https://iamstein.github.io/synpmx/reference/model_fingerprint.md)
-keeps only what generation reads, and the fingerprint is what should
-leave the environment that holds the study.
+keeps only what the synthetic data generator reads; the fingerprint is
+what should leave the environment that holds the study data.
 
 ``` r
 
@@ -170,19 +170,6 @@ install from the file.
 ``` r
 
 install.packages("synpmx-main.tar.gz", repos = NULL, type = "source")
-```
-
-Fitting a population model is done by `nlmixr2est`, which `synpmx`
-requires and which installs alongside it. That fit compiles, so the
-example above needs a working C++ toolchain. It first fits two
-compartments and falls back to one if the fit fails convergence or
-generation checks.
-`synpmx_model_estimate(study, roles, seed = 2026, pk = "1cmt_oral")`
-requests one compartment directly. The example’s data comes from `xgxr`:
-
-``` r
-
-install.packages("xgxr")
 ```
 
 The Data Privacy methods additionally require the official [OpenDP R
